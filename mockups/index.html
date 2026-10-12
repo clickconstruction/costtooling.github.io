@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CostTooling — every screen</title>
+<link rel="icon" href="../icons/icon.svg" type="image/svg+xml">
+<style>
+  :root { --ink:#161617; --yellow:#e8c547; --paper:#f6f5f1; --line:#e2dfd6; --muted:#6b6a66; --blue:#003366; }
+  * { box-sizing:border-box; } body { margin:0; background:#ecebe6; color:var(--ink); font:15px/1.45 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  .page { max-width:1500px; margin:0 auto; padding:28px 20px 60px; }
+  h1 { font-size:24px; margin:0 0 4px; } .lede { color:var(--muted); margin:0 0 6px; max-width:80ch; }
+  .back { display:inline-block; margin:6px 0 22px; background:var(--ink); color:var(--yellow); padding:8px 14px; border-radius:8px; text-decoration:none; font-weight:600; font-size:13px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:22px 18px; }
+  figure { margin:0; } figure a { display:block; border-radius:26px; overflow:hidden; border:6px solid #1d1d1f; background:#1d1d1f; box-shadow:0 14px 30px rgba(0,0,0,.18); }
+  figure img { display:block; width:100%; height:auto; }
+  figcaption { margin:10px 4px 0; font-size:13px; } figcaption b { display:block; font-size:14px; } figcaption span { color:var(--muted); }
+</style></head>
+<body><div class="page">
+  <h1>CostTooling — every screen</h1>
+  <p class="lede">Thirteen states of the prototype, captured at phone size. Click one to open that screen in the live prototype.</p>
+  <a class="back" href="../">← Open the prototype</a>
+  <div class="grid">
+    <figure><a href="../?s=projects"><img src="screens/01-projects.png" alt="Projects list"></a><figcaption><b>Projects</b><span>Each job with percent complete, cost to finish and days left.</span></figcaption></figure>
+    <figure><a href="../?s=newproj"><img src="screens/02-new-project.png" alt="New project"></a><figcaption><b>New project</b><span>Name, client, dates, contract, and a template of line items.</span></figcaption></figure>
+    <figure><a href="../?s=home"><img src="screens/03-home.png" alt="Project home"></a><figcaption><b>Project home</b><span>Four headline numbers, four common actions, latest photos, mini schedule.</span></figcaption></figure>
+    <figure><a href="../?s=log"><img src="screens/04-log.png" alt="Site log"></a><figcaption><b>Site log</b><span>Dated photo entries with notes, conditions and line item.</span></figcaption></figure>
+    <figure><a href="../?s=log&new=1"><img src="screens/05-log-new-entry.png" alt="New log entry"></a><figcaption><b>New entry</b><span>Camera or photos she was texted; conditions pre-filled from the weather.</span></figcaption></figure>
+    <figure><a href="../?s=photo"><img src="screens/06-photo.png" alt="Photo detail"></a><figcaption><b>Photo detail</b><span>Full photo, note, line item, conditions, and "use on cover".</span></figcaption></figure>
+    <figure><a href="../?s=cover"><img src="screens/07-cover.png" alt="Cover page"></a><figcaption><b>Cover page maker</b><span>Live preview; numbers from the schedule or typed in. Save to Photos works.</span></figcaption></figure>
+    <figure><a href="../?s=cover&layout=grid"><img src="screens/08-cover-grid.png" alt="Cover page, 2 by 2 layout"></a><figcaption><b>Cover page, 2 × 2</b><span>Same photos, grid layout.</span></figcaption></figure>
+    <figure><a href="../?s=sov"><img src="screens/09-progress.png" alt="Progress"></a><figcaption><b>Progress</b><span>One slider per line item; earned value, cost and forecast recalculate.</span></figcaption></figure>
+    <figure><a href="../?s=sov&m=gantt"><img src="screens/10-schedule.png" alt="Schedule"></a><figcaption><b>Schedule</b><span>Gantt from the same line items, today line, finish forecast from pace.</span></figcaption></figure>
+    <figure><a href="../?s=item"><img src="screens/11-line-item.png" alt="Line item"></a><figcaption><b>Line item</b><span>Budget, progress, costs logged against it, tagged photos.</span></figcaption></figure>
+    <figure><a href="../?s=report"><img src="screens/12-report.png" alt="Report"></a><figcaption><b>Report</b><span>The one page to hand to an owner, lender or inspector.</span></figcaption></figure>
+    <figure><a href="../?s=report&sheet=report"><img src="screens/13-share-sheet.png" alt="Share sheet"></a><figcaption><b>Share</b><span>Message, email, image or PDF.</span></figcaption></figure>
+    <figure><a href="../?welcome=1"><img src="screens/14-welcome.png" alt="Welcome card"></a><figcaption><b>Welcome</b><span>First-open card explaining it's a prototype.</span></figcaption></figure>
+    <figure><a href="../?s=cover&ideas=1"><img src="screens/15-ideas.png" alt="Idea sheet"></a><figcaption><b>Ideas</b><span>The yellow bulb: feature requests tagged with the screen, emailed in one tap.</span></figcaption></figure>
+  </div>
+</div></body></html>

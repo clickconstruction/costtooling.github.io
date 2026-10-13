@@ -105,9 +105,13 @@ const Cloud = (() => {
       if (dirty.length || sync.deleted.length) setStatus('syncing');
       for (const p of dirty) {
         p.companyId = companyId;
-        const { error } = await sb.from('ct_projects').upsert({ id: p.id, company_id: companyId, name: p.name || null, data: p, updated_at: new Date().toISOString(), updated_by: user.id, deleted_at: null });
+        // Hash and snapshot before the network call: if the user edits the
+        // project while the upsert is in flight, the edit stays dirty and goes
+        // up on the next push instead of being marked synced by mistake.
+        const h = hash(p), snapshot = JSON.parse(JSON.stringify(p));
+        const { error } = await sb.from('ct_projects').upsert({ id: p.id, company_id: companyId, name: snapshot.name || null, data: snapshot, updated_at: new Date().toISOString(), updated_by: user.id, deleted_at: null });
         if (error) throw error;
-        sync.synced[p.id] = hash(p); saveSync();
+        sync.synced[p.id] = h; saveSync();
       }
       if (dirty.length) DB.save(S);
       for (const id of sync.deleted.slice()) { const { error } = await sb.from('ct_projects').update({ deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', id); if (error && !/0 rows/.test(error.message)) throw error; sync.deleted = sync.deleted.filter(x => x !== id); saveSync(); }
@@ -115,6 +119,8 @@ const Cloud = (() => {
       setStatus('synced', 'Saved to the cloud ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }));
     } catch (e) { console.warn('push', e); setStatus('error', navigator.onLine ? (e.message || 'Could not save to the cloud') : 'Offline. Will save when back online.'); }
     finally { pushing = false; }
+    // Anything edited while we were pushing goes up on the next tick.
+    if (signedIn() && companyId && (App.state().projects.some(p => syncable(p) && hash(p) !== sync.synced[p.id]) || sync.deleted.length)) schedulePush();
   }
   async function uploadPhotos(S) {
     const ids = []; S.projects.filter(syncable).forEach(p => p.entries.forEach(e => e.photos.forEach(ph => { if (ph.id && !sync.uploaded[ph.id]) ids.push(ph.id); })));
@@ -219,7 +225,7 @@ const Cloud = (() => {
     else if (s === 'team') renderTeam(body);
   }
 
-  async function renderTeam(body) {
+  async function renderTeam(body, msg = '') {
     const co = company(); if (!co || !isAdmin()) { body.innerHTML = `<div class="empty">${ic('users', 36)}Only company admins can manage the team.</div>`; return; }
     body.innerHTML = `<div class="card"><h3>${esc(co.name)} <small>loading…</small></h3></div>`;
     const [{ data: members, error: mErr }, { data: invites }, { data: jc }] = await Promise.all([
@@ -237,7 +243,7 @@ const Cloud = (() => {
             ${m.deactivated_at ? `<button class="btn q sm" onclick="Cloud.ui.setActive('${m.user_id}', true)">Reactivate</button>` : `<button class="btn q sm" onclick="Cloud.ui.reset('${m.user_id}','magic_link',this)">Sign-in link</button><button class="btn q sm" onclick="Cloud.ui.reset('${m.user_id}','temp_password',this)">Temporary password</button><button class="btn q sm" onclick="Cloud.ui.setRole('${m.user_id}','${m.role === 'admin' ? 'member' : 'admin'}')">${m.role === 'admin' ? 'Make member' : 'Make admin'}</button><button class="btn danger sm" onclick="Cloud.ui.setActive('${m.user_id}', false)">Deactivate</button>`}
           </div><div class="hint" id="reset_${m.user_id}" style="flex-basis:100%"></div>` : ''}</div>`).join('') || '<p class="hint" style="margin:0">Just you so far.</p>'}</div>
       <div class="card"><h3>Invite someone</h3><p class="hint" style="margin:0 0 8px">With an email we send the invite. Leave it blank for a one-time code to read out.</p>
-        <input class="in" id="tmEmail" type="email" placeholder="person@example.com (optional)"><div class="in2" style="margin-top:8px"><select class="in" id="tmRole"><option value="member">Member</option><option value="admin">Admin</option></select><button class="btn" id="tmBtn" onclick="Cloud.ui.invite()">${ic('send')}Invite</button></div><p class="hint" id="tmMsg"></p></div>
+        <input class="in" id="tmEmail" type="email" placeholder="person@example.com (optional)"><div class="in2" style="margin-top:8px"><select class="in" id="tmRole"><option value="member">Member</option><option value="admin">Admin</option></select><button class="btn" id="tmBtn" onclick="Cloud.ui.invite()">${ic('send')}Invite</button></div><p class="hint" id="tmMsg">${msg}</p></div>
       ${(invites || []).length ? `<div class="card"><h3>Pending invites</h3>${invites.map(i => `<div class="row"><div class="l"><b>${esc(i.email || 'Code only')}</b><small>${i.role} · ${new Date(i.expires_at).getTime() < now ? 'expired' : 'expires ' + Data.md(i.expires_at.slice(0, 10))}</small></div>${i.code ? `<span class="chip" style="font-family:var(--mono,monospace)">${i.code}</span>` : ''}<button class="del" aria-label="Revoke" onclick="Cloud.ui.revoke('${i.id}')">${ic('x', 16)}</button></div>`).join('')}</div>` : ''}
       <div class="card"><h3>Team join code <small>up to 25 people, 30 days</small></h3>
         ${jc ? `<div class="codebox">${esc(jc.code)}</div><p class="hint" style="margin:0 0 8px">Joins as ${jc.role} · ${Math.max(0, jc.max_uses - jc.uses)} of ${jc.max_uses} uses left · ${new Date(jc.expires_at).getTime() < now ? 'expired' : 'expires ' + Data.md(jc.expires_at.slice(0, 10))}</p>` : '<p class="hint" style="margin:0 0 8px">No active code.</p>'}
@@ -259,7 +265,7 @@ const Cloud = (() => {
     async saveName() { const name = $('acName').value.trim(); const { error } = await sb.from('profiles').update({ full_name: name }).eq('id', user.id); if (error) return App.toast(error.message); if (profile) profile.full_name = name; App.toast('Saved'); },
     async syncNow() { App.toast('Syncing…'); await pull(); await push(); App.toast(status === 'error' ? detail : 'Up to date'); render('account'); },
     signOut() { App.confirm('Sign out?', 'Your jobs stay on this phone. Sign back in any time to keep syncing.', () => signOut()); },
-    async invite() { const b = $('tmBtn'); const email = $('tmEmail').value.trim().toLowerCase(), role = $('tmRole').value; busy(b, true, 'Working…'); try { if (email) { const r = await fn('invite-user', { email, company_id: companyId, role }); $('tmMsg').innerHTML = `Invited ${esc(email)}.${r.code ? ` If the email doesn't arrive, give them code <b style="font-family:var(--mono,monospace)">${esc(r.code)}</b>.` : ''}`; } else { const { data, error } = await sb.rpc('ct_create_invite_code', { c_id: companyId, p_role: role, p_email: null }); if (error) throw error; $('tmMsg').innerHTML = `Code <b style="font-family:var(--mono,monospace)">${esc(data.code)}</b> created. Anyone with it can join once; it expires in 7 days.`; } $('tmEmail').value = ''; renderTeam($('cloudBody_team')); } catch (e) { $('tmMsg').textContent = e.message; } finally { busy(b, false, 'Invite'); } },
+    async invite() { const b = $('tmBtn'); const email = $('tmEmail').value.trim().toLowerCase(), role = $('tmRole').value; busy(b, true, 'Working…'); try { let msg; if (email) { const r = await fn('invite-user', { email, company_id: companyId, role }); msg = `Invited ${esc(email)}.${r.code ? ` If the email doesn't arrive, give them code <b style="font-family:var(--mono,monospace)">${esc(r.code)}</b>.` : ''}`; } else { const { data, error } = await sb.rpc('ct_create_invite_code', { c_id: companyId, p_role: role, p_email: null }); if (error) throw error; const row = Array.isArray(data) ? data[0] : data; msg = `Code <b style="font-family:var(--mono,monospace)">${esc(row.code)}</b> created. Anyone with it can join once; it expires in 7 days.`; } $('tmEmail').value = ''; await renderTeam($('cloudBody_team'), msg); } catch (e) { $('tmMsg').textContent = e.message; } finally { busy(b, false, 'Invite'); } },
     async revoke(id) { await sb.from('ct_invitations').delete().eq('id', id); renderTeam($('cloudBody_team')); },
     async rotateJoin() { const { error } = await sb.rpc('ct_rotate_join_code', { c_id: companyId, p_role: 'member', p_max_uses: 25, p_days: 30 }); if (error) return App.toast(error.message); renderTeam($('cloudBody_team')); },
     async stopJoin(id) { await sb.from('ct_join_codes').update({ revoked_at: new Date().toISOString() }).eq('id', id); renderTeam($('cloudBody_team')); },

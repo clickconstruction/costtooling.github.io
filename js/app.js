@@ -37,6 +37,7 @@ const App = (() => {
     document.querySelectorAll('.screen').forEach(e => e.classList.toggle('on', e.dataset.s === s));
     document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === TABOF[s]));
     $('tabs').classList.toggle('hide', s === 'projects' || s === 'projform');
+    $('fab').classList.toggle('hide', s === 'entryform' || s === 'itemform' || s === 'projform');
     const t = titles(s); $('ttl').textContent = t[0]; $('sub').textContent = t[1];
     $('back').classList.toggle('show', s !== 'projects'); $('mark').style.display = s === 'projects' ? '' : 'none';
     const ta = TOPACT[s]; $('topAct').style.display = ta ? '' : 'none'; if (ta) { $('topAct').innerHTML = UI.ic(ta[0], 18); $('topAct').onclick = ta[1]; }
@@ -95,7 +96,7 @@ const App = (() => {
   function coverNum(m) { P().cover.numMode = m; save(); refresh(); }
   let coverTimer; const redrawCover = () => { clearTimeout(coverTimer); coverTimer = setTimeout(() => { const p = P(); Render.cover($('cover'), p, Data.calc(p), UI.cover(p, Data.calc(p)).slice(0)); restoreFocus(); }, 300); };
   let focusId; function restoreFocus() {}
-  function coverField(f, v) { P().cover[f] = v; save(); clearTimeout(coverTimer); coverTimer = setTimeout(() => { const p = P(), k = Data.calc(p); const all = Data.allPhotos(p); const picked = p.cover.picked.length ? p.cover.picked : all.slice(-4).reverse().map(a => Data.photoKey(a.ph)); const sel = picked.map(key => { const a = all.find(x => Data.photoKey(x.ph) === key); return a ? { ph: a.ph, e: a.e, item: UI.itemName(p, a.e.itemId) } : null; }); Render.cover($('cover'), p, k, sel); }, 250); }
+  function coverField(f, v) { P().cover[f] = v; save(); clearTimeout(coverTimer); coverTimer = setTimeout(() => { const p = P(), k = Data.calc(p); const sel = UI.coverSelection(p); Render.cover($('cover'), p, k, sel); }, 250); }
   function coverManual(f, v) { P().cover.manual[f] = v; coverField('numMode', 'manual'); }
   async function saveCover() { const r = await Render.shareCanvas($('cover'), 'costtooling-cover.jpg', 'Progress update'); if (r !== 'cancelled') toast(r === 'shared' ? 'Shared' : 'Cover page saved'); }
 

@@ -35,8 +35,7 @@ const Render = (() => {
   }
 
   async function report(c, p, k, photos) {
-    const W = 1080, rows = (p.items || []).length; const H = 1180 + rows * 46 + (photos.length ? 420 : 0);
-    c.width = W; c.height = H; const g = c.getContext('2d');
+    const W = 1080, H = 4000; const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H; const g = tmp.getContext('2d');
     g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
     g.fillStyle = '#161617'; g.fillRect(0, 0, W, 16);
     g.fillStyle = '#161617'; g.fillRect(60, 60, 64, 64); txt(g, 'CT', 92, 103, '900 26px ' + F, '#e8c547', 'center');
@@ -45,7 +44,7 @@ const Render = (() => {
     const nums = [[Math.round(k.pct * 100) + '%', 'complete'], [Data.fmtK(k.cost), 'cost so far'], [Data.fmtK(k.toGo), 'to finish'], [k.daysLeft, 'days left']];
     nums.forEach(([v, l], i) => { const x = 60 + i * 245, y = 180; g.fillStyle = '#f6f5f1'; g.fillRect(x, y, 225, 130); txt(g, v, x + 112, y + 72, '800 44px ' + F, '#161617', 'center', 200); txt(g, l.toUpperCase(), x + 112, y + 108, '600 18px ' + F, '#6b6a66', 'center'); });
     let y = 370;
-    const summary = `${p.cover?.head ? p.cover.head + '. ' : ''}${k.ahead ? 'Work is ahead of the calendar' : 'Work is behind the calendar'} (${Math.round(k.pct * 100)}% done with ${Math.round(k.schedPct * 100)}% of the schedule used). Costs are ${k.cost > k.earned ? 'running ' + Data.fmt$(k.cost - k.earned) + ' over earned value' : 'tracking ' + Data.fmt$(k.earned - k.cost) + ' under earned value'}. At the current pace the job finishes ${Data.md(Data.iso(k.paceFinish))}.`;
+    const summary = !k.total ? `${p.cover?.head ? p.cover.head + '. ' : ''}No line items yet. Add budgets on the Progress screen and this report fills itself in.` : `${p.cover?.head ? p.cover.head + '. ' : ''}${k.ahead ? 'Work is ahead of the calendar' : 'Work is behind the calendar'} (${Math.round(k.pct * 100)}% done with ${Math.round(k.schedPct * 100)}% of the schedule used). Costs are ${k.cost > k.earned ? 'running ' + Data.fmt$(k.cost - k.earned) + ' over earned value' : 'tracking ' + Data.fmt$(k.earned - k.cost) + ' under earned value'}.${k.pct > 0 ? ' At the current pace the job finishes ' + Data.md(Data.iso(k.paceFinish)) + '.' : ''}`;
     y = wrap(g, summary, 60, y, W - 120, 36, '400 26px ' + F, '#161617', 5) + 10;
     const cols = [60, 620, 760, 1020];
     g.fillStyle = '#161617'; g.fillRect(60, y, W - 120, 2); y += 36;
@@ -54,8 +53,8 @@ const Render = (() => {
     y += 50; g.fillStyle = '#161617'; g.fillRect(60, y - 36, W - 120, 2);
     txt(g, 'Total', cols[0], y, '700 24px ' + F, '#161617'); txt(g, Data.fmt$(k.total), cols[1], y, '700 24px ' + F, '#161617', 'right'); txt(g, Math.round(k.pct * 100) + '%', cols[2], y, '700 24px ' + F, '#161617', 'right'); txt(g, Data.fmt$(k.cost), cols[3], y, '700 24px ' + F, '#161617', 'right');
     if (photos.length) { y += 60; txt(g, 'Recent photos', 60, y, '700 26px ' + F, '#161617'); y += 20; const imgs = await Promise.all(photos.slice(0, 3).map(s => Photos.drawable(s.ph))); imgs.forEach((im, i) => coverPhoto(g, im, 60 + i * 330, y, 300, 300, Data.md(photos[i].e.d))); y += 320; }
-    y += 50; wrap(g, p.cover?.note || '', 60, y, W - 120, 32, '400 24px ' + F, '#6b6a66', 3);
-    g.fillStyle = '#e8c547'; g.fillRect(0, H - 12, W, 12);
+    y += 50; if (p.cover?.note) y = wrap(g, p.cover.note, 60, y, W - 120, 32, '400 24px ' + F, '#6b6a66', 3);
+    const endY = Math.ceil(y + 40); c.width = W; c.height = endY; const out = c.getContext('2d'); out.drawImage(tmp, 0, 0, W, endY, 0, 0, W, endY); out.fillStyle = '#e8c547'; out.fillRect(0, endY - 12, W, 12);
   }
 
   async function shareCanvas(c, name, title) {

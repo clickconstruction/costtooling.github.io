@@ -157,8 +157,15 @@ const UI = (() => {
     hydrate(photoBody, p);
   }
 
+  const allPhotosSorted = p => Data.allPhotos(p).sort((a, b) => (b.e.d + (b.e.ts || 0)).localeCompare(a.e.d + (a.e.ts || 0)));
+  function coverSelection(p) {
+    const cv = p.cover, all = allPhotosSorted(p); const picked = cv.picked.filter(key => all.some(a => Data.photoKey(a.ph) === key));
+    const need = { hero: 1, grid: 4, split: 3 }[cv.layout] || 4;
+    const keys = picked.slice(0, need); all.forEach(a => { const k = Data.photoKey(a.ph); if (keys.length < need && !keys.includes(k)) keys.push(k); });
+    return keys.map(key => { const a = all.find(x => Data.photoKey(x.ph) === key); return a ? { ph: a.ph, e: a.e, item: itemName(p, a.e.itemId) } : null; });
+  }
   function cover(p, k) {
-    const cv = p.cover, all = Data.allPhotos(p).sort((a, b) => (b.e.d + (b.e.ts || 0)).localeCompare(a.e.d + (a.e.ts || 0)));
+    const cv = p.cover, all = allPhotosSorted(p);
     const picked = cv.picked.filter(key => all.some(a => Data.photoKey(a.ph) === key));
     coverBody.innerHTML = `<div class="actions" style="margin-bottom:4px"><button class="btn" onclick="App.saveCover()">${ic('download')}Save to Photos</button><button class="btn q" onclick="App.openShare('cover')">${ic('share')}Share</button></div>
       <p class="hint">Saves a 1080×1350 image. On a phone the share sheet lands it in the camera roll, a text or an email.</p>
@@ -172,7 +179,7 @@ const UI = (() => {
         <label>Note at the bottom</label><input class="in" value="${esc(cv.note)}" oninput="App.coverField('note', this.value)">
       </div>`;
     hydrate(coverBody, p);
-    return (picked.length ? picked : all.slice(0, 4).map(a => Data.photoKey(a.ph))).map(key => { const a = all.find(x => Data.photoKey(x.ph) === key); return a ? { ph: a.ph, e: a.e, item: itemName(p, a.e.itemId) } : null; });
+    return coverSelection(p);
   }
 
   function sov(p, k, mode) {
@@ -219,7 +226,7 @@ const UI = (() => {
     const items = p.items || [], pics = sortedEntries(p).flatMap(e => e.photos.map(ph => ({ ph, e }))).slice(0, 3);
     const html = `<div class="report" id="reportPreview"><div class="hd"><div class="mark">CT</div><div><h4>${esc(p.name || 'Untitled project')}</h4><div class="meta">Progress report · ${Data.mdy(Data.iso(Data.today()))}${p.client ? ' · for ' + esc(p.client) : ''}</div></div></div>
       <div class="num4"><div><b>${Math.round(k.pct * 100)}%</b><span>complete</span></div><div><b>${Data.fmtK(k.cost)}</b><span>cost so far</span></div><div><b>${Data.fmtK(k.toGo)}</b><span>to finish</span></div><div><b>${k.daysLeft}</b><span>days left</span></div></div>
-      <p><b>Summary.</b> ${p.cover.head ? esc(p.cover.head) + '. ' : ''}${k.ahead ? 'Work is ahead of the calendar' : 'Work is behind the calendar'} (${Math.round(k.pct * 100)}% done with ${Math.round(k.schedPct * 100)}% of the schedule used). Costs are ${k.cost > k.earned ? 'running ' + fmt$(k.cost - k.earned) + ' over earned value' : 'tracking ' + fmt$(k.earned - k.cost) + ' under earned value'}.${k.pct > 0 ? ' At the current pace the job finishes ' + md(Data.iso(k.paceFinish)) + '.' : ''}</p>
+      <p><b>Summary.</b> ${p.cover.head ? esc(p.cover.head) + '. ' : ''}${!k.total ? 'No line items yet. Add budgets on the Progress screen and this report fills itself in.' : `${k.ahead ? 'Work is ahead of the calendar' : 'Work is behind the calendar'} (${Math.round(k.pct * 100)}% done with ${Math.round(k.schedPct * 100)}% of the schedule used). Costs are ${k.cost > k.earned ? 'running ' + fmt$(k.cost - k.earned) + ' over earned value' : 'tracking ' + fmt$(k.earned - k.cost) + ' under earned value'}.${k.pct > 0 ? ' At the current pace the job finishes ' + md(Data.iso(k.paceFinish)) + '.' : ''}`}</p>
       <table class="sov"><tr><td><b>Line item</b></td><td class="n"><b>Budget</b></td><td class="n"><b>%</b></td><td class="n"><b>Cost</b></td></tr>${items.map(i => `<tr><td>${esc(i.n)}</td><td class="n">${fmt$(i.b)}</td><td class="n">${i.pct || 0}%</td><td class="n">${fmt$(Data.itemCost(i))}</td></tr>`).join('')}<tr class="tot"><td>Total</td><td class="n">${fmt$(k.total)}</td><td class="n">${Math.round(k.pct * 100)}%</td><td class="n">${fmt$(k.cost)}</td></tr></table>
       ${pics.length ? `<p style="margin-top:12px"><b>Recent photos</b></p><div class="grid3">${pics.map(({ ph }) => photoPh(ph, Data.photoKey(ph))).join('')}</div>` : ''}
       ${p.cover.note ? `<p>${esc(p.cover.note)}</p>` : ''}</div>
@@ -228,5 +235,5 @@ const UI = (() => {
     reportBody.innerHTML = html; hydrate(reportBody, p); return pics;
   }
 
-  return { ic, esc, hydrate, projects, projform, home, log, entryform, photo, cover, sov, item, itemform, report, sortedEntries, itemName };
+  return { ic, esc, hydrate, coverSelection, projects, projform, home, log, entryform, photo, cover, sov, item, itemform, report, sortedEntries, itemName };
 })();

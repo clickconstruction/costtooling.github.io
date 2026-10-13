@@ -4,22 +4,60 @@ const Photos = (() => {
   const urls = {};      // id -> { thumb, full } object URLs
   const pending = {};   // id -> promise
 
-  async function decode(file) {
-    if (window.createImageBitmap) { try { return await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (e) {} }
-    return new Promise((res, rej) => { const img = new Image(); img.onload = () => res(img); img.onerror = rej; img.src = URL.createObjectURL(file); });
+  /** EXIF orientation (1–8) from a JPEG, or 1 if absent. Small, synchronous over the first 128 KB. */
+  async function exifOrientation(file) {
+    try {
+      const buf = await file.slice(0, 131072).arrayBuffer(); const v = new DataView(buf);
+      if (v.getUint16(0) !== 0xFFD8) return 1;
+      let off = 2;
+      while (off + 4 <= v.byteLength) {
+        const marker = v.getUint16(off); const len = v.getUint16(off + 2);
+        if (marker === 0xFFE1 && v.getUint32(off + 4) === 0x45786966) { // "Exif"
+          const t = off + 10; const little = v.getUint16(t) === 0x4949; const ifd = t + v.getUint32(t + 4, little);
+          const n = v.getUint16(ifd, little);
+          for (let i = 0; i < n; i++) { const e = ifd + 2 + i * 12; if (v.getUint16(e, little) === 0x0112) return v.getUint16(e + 8, little) || 1; }
+          return 1;
+        }
+        if ((marker & 0xFF00) !== 0xFF00) break; off += 2 + len;
+      }
+    } catch (e) {}
+    return 1;
   }
-  function fit(src, max, cover) {
-    const w = src.width || src.naturalWidth, h = src.height || src.naturalHeight;
-    const c = document.createElement('canvas');
-    if (cover) { c.width = c.height = max; const s = Math.max(max / w, max / h); const sw = w * s, sh = h * s; c.getContext('2d').drawImage(src, (max - sw) / 2, (max - sh) / 2, sw, sh); }
-    else { const s = Math.min(1, max / Math.max(w, h)); c.width = Math.round(w * s); c.height = Math.round(h * s); c.getContext('2d').drawImage(src, 0, 0, c.width, c.height); }
+  /** Decode at most `max` px on the long side. Returns { src, w, h, rotated } where rotated says EXIF rotation still needs applying. */
+  async function decode(file, max) {
+    const o = await exifOrientation(file); const swap = o >= 5;
+    if (window.createImageBitmap) {
+      try {
+        const probe = await createImageBitmap(file); const pw = probe.width, ph = probe.height; probe.close && probe.close();
+        const s = Math.min(1, max / Math.max(pw, ph));
+        const bmp = await createImageBitmap(file, { imageOrientation: 'from-image', resizeWidth: Math.round(pw * s), resizeHeight: Math.round(ph * s), resizeQuality: 'high' });
+        // If EXIF says the image is rotated but the bitmap kept the stored aspect, the browser ignored it: rotate ourselves.
+        const applied = swap ? (bmp.width < bmp.height) === (pw >= ph) : true;
+        return { src: bmp, w: bmp.width, h: bmp.height, orient: applied ? 1 : o, close: () => bmp.close && bmp.close() };
+      } catch (e) { console.warn('bitmap decode fell back', e); }
+    }
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); });
+    const out = { src: img, w: img.naturalWidth, h: img.naturalHeight, orient: 1, close: () => URL.revokeObjectURL(img.src) };
+    return out;
+  }
+  /** Draw `d` into a canvas of at most `max` px (cover-crop square when `cover`), applying leftover EXIF rotation. */
+  function fit(d, max, cover) {
+    const rot = d.orient; const swap = rot >= 5; const sw = d.w, sh = d.h; const ow = swap ? sh : sw, oh = swap ? sw : sh; // oriented size
+    const c = document.createElement('canvas'); let tw, th, scale;
+    if (cover) { c.width = c.height = max; scale = Math.max(max / ow, max / oh); tw = ow * scale; th = oh * scale; }
+    else { scale = Math.min(1, max / Math.max(ow, oh)); c.width = tw = Math.round(ow * scale); c.height = th = Math.round(oh * scale); }
+    const g = c.getContext('2d'); if (!g) throw new Error('No canvas context (image memory)');
+    g.save(); g.translate(c.width / 2, c.height / 2);
+    if (rot === 3) g.rotate(Math.PI); else if (rot === 6) g.rotate(Math.PI / 2); else if (rot === 8) g.rotate(-Math.PI / 2); else if (rot === 2) g.scale(-1, 1); else if (rot === 4) g.scale(1, -1); else if (rot === 5) { g.rotate(Math.PI / 2); g.scale(1, -1); } else if (rot === 7) { g.rotate(-Math.PI / 2); g.scale(1, -1); }
+    const dw = swap ? th : tw, dh = swap ? tw : th; // size in the un-rotated frame
+    g.drawImage(d.src, -dw / 2, -dh / 2, dw, dh); g.restore();
     return c;
   }
   const toBlob = (c, q) => new Promise(r => c.toBlob(r, 'image/jpeg', q));
-  async function importFile(file) {
-    const bmp = await decode(file);
+  async function importFile(file, onStep) {
+    const d = await decode(file, FULL);
     const id = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    const tc = fit(bmp, THUMB, true), fc = fit(bmp, FULL, false); const w = bmp.width, h = bmp.height; if (bmp.close) bmp.close();
+    const tc = fit(d, THUMB, true), fc = fit(d, FULL, false); const w = fc.width, h = fc.height; d.close();
     const thumb = await toBlob(tc, 0.82), full = await toBlob(fc, 0.86); tc.width = tc.height = fc.width = fc.height = 0;
     if (!thumb || !full) throw new Error('Could not process the photo (out of image memory)');
     await DB.putPhoto({ id, thumb, full, w, h, added: Date.now() });
@@ -91,5 +129,6 @@ const Photos = (() => {
     const img = await new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = u.full; });
     if (img) decoded[ph.id] = img; return img;
   }
-  return { importFile, load, remove, el, drawable, sample };
+  async function listIds() { return DB.allPhotoIds(); }
+  return { importFile, load, remove, el, drawable, sample, listIds };
 })();

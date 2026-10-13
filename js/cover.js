@@ -10,8 +10,8 @@ const Render = (() => {
     if (label) { g.font = '600 22px ' + F; const tw = g.measureText(label).width + 24; g.fillStyle = 'rgba(22,22,23,.72)'; g.fillRect(x, y + h - 44, tw, 44); txt(g, label, x + 12, y + h - 14, '600 22px ' + F, '#fff'); }
   };
 
-  let coverSeq = 0, coverReady = Promise.resolve();
-  function cover(c, p, k, sel) { const t = ++coverSeq; coverReady = coverInner(c, p, k, sel, t).catch(e => console.warn('cover render', e)); return coverReady; }
+  let coverSeq = 0, coverReady = Promise.resolve(), coverBlob = null;
+  function cover(c, p, k, sel) { const t = ++coverSeq; coverBlob = null; coverReady = coverInner(c, p, k, sel, t).then(() => { if (t === coverSeq) return new Promise(r => c.toBlob(b => { if (t === coverSeq) coverBlob = b; r(); }, 'image/jpeg', 0.92)); }).catch(e => console.warn('cover render', e)); return coverReady; }
   async function coverInner(c, p, k, sel, t) {
     const imgs = await Promise.all(sel.map(s => s ? Photos.drawable(s.ph) : null));
     if (t !== coverSeq) return;
@@ -61,11 +61,16 @@ const Render = (() => {
     const endY = Math.ceil(y + 40); c.width = W; c.height = endY; const out = c.getContext('2d'); out.drawImage(tmp, 0, 0, W, endY, 0, 0, W, endY); out.fillStyle = '#e8c547'; out.fillRect(0, endY - 12, W, 12);
   }
 
-  async function shareCanvas(c, name, title) {
-    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.92));
-    const file = new File([blob], name, { type: 'image/jpeg' });
-    if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title }); return 'shared'; } catch (e) { if (e.name === 'AbortError') return 'cancelled'; } }
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); return 'downloaded';
+  let sharing = false;
+  /** Share a ready Blob inside the user's gesture. Returns shared | cancelled | downloaded | blocked. */
+  async function shareBlob(blob, name, title) {
+    if (!blob) return 'empty'; if (sharing) return 'busy'; sharing = true;
+    try {
+      const file = new File([blob], name, { type: 'image/jpeg' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title }); return 'shared'; } catch (e) { if (e.name === 'AbortError') return 'cancelled'; if (e.name === 'NotAllowedError') return 'blocked'; console.warn('share failed', e); } }
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); return 'downloaded';
+    } finally { sharing = false; }
   }
-  return { cover, report, shareCanvas, ready: () => coverReady };
+  const canvasBlob = c => new Promise(r => c.toBlob(r, 'image/jpeg', 0.92));
+  return { cover, report, shareBlob, canvasBlob, ready: () => coverReady, coverBlob: () => coverBlob };
 })();

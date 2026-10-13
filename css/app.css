@@ -28,7 +28,7 @@ html.shot .notes { display:none; }
 .top .mark { width:34px; height:34px; border-radius:9px; background:var(--yellow); color:var(--ink); font-weight:900; font-size:14px; display:flex; align-items:center; justify-content:center; letter-spacing:-.5px; cursor:pointer; }
 .screen { flex:1; overflow:auto; -webkit-overflow-scrolling:touch; display:none; padding:14px 14px calc(180px + env(safe-area-inset-bottom)); }
 .screen.on { display:block; }
-.tabs { position:absolute; left:0; right:0; bottom:0; background:rgba(255,255,255,.97); border-top:1px solid var(--line); display:flex; padding:6px 6px calc(8px + env(safe-area-inset-bottom)); }
+.tabs { position:absolute; left:0; right:0; bottom:0; background:#fff; border-top:1px solid var(--line); display:flex; padding:6px 6px calc(8px + env(safe-area-inset-bottom)); }
 .tabs button { flex:1; background:none; border:0; font:inherit; font-size:10.5px; color:var(--muted); display:flex; flex-direction:column; align-items:center; gap:3px; padding:4px 0; font-weight:500; cursor:pointer; }
 .tabs button .pill { width:44px; height:28px; border-radius:9px; display:flex; align-items:center; justify-content:center; }
 .tabs button.on { color:var(--ink); font-weight:700; } .tabs button.on .pill { background:var(--yellow); }

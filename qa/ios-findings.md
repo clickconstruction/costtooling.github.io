@@ -32,3 +32,10 @@ Verified on the simulator against the local build:
 - Report · Share · Share…: iOS share sheet on the first tap with a 378 KB JPEG (blob pre-built when the Report screen opened).
 - WebKit (Playwright) cannot store Blobs in IndexedDB ("Error preparing Blob/File data"); photos are now stored as ArrayBuffers and wrapped on read. Found by the WebKit walkthrough, not visible on the simulator.
 - Boot-time crash fixed: restoring a draft with a photo attached referenced the controller before it existed; the screen never switched. Boot now runs after the controller is defined and photo hydration no longer reaches into it.
+
+## Wave 4 — resilience (2026-10-13)
+
+- Live: service worker registered (scope /), 14 files cached, app loads with the network off (qa/offline.js).
+- Photo detail strip: tapping a thumbnail swaps the big image in place (no screen rebuild).
+- Both engines green on the live site after Wave 3 (Chromium 61 ms / WebKit 89 ms to render a 58-entry log).
+- Add to Home Screen (simulator, live): install dialog shows the manifest name and CT icon; launches as a web app after a ~3 s white launch splash (iOS default, no startup image); welcome card omits the install nudge in app mode; home-screen app starts with its own storage (sample job only), as the nudge warns.

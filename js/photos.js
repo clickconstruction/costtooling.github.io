@@ -70,7 +70,7 @@ const Photos = (() => {
   async function load(id) {
     if (urls[id]) return urls[id];
     const asBlob = v => v instanceof Blob ? v : new Blob([v], { type: 'image/jpeg' });
-    if (!pending[id]) pending[id] = DB.getPhoto(id).then(rec => { if (!rec || !rec.thumb || !rec.full) return null; urls[id] = { thumb: URL.createObjectURL(asBlob(rec.thumb)), full: URL.createObjectURL(asBlob(rec.full)) }; return urls[id]; }).catch(e => { delete pending[id]; console.warn('photo load failed', e); return null; });
+    if (!pending[id]) pending[id] = DB.getPhoto(id).then(async rec => { if ((!rec || !rec.thumb || !rec.full) && window.Cloud) rec = await Cloud.fetchPhoto(id); if (!rec || !rec.thumb || !rec.full) return null; urls[id] = { thumb: URL.createObjectURL(asBlob(rec.thumb)), full: URL.createObjectURL(asBlob(rec.full)) }; return urls[id]; }).catch(e => { delete pending[id]; console.warn('photo load failed', e); return null; });
     return pending[id];
   }
   async function remove(id) { await DB.delPhoto(id); const u = urls[id]; if (u) { try { URL.revokeObjectURL(u.thumb); URL.revokeObjectURL(u.full); } catch (e) {} } delete urls[id]; delete pending[id]; delete decoded[id]; }

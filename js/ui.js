@@ -29,6 +29,9 @@ const UI = (() => {
     send:'<path d="M21 3L10 14"/><path d="M21 3l-7 18-4-7-7-4z"/>',
     refresh:'<path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/>',
     folder:'<path d="M3 7h6l2 2h10v11H3z"/>',
+    user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+    key:'<circle cx="8" cy="14" r="4"/><path d="M11 11l9-9"/><path d="M16 6l3 3"/><path d="M13 9l2 2"/>',
+    logout:'<path d="M10 4H5v16h5"/><path d="M14 8l4 4-4 4"/><path d="M18 12H9"/>',
     hardhat:'<path d="M4 16a8 8 0 0 1 16 0"/><path d="M2 16h20v3H2z"/><path d="M10 7.5V13M14 7.5V13"/>',
   };
   const ic = (n, s = 18) => `<svg class="ic" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n] || ''}</svg>`;
@@ -70,7 +73,7 @@ const UI = (() => {
   function projects(S) {
     const list = S.projects.map(p => ({ p, k: Data.calc(p) }));
     const active = list.filter(o => o.k.pct < 1).length, toGo = list.reduce((a, o) => a + o.k.toGo, 0);
-    const html = `<div class="stat2"><div><b>${list.length}</b><span>project${list.length === 1 ? '' : 's'}</span></div><div><b>${active}</b><span>active</span></div><div><b>${Data.fmtK(toGo)}</b><span>to finish, all</span></div></div>` +
+    const html = (window.Cloud ? Cloud.promoHtml() : '') + `<div class="stat2"><div><b>${list.length}</b><span>project${list.length === 1 ? '' : 's'}</span></div><div><b>${active}</b><span>active</span></div><div><b>${Data.fmtK(toGo)}</b><span>to finish, all</span></div></div>` +
       (list.length ? list.map(({ p, k }) => `<div class="card tap ${p.sample ? 'sample' : ''}" onclick="App.openProject('${p.id}')">
         <h3>${esc(p.name || 'Untitled project')} <small>${p.sample ? 'Sample job' : esc(p.client || '')}</small></h3>
         <div class="row" style="border:0;padding:0 0 8px"><div class="l"><small>${p.start ? 'Started ' + md(p.start) : ''}${p.finish ? ' · due ' + md(p.finish) : ''}</small></div><div class="r"><b>${Math.round(k.pct * 100)}%</b></div></div>

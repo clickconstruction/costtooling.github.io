@@ -6,7 +6,7 @@ const App = (() => {
   let S = DB.load();
   if (!S || !Array.isArray(S.projects)) S = { projects: [Data.sampleProject()], cur: 'sample' };
   S.projects.forEach(p => { p.cover ||= { picked: [], layout: 'hero', head: '', note: '', numMode: 'auto', manual: {} }; p.cover.manual ||= {}; p.items ||= []; p.entries ||= []; });
-  const save = () => { const ok = DB.save(S); if (!ok) toast('Could not save: storage is full'); return ok; };
+  const save = () => { const ok = DB.save(S); if (!ok) toast('Could not save: storage is full'); if (window.Cloud) Cloud.schedulePush(); return ok; };
   const P = () => S.projects.find(p => p.id === S.cur) || S.projects[0];
   let cur = 'projects', mode = 'items', logFilter = 'all', form = null, tpl = 'remodel', editProj = null, editItem = null, photoCtx = { entryId: null, idx: 0 }, shareKind = 'report';
   let importing = 0;
@@ -15,11 +15,11 @@ const App = (() => {
   window.addEventListener('pagehide', persistSession); document.addEventListener('visibilitychange', () => { if (document.hidden) persistSession(); });
 
   // ---------- navigation ----------
-  const PARENT = { projects: null, projform: 'projects', home: 'projects', log: 'home', entryform: 'log', photo: 'log', cover: 'home', sov: 'home', item: 'sov', itemform: 'sov', report: 'home' };
+  const PARENT = { projects: null, projform: 'projects', home: 'projects', log: 'home', entryform: 'log', photo: 'log', cover: 'home', sov: 'home', item: 'sov', itemform: 'sov', report: 'home', signin: 'projects', join: 'signin', forgot: 'signin', setpass: 'projects', company: 'projects', account: 'projects', team: 'account' };
   const TABOF = { log: 'log', entryform: 'log', photo: 'log', cover: 'cover', sov: 'sov', item: 'sov', itemform: 'sov', report: 'report', home: 'home' };
-  const SCREEN_NAMES = { projects: 'Projects', projform: 'Project form', home: 'Project home', log: 'Site log', entryform: 'New entry', photo: 'Photo', cover: 'Cover page', sov: 'Progress', item: 'Line item', itemform: 'Line item form', report: 'Report' };
-  function titles(s) { const p = P(); const sub = p ? (p.name || 'Untitled project') : ''; return { projects: ['Projects', 'CostTooling'], projform: [editProj && editProj.id ? 'Edit project' : 'New project', editProj && editProj.id ? sub : 'Set up in a minute'], home: [sub, [p && p.client, p && p.finish && 'due ' + Data.md(p.finish)].filter(Boolean).join(' · ') || 'Project'], log: ['Site log', sub], entryform: [form && form.id ? 'Edit entry' : 'New entry', sub], photo: ['Photo', sub], cover: ['Cover page', sub], sov: ['Progress', sub], item: ['Line item', sub], itemform: [editItem && editItem.id ? 'Edit line item' : 'New line item', sub], report: ['Report', sub] }[s]; }
-  const TOPACT = { log: ['plus', () => newEntry()], sov: ['plus', () => newItem()], home: ['edit', () => editProject()], item: ['edit', () => editItemForm()], report: ['share', () => openShare('report')], cover: ['share', () => openShare('cover')] };
+  const SCREEN_NAMES = { projects: 'Projects', projform: 'Project form', home: 'Project home', log: 'Site log', entryform: 'New entry', photo: 'Photo', cover: 'Cover page', sov: 'Progress', item: 'Line item', itemform: 'Line item form', report: 'Report', signin: 'Sign in', join: 'Join', forgot: 'Forgot password', setpass: 'Set password', company: 'Company', account: 'Account', team: 'Team' };
+  function titles(s) { const p = P(); const sub = p ? (p.name || 'Untitled project') : ''; return { projects: ['Projects', 'CostTooling'], projform: [editProj && editProj.id ? 'Edit project' : 'New project', editProj && editProj.id ? sub : 'Set up in a minute'], home: [sub, [p && p.client, p && p.finish && 'due ' + Data.md(p.finish)].filter(Boolean).join(' · ') || 'Project'], log: ['Site log', sub], entryform: [form && form.id ? 'Edit entry' : 'New entry', sub], photo: ['Photo', sub], cover: ['Cover page', sub], sov: ['Progress', sub], item: ['Line item', sub], itemform: [editItem && editItem.id ? 'Edit line item' : 'New line item', sub], report: ['Report', sub], signin: ['Sign in', 'CostTooling'], join: ['Join a company', 'CostTooling'], forgot: ['Reset password', 'CostTooling'], setpass: ['Choose a password', 'CostTooling'], company: ['Your company', 'CostTooling'], account: ['Account', (window.Cloud && Cloud.state().user && Cloud.state().user.email) || 'CostTooling'], team: ['Team', (window.Cloud && (Cloud.state().memberships.find(m => m.company_id === Cloud.state().companyId) || {}).name) || 'Company'] }[s]; }
+  const TOPACT = { projects: ['user', () => Cloud.onStatusTap()], log: ['plus', () => newEntry()], sov: ['plus', () => newItem()], home: ['edit', () => editProject()], item: ['edit', () => editItemForm()], report: ['share', () => openShare('report')], cover: ['share', () => openShare('cover')] };
   function render(s) {
     const t0 = performance.now(); try { renderInner(s); } finally { lastRender = Math.round(performance.now() - t0); if (lastRender > 50) logLine('slow render ' + s + ' ' + lastRender + 'ms'); }
   }
@@ -36,17 +36,20 @@ const App = (() => {
     else if (s === 'item') { const i = p.items.find(x => x.id === photoCtx.itemId); if (!i) return go('sov'); UI.item(p, i); }
     else if (s === 'itemform') UI.itemform(p, editItem || {});
     else if (s === 'report') { UI.report(p, k); buildReport(); }
+    else if (window.Cloud && Cloud.SCREENS.includes(s)) Cloud.render(s);
   }
   function go(s) {
     if (s !== 'projects' && !P()) s = 'projects';
     cur = s; render(s);
     document.querySelectorAll('.screen').forEach(e => e.classList.toggle('on', e.dataset.s === s));
     document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === TABOF[s]));
-    $('tabs').classList.toggle('hide', s === 'projects' || s === 'projform');
-    $('fab').classList.toggle('hide', s === 'entryform' || s === 'itemform' || s === 'projform');
+    const cloudScreen = !!(window.Cloud && Cloud.SCREENS.includes(s));
+    $('tabs').classList.toggle('hide', s === 'projects' || s === 'projform' || cloudScreen);
+    $('fab').classList.toggle('hide', s === 'entryform' || s === 'itemform' || s === 'projform' || cloudScreen);
+    const cb = $('cloudBtn'); if (cb) cb.style.display = (s === 'projects' || s === 'home') && window.Cloud && Cloud.enabled() ? '' : 'none';
     const t = titles(s); $('ttl').textContent = t[0]; $('sub').textContent = t[1];
     $('back').classList.toggle('show', s !== 'projects'); $('mark').style.display = s === 'projects' ? '' : 'none';
-    const ta = TOPACT[s]; $('topAct').style.display = ta ? '' : 'none'; if (ta) { $('topAct').innerHTML = UI.ic(ta[0], 18); $('topAct').onclick = ta[1]; }
+    const ta = (s === 'projects' && !(window.Cloud && Cloud.enabled())) ? null : TOPACT[s]; $('topAct').style.display = ta ? '' : 'none'; if (ta) { $('topAct').innerHTML = UI.ic(ta[0], 18); $('topAct').onclick = ta[1]; }
     document.querySelector('.screen.on').scrollTop = 0; closeSheet(); persistSession();
   }
   const refresh = () => render(cur);
@@ -64,7 +67,7 @@ const App = (() => {
     const p = { id: Data.uid('pr'), name, client: v('pfClient').trim(), addr: v('pfAddr').trim(), start: v('pfStart'), finish: v('pfFinish'), items: Data.itemsFromTemplate(tpl, v('pfStart'), v('pfFinish'), +v('pfContract') || 0), entries: [], cover: { picked: [], layout: 'hero', head: '', note: '', numMode: 'auto', manual: {} } };
     S.projects.unshift(p); S.cur = p.id; save(); toast('Project created'); go('home');
   }
-  function deleteProject() { const p = P(); confirm('Delete this project?', `"${p.name}" and its ${p.entries.length} log entr${p.entries.length === 1 ? 'y' : 'ies'} will be removed from this phone.`, async () => { for (const e of p.entries) for (const ph of e.photos) if (ph.id) await Photos.remove(ph.id); S.projects = S.projects.filter(x => x.id !== p.id); S.cur = S.projects[0] ? S.projects[0].id : null; save(); toast('Project deleted'); go('projects'); }); }
+  function deleteProject() { const p = P(); confirm('Delete this project?', `"${p.name}" and its ${p.entries.length} log entr${p.entries.length === 1 ? 'y' : 'ies'} will be removed from this phone.`, async () => { if (window.Cloud) Cloud.deleteProject(p.id); for (const e of p.entries) for (const ph of e.photos) if (ph.id) await Photos.remove(ph.id); S.projects = S.projects.filter(x => x.id !== p.id); S.cur = S.projects[0] ? S.projects[0].id : null; save(); toast('Project deleted'); go('projects'); }); }
   function restoreSample() { S.projects.push(Data.sampleProject()); save(); toast('Sample job is back'); refresh(); }
 
   // ---------- log entries ----------
@@ -191,10 +194,11 @@ const App = (() => {
   }
   let lastRender = 0;
   function boot() {
+    if (window.Cloud) Cloud.init();
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().then(ok => { if (!ok) logLine('storage.persist declined'); }).catch(() => {});
   // ---------- boot ----------
   document.querySelectorAll('[data-ic]').forEach(e => { const w = document.createElement('span'); w.innerHTML = UI.ic(e.dataset.ic, +(e.dataset.size || 18)); e.replaceWith(w.firstChild); });
-  const sess = Q.get('s') || Q.get('new') || Q.get('welcome') ? null : DB.get('ct-session');
+  const sess = Q.get('s') || Q.get('new') || Q.get('welcome') || Q.get('auth') || Q.get('code') ? null : DB.get('ct-session');
   if (sess && sess.at && Date.now() - sess.at < 6 * 3600e3 && P()) {
     if (sess.photoCtx) photoCtx = Object.assign(photoCtx, sess.photoCtx); if (sess.mode) mode = sess.mode; if (sess.logFilter) logFilter = sess.logFilter;
     if (sess.form) { form = sess.form; form.added ||= []; form.photos ||= []; go('entryform'); toast('Picked up where you left off'); }
@@ -211,6 +215,7 @@ const App = (() => {
   if (Q.get('s') === 'item' && P() && P().items[2]) openItem(P().items[2].id);
 
   }
-  return { boot, go, openGantt, quickPct, openProject, newProject, editProject, pickTemplate, saveProject, deleteProject, restoreSample, newEntry, editEntry, cam, gal, setWx, removeFormPhoto, saveEntry, cancelEntry, deleteEntry, openPhoto, photoIdx, usePhotoOnCover, filterLog, coverPick, coverLayout, coverNum, coverField, coverManual, saveCover, setPct, setMode, openItem, newItem, saveItem, deleteItem, addCost, deleteCost, openShare, shareDo, closeSheet, openIdeas, saveIdea, sendIdeas, openWelcome, exportData, resetAll, state: () => S, filesPicked };
+  function refreshAfterSync() { if (cur === 'projects' || cur === 'home') render(cur); }
+  return { boot, go, current: () => cur, toast, confirm, refreshAfterSync, openGantt, quickPct, openProject, newProject, editProject, pickTemplate, saveProject, deleteProject, restoreSample, newEntry, editEntry, cam, gal, setWx, removeFormPhoto, saveEntry, cancelEntry, deleteEntry, openPhoto, photoIdx, usePhotoOnCover, filterLog, coverPick, coverLayout, coverNum, coverField, coverManual, saveCover, setPct, setMode, openItem, newItem, saveItem, deleteItem, addCost, deleteCost, openShare, shareDo, closeSheet, openIdeas, saveIdea, sendIdeas, openWelcome, exportData, resetAll, state: () => S, filesPicked };
 })();
 App.boot();

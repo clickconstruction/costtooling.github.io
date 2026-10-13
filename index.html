@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="CostTooling">
 <script>if (new URLSearchParams(location.search).get("shot")) document.documentElement.classList.add("shot");</script>
 <link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="css/app.css?v=8">
+<link rel="stylesheet" href="css/app.css?v=9">
 </head>
 <body>
 <div class="shell">
@@ -15,6 +15,7 @@
       <button class="ibtn back" id="back" aria-label="Back"><i data-ic="chevl"></i></button>
       <div class="mark" id="mark" onclick="App.openWelcome()">CT</div>
       <div class="sp"><b id="ttl">Projects</b><span id="sub">CostTooling</span></div>
+      <button class="ibtn" id="cloudBtn" style="display:none;position:relative" onclick="Cloud.onStatusTap()" aria-label="Account"></button>
       <button class="ibtn y" id="topAct" style="display:none"></button>
     </div>
 
@@ -32,6 +33,13 @@
     <section class="screen" data-s="item"><div id="itemBody"></div></section>
     <section class="screen" data-s="itemform"><div id="itemformBody"></div></section>
     <section class="screen" data-s="report"><div id="reportBody"></div></section>
+    <section class="screen" data-s="signin"><div id="cloudBody_signin"></div></section>
+    <section class="screen" data-s="join"><div id="cloudBody_join"></div></section>
+    <section class="screen" data-s="forgot"><div id="cloudBody_forgot"></div></section>
+    <section class="screen" data-s="setpass"><div id="cloudBody_setpass"></div></section>
+    <section class="screen" data-s="company"><div id="cloudBody_company"></div></section>
+    <section class="screen" data-s="account"><div id="cloudBody_account"></div></section>
+    <section class="screen" data-s="team"><div id="cloudBody_team"></div></section>
 
     <div class="tabs" id="tabs">
       <button data-t="home" onclick="App.go('home')"><span class="pill"><i data-ic="home" data-size="21"></i></span>Home</button>
@@ -69,7 +77,7 @@
       <div class="mark">CT</div>
       <h4 id="welcomeTitle" style="font-size:20px">Welcome to CostTooling</h4>
       <p>Track a job from the site: photos, progress, costs and schedule, and the cover pages and reports that come out of them.</p>
-      <p>This is an early working version. Everything you add stays on this phone. There's a sample job to poke at, and you can start your own.</p>
+      <p>This is an early working version. There's a sample job to poke at, and you can start your own. Sign in and your jobs and photos save to the cloud and follow you to any phone; stay signed out and they live on this phone only.</p>
       <p id="installTip" style="display:none"><b>Before you add real jobs:</b> tap Share <span style="display:inline-block;vertical-align:-3px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 12v8h14v-8"/></svg></span> in Safari and choose <b>Add to Home Screen</b>. The home-screen app keeps its own data, so set it up first.</p>
       <p>When you think "I wish it did…", tap the yellow bulb and tell us.</p>
       <button class="btn" onclick="App.closeSheet()"><i data-ic="check"></i>Let's go</button>
@@ -112,12 +120,14 @@
   </aside>
 </div>
 <div id="printArea" hidden></div>
-<script src="js/db.js?v=8"></script>
-<script src="js/photos.js?v=8"></script>
-<script src="js/data.js?v=8"></script>
-<script src="js/cover.js?v=8"></script>
-<script src="js/ui.js?v=8"></script>
-<script src="js/app.js?v=8"></script>
+<script src="js/db.js?v=9"></script>
+<script src="js/photos.js?v=9"></script>
+<script src="js/data.js?v=9"></script>
+<script src="js/cover.js?v=9"></script>
+<script src="js/ui.js?v=9"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+<script src="js/cloud.js?v=9"></script>
+<script src="js/app.js?v=9"></script>
 <script>
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
   navigator.serviceWorker.register('sw.js').then(reg => {

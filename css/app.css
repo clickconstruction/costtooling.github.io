@@ -129,3 +129,13 @@ input[type=range]::-moz-range-track { height:8px; border-radius:99px; background
 .tpl { display:flex; gap:8px; overflow:auto; margin:0 -14px; padding:0 14px 4px; } .tpl div { flex:none; width:150px; border:1px solid var(--line); border-radius:12px; padding:10px; background:#fff; font-size:12.5px; cursor:pointer; } .tpl div.on { border-color:var(--ink); box-shadow:inset 0 0 0 1px var(--ink); } .tpl b { display:block; font-size:13px; margin-bottom:2px; } .tpl span { color:var(--muted); font-size:11.5px; }
 .pend { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:6px; }
 @media print { html, body { position:static !important; height:auto !important; overflow:visible !important; } .shell { display:none !important; } #printArea { display:block !important; width:100%; } #printArea img { width:100%; } }
+
+/* cloud / account screens */
+.auth { max-width:420px; margin:0 auto; padding-top:8px; } .auth h2 { font-size:22px; margin:10px 0 4px; letter-spacing:-.01em; }
+.mark.big { width:52px; height:52px; border-radius:14px; font-size:20px; }
+.hint.err { color:var(--red); min-height:0; } .hint.err:empty { display:none; } .hint.ok { color:var(--green); font-weight:600; } .hint.ok:empty { display:none; }
+.in.code { font-family:ui-monospace, Menlo, monospace; letter-spacing:.14em; text-transform:uppercase; font-weight:700; }
+.codebox { font-family:ui-monospace, Menlo, monospace; font-size:22px; letter-spacing:.2em; font-weight:700; text-align:center; padding:10px; background:#ecebe6; border-radius:10px; margin:0 0 8px; }
+#cloudBtn .dot { position:absolute; right:6px; top:6px; width:8px; height:8px; border-radius:50%; border:2px solid var(--ink); box-sizing:content-box; }
+.btn.danger.sm { width:auto; }
+.auth .mark { background:var(--yellow); color:var(--ink); font-weight:900; display:flex; align-items:center; justify-content:center; letter-spacing:-.5px; }

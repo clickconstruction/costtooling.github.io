@@ -1,6 +1,6 @@
 /* CostTooling service worker: cache-first for the app shell, network-first for index.html so updates land. */
-const VERSION = 'ct-v8';
-const SHELL = ['./', './index.html', './css/app.css?v=8', './js/db.js?v=8', './js/photos.js?v=8', './js/data.js?v=8', './js/cover.js?v=8', './js/ui.js?v=8', './js/app.js?v=8', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
+const VERSION = 'ct-v9';
+const SHELL = ['./', './index.html', './css/app.css?v=9', './js/db.js?v=9', './js/photos.js?v=9', './js/data.js?v=9', './js/cover.js?v=9', './js/ui.js?v=9', './js/cloud.js?v=9', './js/app.js?v=9', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', e => {

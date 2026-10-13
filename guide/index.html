@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Short photo steps for adding people and resetting passwords in CostTooling and CharityTooling.">
+<link rel="icon" href="../icons/icon.svg">
+<title>Tooling Accounts Guide</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Layout: one long scroll per app, each step = words on the left, phone on the right; stacks on narrow screens */
+:root {
+  --bg:#f7f5ef; --fg:#1b1a17; --muted:#5f5b52; --line:#e3dfd3; --card:#ffffff; --ring:#e6b422;
+  --accent:#111111; --accent-fg:#f2c230; --ct:#f2c230; --ch:#2f63e8;
+  --font:'Atkinson Hyperlegible', 'Helvetica Neue', Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#161512; --fg:#f1ede3; --muted:#b2ac9f; --line:#2f2d27; --card:#1f1e1a; --accent:#f2c230; --accent-fg:#111; color-scheme:dark } }
+:root[data-theme="dark"] { --bg:#161512; --fg:#f1ede3; --muted:#b2ac9f; --line:#2f2d27; --card:#1f1e1a; --accent:#f2c230; --accent-fg:#111; color-scheme:dark }
+* { box-sizing:border-box }
+body { background:var(--bg); color:var(--fg); font-family:var(--font); font-size:19px; line-height:1.45; margin:0; padding-block:0 64px; padding-inline:16px }
+.wrap { max-width:900px; margin:0 auto }
+header { padding:28px 0 8px }
+h1 { font-size:clamp(30px,5vw,44px); line-height:1.1; margin:0 0 10px; text-wrap:balance }
+.lede { color:var(--muted); margin:0 0 20px; max-width:38em }
+.tabs { display:flex; gap:8px; position:sticky; top:env(safe-area-inset-top,0px); background:var(--bg); padding:10px 0; z-index:5; border-bottom:1px solid var(--line) }
+.tabs button { flex:1; font:inherit; font-weight:700; font-size:18px; padding:12px 14px; border-radius:14px; border:2px solid var(--line); background:var(--card); color:var(--fg); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; min-height:52px }
+.tabs button:focus-visible { outline:3px solid var(--ring); outline-offset:2px }
+.tabs button[aria-selected="true"] { border-color:var(--fg) }
+.tabs .mark { width:28px; height:28px; border-radius:8px; display:inline-grid; place-items:center; font-size:13px; font-weight:700 }
+.mark.ct { background:var(--ct); color:#111 } .mark.ch { background:var(--ch); color:#fff }
+.toc { display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 8px }
+.toc a { font-size:16px; color:var(--fg); text-decoration:none; border:1px solid var(--line); background:var(--card); padding:8px 12px; border-radius:999px }
+h2 { font-size:28px; margin:40px 0 4px; text-wrap:balance; scroll-margin-top:90px }
+.intro { color:var(--muted); margin:0 0 18px; max-width:38em }
+.steps { list-style:none; margin:0; padding:0; display:grid; gap:16px }
+.step { display:grid; grid-template-columns:minmax(0,1fr) 270px; gap:20px; align-items:start; background:var(--card); border:1px solid var(--line); border-radius:18px; padding:18px }
+.words { min-width:0 }
+.words p { margin:0 }
+.num { width:40px; height:40px; border-radius:50%; background:var(--accent); color:var(--accent-fg); font-weight:700; font-size:20px; display:grid; place-items:center; margin-bottom:10px }
+.way { display:block; font-size:14px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:4px }
+.look { margin:14px 0 0 }
+.look figcaption { font-size:14px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-bottom:6px }
+.look img { display:block; width:auto; max-width:100%; max-height:150px; border-radius:12px; border:1px solid var(--line) }
+.note { margin-top:12px !important; font-size:16px; color:var(--muted); border-left:4px solid var(--ring); padding-left:10px }
+.phone img { display:block; width:100%; max-width:270px; border-radius:22px; border:1px solid var(--line); background:#000 }
+.phone.empty { min-height:200px; border:2px dashed var(--line); border-radius:22px; display:grid; place-items:center; color:var(--muted); font-size:16px }
+@media (max-width:640px) {
+  body { font-size:18px }
+  .step { grid-template-columns:1fr }
+  .phone img, .phone.empty { max-width:100%; width:100%; margin:0 auto }
+}
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior:smooth } }
+footer { margin-top:48px; color:var(--muted); font-size:15px; border-top:1px solid var(--line); padding-top:16px }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Adding people and resetting passwords</h1>
+  <p class="lede">Short steps with a photo of every button. Pick your app, then follow the numbers.</p>
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" id="tab-costtooling" aria-selected="true" aria-controls="costtooling" data-tab="costtooling"><span class="mark ct">CT</span>CostTooling</button>
+    <button type="button" role="tab" id="tab-charitytooling" aria-selected="false" aria-controls="charitytooling" data-tab="charitytooling"><span class="mark ch">♥</span>CharityTooling</button>
+  </div>
+</header>
+<section class="app" id="costtooling" data-app="costtooling">
+<nav class="toc" aria-label="Sections"><a href="#costtooling-add">Add someone to your team</a><a href="#costtooling-join">Join with a code</a><a href="#costtooling-forgot">Forgot your password</a><a href="#costtooling-locked">Help someone who is locked out</a></nav>
+<h2 id="costtooling-add">Add someone to your team</h2><p class="intro">For the person who runs the company. There are three ways: by email, with a one-time code, or with a team code for the whole crew.</p><ol class="steps">
+<li class="step">
+<div class="words"><div class="num">1</div><p>Open <b>costtooling.com</b>. Tap the account button in the top corner.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ct-01-projects-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="ct-01-projects.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">2</div><p>Type your email and password. Tap <b>Sign in</b>.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ct-02-signin-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="ct-02-signin.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">3</div><p>First time only: type your company name. Tap <b>Create company</b>.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ct-03-company-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="ct-03-company.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">4</div><p>Tap the account button again. The green dot means your jobs are saved to the cloud.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ct-04-projects-signed-in-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="ct-04-projects-signed-in.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">5</div><p>Tap <b>Team</b>.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ct-05-account-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="ct-05-account.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">6</div><p><span class='way'>Way 1 · By email</span>Type their email. Tap <b>Invite</b>. They get an email with a link.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ct-06-team-invite-email-zoom.png" alt="" loading="lazy"></figure>
+<p class="note">Pick <b>Admin</b> in the dropdown if they should be able to add people too.</p>
+</div>
+<div class="phone"><img src="ct-06-team-invite-email.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">7</div><p><span class='way'>Way 2 · One-time code</span>Leave the email box empty. Tap <b>Invite</b>.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ct-07-team-invite-code-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="ct-07-team-invite-code.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">8</div><p>Read the code out or text it. It works for one person, for 7 days.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ct-08-team-code-created-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="ct-08-team-code-created.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">9</div><p>The code waits under <b>Pending invites</b>. Tap the × to cancel it.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ct-09-pending-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="ct-09-pending.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">10</div><p><span class='way'>Way 3 · Whole crew</span>Tap <b>Create join code</b>.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ct-10-join-code-create-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="ct-10-join-code-create.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">11</div><p>Share this code with everyone. It works for up to 25 people, for 30 days.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ct-11-join-code-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="ct-11-join-code.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">12</div><p><b>Regenerate</b> makes a new code and stops the old one at once.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ct-12-join-code-regenerate-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="ct-12-join-code-regenerate.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">13</div><p><b>Stop</b> turns the code off.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ct-12b-join-code-stop-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="ct-12b-join-code-stop.png" alt="" loading="lazy"></div>
+</li>
+</ol>
+<h2 id="costtooling-join">Join with a code</h2><p class="intro">For a new person. You need a code from whoever runs your company.</p><ol class="steps">
+<li class="step">
+<div class="words"><div class="num">1</div><p>Open <b>costtooling.com</b>. Tap the account button. Then tap <b>Have an invite code?</b></p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ct-20-signin-have-code-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="ct-20-signin-have-code.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">2</div><p>Type the code. Wait for the green line. It names your company.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ct-21-join-code-check-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="ct-21-join-code-check.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">3</div><p>Type your email. Tap <b>Continue</b>.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ct-22-join-continue-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="ct-22-join-continue.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">4</div><p>Open your email. Tap the link. Choose a password. Tap <b>Save and continue</b>.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ct-14-setpass-zoom.png" alt="" loading="lazy"></figure>
+<p class="note">Already have a CostTooling account? Then the code adds you to the company right away. Just sign in.</p>
+</div>
+<div class="phone"><img src="ct-14-setpass.png" alt="" loading="lazy"></div>
+</li>
+</ol>
+<h2 id="costtooling-forgot">Forgot your password</h2><p class="intro">You can fix this yourself. It takes one email.</p><ol class="steps">
+<li class="step">
+<div class="words"><div class="num">1</div><p>On the sign-in screen, tap <b>Forgot password?</b></p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ct-30-signin-forgot-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="ct-30-signin-forgot.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">2</div><p>Type your email. Tap <b>Send reset link</b>.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ct-31-forgot-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="ct-31-forgot.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">3</div><p>Check your email. The link works for one hour.</p>
+</div>
+<div class="phone"><img src="ct-32-forgot-sent.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">4</div><p>Tap the link. Choose a new password. Tap <b>Save and continue</b>.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ct-14-setpass-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="ct-14-setpass.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">5</div><p>No password at all? Tap <b>Email me a sign-in link</b> instead. No password needed.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ct-33-signin-magic-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="ct-33-signin-magic.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">6</div><p>Want a new password any time? Tap the account button, then <b>Change password</b>.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ct-13-account-change-password-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="ct-13-account-change-password.png" alt="" loading="lazy"></div>
+</li>
+</ol>
+<h2 id="costtooling-locked">Help someone who is locked out</h2><p class="intro">For admins. Use this when a team member cannot get into their email.</p><ol class="steps">
+<li class="step">
+<div class="words"><div class="num">1</div><p>Tap the account button, then <b>Team</b>.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ct-05-account-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="ct-05-account.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">2</div><p>Find the person in the <b>Members</b> list. Tap <b>Sign-in link</b>. Read the link out or text it. It works for one hour.</p>
+<p class="note">Photo coming: this button only shows when the team has more than one member.</p>
+</div>
+<div class="phone empty"><span>Photo coming</span></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">3</div><p>Or tap <b>Temp password</b>. Tell them the three words. They must pick a new password when they sign in.</p>
+</div>
+<div class="phone empty"><span>Photo coming</span></div>
+</li>
+</ol>
+</section>
+<section class="app" id="charitytooling" data-app="charitytooling">
+<nav class="toc" aria-label="Sections"><a href="#charitytooling-add">Add someone to your charity</a><a href="#charitytooling-join">Join with a code</a><a href="#charitytooling-forgot">Forgot your password</a><a href="#charitytooling-locked">Help someone who is locked out</a></nav>
+<h2 id="charitytooling-add">Add someone to your charity</h2><p class="intro">For charity admins. Same three ways: by email, with a one-time code, or with a join code for the whole team.</p><ol class="steps">
+<li class="step">
+<div class="words"><div class="num">1</div><p>Open <b>charitytooling.com</b>. Sign in. Open <b>Admin</b>, then your charity.</p>
+<p class="note">Photos coming for this section.</p>
+</div>
+<div class="phone empty"><span>Photo coming</span></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">2</div><p>Under <b>Invite someone</b>, type their email. Pick Rep or Admin. Click <b>Invite</b>. They get an email with a link.</p>
+</div>
+<div class="phone empty"><span>Photo coming</span></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">3</div><p>Leave the email empty and click <b>Invite</b> to get a one-time code. Read it out. It works for one person, for 7 days.</p>
+</div>
+<div class="phone empty"><span>Photo coming</span></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">4</div><p>Under <b>Team join code</b>, click <b>Make a code</b>. Share it with the whole team. Up to 25 people, 30 days.</p>
+</div>
+<div class="phone empty"><span>Photo coming</span></div>
+</li>
+</ol>
+<h2 id="charitytooling-join">Join with a code</h2><p class="intro">For a new person. You need a code from your charity admin.</p><ol class="steps">
+<li class="step">
+<div class="words"><div class="num">1</div><p>Open <b>charitytooling.com</b>. Click <b>Sign in</b>, then <b>Have an invite code?</b></p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ch-02-signin-have-code-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="ch-02-signin-have-code.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">2</div><p>Type the code. Wait for the green line that names your charity. A red line means the code is wrong. Check it with your admin.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ch-05-join-code-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="ch-05-join-code.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">3</div><p>Type your email. Click <b>Continue</b>.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ch-06-join-continue-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="ch-06-join-continue.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">4</div><p>Open your email. Click the link. Choose a password.</p>
+</div>
+<div class="phone empty"><span>Photo coming</span></div>
+</li>
+</ol>
+<h2 id="charitytooling-forgot">Forgot your password</h2><p class="intro">You can fix this yourself. It takes one email.</p><ol class="steps">
+<li class="step">
+<div class="words"><div class="num">1</div><p>On the sign-in screen, click <b>Forgot password?</b></p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ch-01-signin-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="ch-01-signin.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">2</div><p>Type your email. Click <b>Send reset link</b>.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="ch-03-forgot-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="ch-03-forgot.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">3</div><p>Check your email. The link works for one hour.</p>
+</div>
+<div class="phone"><img src="ch-04-forgot-sent.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">4</div><p>Click the link. Type a new password twice. Click <b>Save password</b>.</p>
+</div>
+<div class="phone empty"><span>Photo coming</span></div>
+</li>
+</ol>
+<h2 id="charitytooling-locked">Help someone who is locked out</h2><p class="intro">For admins. Use this when a member cannot get into their email.</p><ol class="steps">
+<li class="step">
+<div class="words"><div class="num">1</div><p>Open <b>Admin</b>, then your charity. Find the person under <b>Members</b>. Click their name.</p>
+<p class="note">Photos coming for this section.</p>
+</div>
+<div class="phone empty"><span>Photo coming</span></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">2</div><p>Click <b>Send sign-in link</b>. Read the link out or text it. It works for one hour.</p>
+</div>
+<div class="phone empty"><span>Photo coming</span></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">3</div><p>Or click <b>Temporary password</b>. Tell them the three words. They must pick a new password when they sign in.</p>
+</div>
+<div class="phone empty"><span>Photo coming</span></div>
+</li>
+</ol>
+</section>
+<footer>Codes look like ABCD-1234. Capital letters and the dash do not matter. Every emailed link works for one hour, then you ask for a new one.</footer>
+</div>
+<script>
+(function(){
+  var tabs = document.querySelectorAll('.tabs button'), apps = document.querySelectorAll('.app');
+  function show(key, push) {
+    apps.forEach(function(a){ a.hidden = a.dataset.app !== key; });
+    tabs.forEach(function(t){ t.setAttribute('aria-selected', t.dataset.tab === key ? 'true' : 'false'); });
+    try { localStorage.setItem('guide-app', key); } catch (e) {}
+    if (push) { try { history.replaceState(null, '', '#' + key); } catch (e) {} }
+  }
+  tabs.forEach(function(t){ t.addEventListener('click', function(){ show(t.dataset.tab, true); window.scrollTo(0, 0); }); });
+  document.addEventListener('click', function(e){ var a = e.target.closest('a[href^="#"]'); if (!a) return; var id = a.getAttribute('href').slice(1); var key = id.split('-')[0]; if (key === 'costtooling' || key === 'charitytooling') show(key, false); });
+  var h = (location.hash || '').replace('#','').split('-')[0], saved = null;
+  try { saved = localStorage.getItem('guide-app'); } catch (e) {}
+  show(h === 'charitytooling' || h === 'costtooling' ? h : (saved === 'charitytooling' ? 'charitytooling' : 'costtooling'), false);
+})();
+</script>
+</body>
+</html>

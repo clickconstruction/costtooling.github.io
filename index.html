@@ -1,661 +1,120 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>CostTooling — prototype</title>
-<meta name="description" content="CostTooling prototype: site photos, cover pages, schedule of values, Gantt and a one-page progress report, from one project record.">
+<title>CostTooling</title>
+<meta name="description" content="CostTooling: track a job from the site. Photos, progress, costs, schedule, and the one-page report that comes out of them.">
 <meta name="theme-color" content="#161617">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="CostTooling">
 <script>if (new URLSearchParams(location.search).get("shot")) document.documentElement.classList.add("shot");</script>
 <link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-<style>
-  :root { --ink:#161617; --ink2:#2b2b2e; --yellow:#e8c547; --paper:#f6f5f1; --card:#fff; --line:#e2dfd6; --muted:#6b6a66; --blue:#003366; --green:#2f7d4f; --red:#b3261e; --amber:#b7791f; --r:14px; }
-  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html,body { margin:0; height:100%; }
-  body { background:#ecebe6; color:var(--ink); font:15px/1.45 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-  svg.ic { display:inline-block; vertical-align:-0.2em; flex:none; }
-  /* ---------- desktop shell ---------- */
-  .shell { display:grid; grid-template-columns: 420px 1fr; gap:28px; max-width:1180px; margin:0 auto; padding:28px 20px 60px; align-items:start; }
-  .phone { width:390px; height:800px; background:var(--paper); border-radius:44px; border:10px solid #1d1d1f; box-shadow:0 30px 60px rgba(0,0,0,.25); overflow:hidden; position:relative; }
-  .notes h1 { margin:0 0 4px; font-size:24px; } .notes .lede { color:var(--muted); margin:0 0 18px; max-width:70ch; }
-  .notes h2 { font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin:22px 0 8px; }
-  .notes ol { padding-left:20px; margin:0; } .notes li { margin:0 0 6px; }
-  .notes li a { color:var(--blue); font-weight:600; text-decoration:none; cursor:pointer; } .notes li a.on { background:var(--yellow); padding:0 6px; border-radius:4px; color:var(--ink); }
-  .notes p { margin:0 0 10px; max-width:70ch; }
-  .callout { background:#fff; border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-top:12px; }
-  .notes .sb { display:inline-block; margin-top:14px; background:var(--ink); color:var(--yellow); padding:8px 14px; border-radius:8px; text-decoration:none; font-weight:600; font-size:13px; }
-  html.shot, html.shot body { width:390px; height:844px; overflow:hidden; background:var(--paper); }
-  html.shot .shell { display:block; padding:0; max-width:none; margin:0; }
-  html.shot .phone { width:390px; height:844px; border:0; border-radius:0; box-shadow:none; }
-  html.shot .notes { display:none; }
-  @media (max-width:860px) { body { background:var(--paper); } .shell { display:block; padding:0; max-width:none; } .phone { width:100%; height:100dvh; border:0; border-radius:0; box-shadow:none; } .notes { display:none; } }
-  /* ---------- app chrome ---------- */
-  .app { position:absolute; inset:0; display:flex; flex-direction:column; }
-  .top { background:var(--ink); color:#fff; padding:14px 14px 12px; display:flex; align-items:center; gap:10px; flex:none; }
-  .ibtn { width:36px; height:36px; border-radius:10px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); color:#fff; display:inline-flex; align-items:center; justify-content:center; flex:none; font:inherit; }
-  .ibtn.y { background:var(--yellow); color:var(--ink); border-color:var(--yellow); }
-  .top .back { display:none; } .top .back.show { display:inline-flex; }
-  .top .sp { flex:1; min-width:0; } .top b { font-size:17px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .top span { color:#b9b7af; font-size:12px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .top .mark { width:34px; height:34px; border-radius:9px; background:var(--yellow); color:var(--ink); font-weight:900; font-size:14px; display:flex; align-items:center; justify-content:center; letter-spacing:-.5px; }
-  .screen { flex:1; overflow:auto; -webkit-overflow-scrolling:touch; display:none; padding:14px 14px 96px; }
-  .screen.on { display:block; }
-  .tabs { position:absolute; left:0; right:0; bottom:0; background:rgba(255,255,255,.96); backdrop-filter:blur(10px); border-top:1px solid var(--line); display:flex; padding:6px 6px calc(8px + env(safe-area-inset-bottom)); }
-  .tabs button { flex:1; background:none; border:0; font:inherit; font-size:10.5px; color:var(--muted); display:flex; flex-direction:column; align-items:center; gap:3px; padding:4px 0; font-weight:500; }
-  .tabs button .pill { width:44px; height:28px; border-radius:9px; display:flex; align-items:center; justify-content:center; }
-  .tabs button.on { color:var(--ink); font-weight:700; } .tabs button.on .pill { background:var(--yellow); }
-  /* ---------- components ---------- */
-  .card { background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:14px; margin-bottom:12px; }
-  .card.tap { cursor:pointer; } .card.tap:active { transform:scale(.99); }
-  .card h3 { margin:0 0 10px; font-size:15px; display:flex; align-items:center; justify-content:space-between; gap:8px; } .card h3 small { font-weight:500; color:var(--muted); font-size:12px; white-space:nowrap; }
-  .card h3 small.lnk { color:var(--blue); }
-  .kpis { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
-  .kpi { background:var(--ink); color:#fff; border-radius:var(--r); padding:12px 12px 11px; position:relative; }
-  .kpi .ic { position:absolute; top:12px; right:12px; color:rgba(255,255,255,.45); }
-  .kpi b { display:block; font-size:26px; color:var(--yellow); font-variant-numeric:tabular-nums; line-height:1.1; letter-spacing:-.5px; }
-  .kpi span { font-size:11.5px; color:#b9b7af; display:block; margin-top:2px; } .kpi em { font-style:normal; font-size:11px; display:block; margin-top:6px; color:#e9e7df; }
-  .kpi.light { background:#fff; color:var(--ink); border:1px solid var(--line); } .kpi.light b { color:var(--ink); } .kpi.light span, .kpi.light em { color:var(--muted); } .kpi.light .ic { color:#c9c6bc; }
-  .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; background:var(--ink); color:var(--yellow); border-radius:12px; padding:12px 14px; font-weight:700; font-size:14px; border:0; font-family:inherit; width:100%; }
-  .btn.q { background:#fff; color:var(--ink); border:1px solid var(--line); font-weight:600; }
-  .btn.sm { width:auto; padding:8px 12px; font-size:13px; border-radius:9px; }
-  .btn.danger { background:#fff; color:var(--red); border:1px solid #ecc1bd; }
-  .actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
-  .actions .btn { flex-direction:row; justify-content:flex-start; gap:10px; padding:13px 12px; font-size:13px; }
-  .actions .btn .ic { width:22px; height:22px; }
-  .bar { height:8px; background:#ecebe6; border-radius:99px; overflow:hidden; } .bar i { display:block; height:100%; background:var(--green); border-radius:99px; }
-  .strip { display:flex; gap:8px; overflow:auto; padding-bottom:4px; margin:0 -14px; padding-left:14px; padding-right:14px; } .strip .ph { flex:none; width:96px; }
-  .ph { border-radius:10px; overflow:hidden; position:relative; aspect-ratio:1; background:#ddd; cursor:pointer; }
-  .ph canvas, .ph img { width:100%; height:100%; display:block; object-fit:cover; }
-  .ph small { position:absolute; left:6px; bottom:6px; background:rgba(22,22,23,.72); color:#fff; font-size:10px; padding:2px 6px; border-radius:6px; font-weight:600; }
-  .ph.sel::after { content:''; position:absolute; top:6px; right:6px; width:22px; height:22px; border-radius:50%; background:var(--yellow) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23161617' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5 9-10'/%3E%3C/svg%3E") center/14px no-repeat; }
-  .ph.sel { outline:3px solid var(--yellow); outline-offset:-3px; }
-  .ph.hero { aspect-ratio:4/3; border-radius:var(--r); }
-  .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
-  .row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 0; border-bottom:1px solid var(--line); font-size:14px; } .row:last-child { border-bottom:0; } .row.tap { cursor:pointer; }
-  .row .l { min-width:0; flex:1; } .row .l b { display:block; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .row .l small { color:var(--muted); font-size:12px; display:block; }
-  .row .r { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; } .row .r small { display:block; color:var(--muted); font-size:11.5px; }
-  .row .chev { color:#b8b6ad; }
-  .mini { height:5px; background:#ecebe6; border-radius:99px; overflow:hidden; margin-top:6px; } .mini i { display:block; height:100%; background:var(--ink); border-radius:99px; }
-  .chip { display:inline-flex; align-items:center; gap:4px; border:1px solid var(--line); border-radius:99px; padding:3px 9px 3px 7px; font-size:11.5px; color:var(--muted); background:#fff; margin:2px 4px 0 0; font-weight:500; }
-  .chip .ic { width:13px; height:13px; }
-  .chip.g { color:var(--green); border-color:#bfe0cb; background:#eef8f1; } .chip.r { color:var(--red); border-color:#ecc1bd; background:#fbeeed; } .chip.a { color:var(--amber); border-color:#ead9b2; background:#fbf4e4; } .chip.k { background:var(--ink); color:#fff; border-color:var(--ink); }
-  label { display:block; font-size:12px; color:var(--muted); margin:10px 0 4px; font-weight:500; } label:first-child { margin-top:0; }
-  .in { width:100%; border:1px solid var(--line); border-radius:10px; padding:10px 12px; background:#fff; font:inherit; font-size:15px; }
-  .in2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .seg { display:flex; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:#fff; } .seg button { flex:1; background:#fff; border:0; padding:9px; font:inherit; font-size:13px; color:var(--muted); font-weight:500; } .seg button.on { background:var(--ink); color:var(--yellow); font-weight:700; }
-  .seg.big { margin-bottom:12px; }
-  input[type=range] { width:100%; accent-color:var(--ink); margin:6px 0 0; }
-  .day { margin:14px 0 6px; font-size:12px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); display:flex; justify-content:space-between; font-weight:600; }
-  .entry { display:grid; grid-template-columns:78px 1fr; gap:10px; margin-bottom:10px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:8px; cursor:pointer; } .entry .ph { width:78px; border-radius:8px; }
-  .entry p { margin:3px 0 4px; font-size:13.5px; line-height:1.35; }
-  .sov { width:100%; border-collapse:collapse; } .sov tr td { padding:7px 4px; border-bottom:1px solid var(--line); font-size:13px; vertical-align:top; }
-  .sov td.n { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; } .sov tr.tot td { font-weight:700; border-bottom:0; border-top:2px solid var(--ink); }
-  .cover-wrap { background:#1d1d1f; border-radius:var(--r); padding:10px; margin-bottom:12px; } .cover-wrap canvas { width:100%; height:auto; display:block; border-radius:6px; box-shadow:0 8px 24px rgba(0,0,0,.4); }
-  .gantt { width:100%; height:auto; display:block; }
-  .legend { display:flex; gap:12px; font-size:11.5px; color:var(--muted); margin-top:8px; flex-wrap:wrap; white-space:nowrap; } .legend i { display:inline-block; width:12px; height:12px; border-radius:3px; vertical-align:-2px; margin-right:4px; }
-  .report { background:#fff; border:1px solid var(--line); border-radius:10px; padding:16px 14px; font-size:13px; }
-  .report .hd { display:flex; align-items:center; gap:10px; margin-bottom:10px; } .report .hd .mark { width:30px; height:30px; border-radius:8px; background:var(--ink); color:var(--yellow); font-weight:900; font-size:12px; display:flex; align-items:center; justify-content:center; }
-  .report h4 { margin:0; font-size:16px; } .report .meta { color:var(--muted); font-size:12px; margin:1px 0 0; }
-  .report .num4 { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:10px 0; } .report .num4 div { background:var(--paper); border-radius:8px; padding:9px 4px; text-align:center; } .report .num4 b { display:block; font-size:16px; letter-spacing:-.3px; } .report .num4 span { font-size:10px; color:var(--muted); }
-  .report p { margin:8px 0; } .report .grid3 .ph { border-radius:6px; }
-  .toast { position:absolute; left:16px; right:16px; bottom:84px; background:var(--ink); color:#fff; padding:12px 14px; border-radius:12px; font-size:13.5px; box-shadow:0 10px 30px rgba(0,0,0,.3); opacity:0; transform:translateY(8px); transition:.2s; pointer-events:none; z-index:9; display:flex; gap:8px; align-items:center; }
-  .toast.show { opacity:1; transform:none; } .toast .ic { color:var(--yellow); }
-  .hint { font-size:12px; color:var(--muted); margin:8px 0 0; line-height:1.4; }
-  .stat2 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px; } .stat2 div { background:#fff; border:1px solid var(--line); border-radius:12px; padding:10px; } .stat2 b { display:block; font-size:18px; letter-spacing:-.3px; } .stat2 span { font-size:11px; color:var(--muted); }
-  /* bottom sheet */
-  .sheet-bg { position:absolute; inset:0; background:rgba(22,22,23,.45); z-index:20; display:none; } .sheet-bg.show { display:block; }
-  .sheet { position:absolute; left:0; right:0; bottom:0; background:#fff; border-radius:20px 20px 0 0; padding:10px 16px calc(18px + env(safe-area-inset-bottom)); z-index:21; transform:translateY(100%); transition:.25s; }
-  .sheet.show { transform:none; } .sheet .grab { width:40px; height:5px; background:#d9d6cc; border-radius:99px; margin:0 auto 12px; }
-  .sheet h4 { margin:0 0 10px; font-size:15px; } .sheet .opts { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; text-align:center; font-size:11px; color:var(--muted); }
-  .sheet .opts div { cursor:pointer; } .sheet .opts .ib { width:54px; height:54px; border-radius:16px; background:var(--paper); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; margin:0 auto 5px; color:var(--ink); }
-  .sheet .opts .ib.y { background:var(--yellow); border-color:var(--yellow); }
-  .photo-big { border-radius:var(--r); overflow:hidden; aspect-ratio:4/3; margin:-14px -14px 12px; border-radius:0; position:relative; }
-  .photo-big canvas { width:100%; height:100%; display:block; object-fit:cover; }
-  .photo-big .stamp { position:absolute; left:14px; bottom:12px; background:rgba(22,22,23,.75); color:#fff; padding:5px 10px; border-radius:8px; font-size:12px; font-weight:600; }
-  .fab { position:absolute; right:14px; bottom:calc(82px + env(safe-area-inset-bottom)); width:52px; height:52px; border-radius:50%; background:var(--yellow); color:var(--ink); border:0; box-shadow:0 8px 20px rgba(0,0,0,.25); display:flex; align-items:center; justify-content:center; z-index:8; cursor:pointer; }
-  .fab .n { position:absolute; top:-4px; right:-4px; min-width:20px; height:20px; border-radius:10px; background:var(--ink); color:#fff; font-size:11px; font-weight:700; display:none; align-items:center; justify-content:center; padding:0 5px; } .fab .n.show { display:flex; }
-  .sheet textarea.in { min-height:84px; resize:none; font-size:16px; }
-  .sheet .ideas { max-height:160px; overflow:auto; margin-top:10px; } .sheet .ideas .row { padding:7px 0; font-size:13px; } .sheet .ideas .row .l small { font-size:11px; }
-  .sheet .imp { display:flex; gap:6px; margin-top:6px; } .sheet .imp button { flex:1; border:1px solid var(--line); background:#fff; border-radius:8px; padding:7px; font:inherit; font-size:12.5px; color:var(--muted); } .sheet .imp button.on { background:var(--ink); color:var(--yellow); border-color:var(--ink); font-weight:700; }
-  .sheet.welcome { text-align:left; } .sheet.welcome h4 { font-size:20px; margin-bottom:6px; } .sheet.welcome p { margin:0 0 10px; font-size:14.5px; line-height:1.5; } .sheet.welcome .mark { width:44px; height:44px; border-radius:12px; background:var(--yellow); color:var(--ink); font-weight:900; font-size:16px; display:flex; align-items:center; justify-content:center; margin-bottom:10px; }
-  .sheet .foot { display:flex; justify-content:space-between; margin-top:12px; font-size:12px; color:var(--muted); } .sheet .foot a { color:var(--blue); cursor:pointer; text-decoration:none; font-weight:600; }
-  .tpl { display:flex; gap:8px; overflow:auto; margin:0 -14px; padding:0 14px 4px; } .tpl div { flex:none; width:150px; border:1px solid var(--line); border-radius:12px; padding:10px; background:#fff; font-size:12.5px; cursor:pointer; } .tpl div.on { border-color:var(--ink); box-shadow:inset 0 0 0 1px var(--ink); } .tpl b { display:block; font-size:13px; margin-bottom:2px; } .tpl span { color:var(--muted); font-size:11.5px; }
-</style></head>
+<link rel="stylesheet" href="css/app.css?v=2">
+</head>
 <body>
 <div class="shell">
   <div class="phone"><div class="app">
     <div class="top">
       <button class="ibtn back" id="back" aria-label="Back"><i data-ic="chevl"></i></button>
-      <div class="mark" id="mark">CT</div>
+      <div class="mark" id="mark" onclick="App.openWelcome()">CT</div>
       <div class="sp"><b id="ttl">Projects</b><span id="sub">CostTooling</span></div>
       <button class="ibtn y" id="topAct" style="display:none"></button>
     </div>
 
-    <!-- Projects -->
-    <section class="screen on" data-s="projects">
-      <div class="stat2"><div><b id="sAll">3</b><span>projects</span></div><div><b id="sActive">2</b><span>active</span></div><div><b id="sToGo"></b><span>to finish, all</span></div></div>
-      <div class="card tap" onclick="go('home')">
-        <h3>Maple St Duplex — Unit B remodel <small>Hernandez</small></h3>
-        <div class="row" style="border:0;padding:0 0 8px"><div class="l"><small>Started Sep 8 · due Dec 19</small></div><div class="r"><b id="p1pct"></b></div></div>
-        <div class="bar"><i id="p1bar"></i></div>
-        <div class="hint" id="p1hint"></div>
-      </div>
-      <div class="card tap" style="opacity:.75">
-        <h3>Cedar Ridge — detached garage <small>Okafor</small></h3>
-        <div class="row" style="border:0;padding:0 0 8px"><div class="l"><small>Started Aug 1 · due Oct 30</small></div><div class="r"><b>91%</b></div></div>
-        <div class="bar"><i style="width:91%"></i></div>
-        <div class="hint">$4,600 to finish · 18 days</div>
-      </div>
-      <div class="card tap" style="opacity:.75">
-        <h3>Willow Ct — kitchen + bath <small>Nguyen</small></h3>
-        <div class="row" style="border:0;padding:0 0 8px"><div class="l"><small>Closed out Sep 26</small></div><div class="r"><b>100%</b></div></div>
-        <div class="bar"><i style="width:100%"></i></div>
-      </div>
-      <button class="btn q" onclick="go('newproj')"><i data-ic="plus"></i>New project</button>
-    </section>
-
-    <!-- New project -->
-    <section class="screen" data-s="newproj">
-      <div class="card">
-        <label>Project name</label><input class="in" placeholder="e.g. Oak St — porch rebuild">
-        <label>Client</label><input class="in" placeholder="Who is this for?">
-        <label>Address</label><input class="in" placeholder="Site address">
-        <div class="in2"><div><label>Start</label><input class="in" value="Oct 20, 2026"></div><div><label>Finish</label><input class="in" placeholder="Dec 15, 2026"></div></div>
-        <label>Contract amount</label><input class="in" placeholder="$">
-      </div>
-      <div class="card">
-        <h3>Start from a template <small>line items you can edit</small></h3>
-        <div class="tpl">
-          <div class="on"><b>Residential remodel</b><span>10 items · demo → finishes</span></div>
-          <div><b>New garage / ADU</b><span>8 items · slab → siding</span></div>
-          <div><b>Kitchen + bath</b><span>7 items</span></div>
-          <div><b>Blank</b><span>add your own</span></div>
-        </div>
-      </div>
-      <button class="btn" onclick="toast('Project created'); go('home')"><i data-ic="check"></i>Create project</button>
-    </section>
-
-    <!-- Project home -->
-    <section class="screen" data-s="home">
-      <div class="kpis">
-        <div class="kpi"><i data-ic="trend"></i><b id="kPct"></b><span>complete (earned value)</span><em id="kPctNote"></em></div>
-        <div class="kpi"><i data-ic="clock"></i><b id="kDays"></b><span>days to finish</span><em id="kDaysNote"></em></div>
-        <div class="kpi light"><i data-ic="dollar"></i><b id="kSpent"></b><span>cost so far</span><em id="kSpentNote"></em></div>
-        <div class="kpi light"><i data-ic="flag"></i><b id="kToGo"></b><span>to finish (forecast)</span><em id="kToGoNote"></em></div>
-      </div>
-      <div class="actions">
-        <button class="btn" onclick="go('log', true)"><i data-ic="camera"></i>Add photo</button>
-        <button class="btn" onclick="go('cover')"><i data-ic="image"></i>Cover page</button>
-        <button class="btn q" onclick="go('sov')"><i data-ic="percent"></i>Update progress</button>
-        <button class="btn q" onclick="go('report')"><i data-ic="share"></i>Share report</button>
-      </div>
-      <div class="card">
-        <h3>Latest photos <small class="lnk" onclick="go('log')">see log ›</small></h3>
-        <div class="strip" id="homeStrip"></div>
-      </div>
-      <div class="card">
-        <h3>In progress now <small class="lnk" onclick="go('sov')">all items ›</small></h3>
-        <div id="homeLines"></div>
-      </div>
-      <div class="card tap" onclick="go('sov'); setMode('gantt')">
-        <h3>Schedule <small id="homeSched"></small></h3>
-        <svg class="gantt" id="ganttMini" viewBox="0 0 340 60"></svg>
-      </div>
-    </section>
-
-    <!-- Cover page -->
+    <section class="screen on" data-s="projects"><div id="projectsBody"></div></section>
+    <section class="screen" data-s="projform"><div id="projformBody"></div></section>
+    <section class="screen" data-s="home"><div id="homeBody"></div></section>
+    <section class="screen" data-s="log"><div id="logBody"></div></section>
+    <section class="screen" data-s="entryform"><div id="entryBody"></div></section>
+    <section class="screen" data-s="photo"><div id="photoBody"></div></section>
     <section class="screen" data-s="cover">
       <div class="cover-wrap"><canvas id="cover" width="1080" height="1350"></canvas></div>
-      <div class="actions" style="margin-bottom:4px"><button class="btn" onclick="saveCover()"><i data-ic="download"></i>Save to Photos</button><button class="btn q" onclick="openSheet('cover')"><i data-ic="share"></i>Share</button></div>
-      <p class="hint">Saves a 1080×1350 image. On a phone the share sheet lands it in the camera roll, a text or an email.</p>
-      <div class="card" style="margin-top:12px">
-        <h3>Photos <small>tap to pick up to 4</small></h3>
-        <div class="grid3" id="coverPick"></div>
-      </div>
-      <div class="card">
-        <label>Layout</label>
-        <div class="seg" id="layoutSeg"><button class="on" data-l="hero">One big</button><button data-l="grid">2 × 2</button><button data-l="split">Big + 2</button></div>
-        <label>Headline</label><input class="in" id="cHead" value="Framing done, roof going on">
-        <label>Date on cover</label><input class="in" id="cDate" value="October 12, 2026">
-        <label>Numbers shown</label>
-        <div class="seg" id="numSeg"><button class="on" data-n="auto">From schedule</button><button data-n="manual">Type my own</button></div>
-        <div id="manualNums" style="display:none">
-          <div class="in2"><div><label>% complete</label><input class="in" id="mPct" value="52"></div><div><label>Days to finish</label><input class="in" id="mDays" value="68"></div></div>
-          <label>$ to finish</label><input class="in" id="mToGo" value="81000">
-        </div>
-        <label>Note at the bottom</label><input class="in" id="cNote" value="Roofing crew back Tue. Plumbing rough-in starts Wed.">
-      </div>
+      <div id="coverBody"></div>
     </section>
+    <section class="screen" data-s="sov"><div id="sovBody"></div></section>
+    <section class="screen" data-s="item"><div id="itemBody"></div></section>
+    <section class="screen" data-s="itemform"><div id="itemformBody"></div></section>
+    <section class="screen" data-s="report"><div id="reportBody"></div></section>
 
-    <!-- Site log -->
-    <section class="screen" data-s="log">
-      <div class="card" id="newEntry" style="display:none;border-color:var(--yellow);box-shadow:0 0 0 2px var(--yellow)">
-        <h3>New entry <small>Mon, Oct 12 · 2:41 pm</small></h3>
-        <div class="grid3" style="margin-bottom:4px">
-          <div class="ph" style="display:flex;align-items:center;justify-content:center;background:var(--ink);color:var(--yellow)"><i data-ic="camera" data-size="28"></i></div>
-          <div class="ph" style="display:flex;align-items:center;justify-content:center;background:#fff;border:2px dashed var(--line);color:var(--muted)"><i data-ic="image" data-size="26"></i></div>
-        </div>
-        <p class="hint" style="margin:0 0 6px">Take a photo, or pick ones she was texted.</p>
-        <label>Note</label><input class="in" placeholder="What happened today?">
-        <label>Line item</label><select class="in"><option>Roofing</option><option>Framing</option><option>Plumbing rough-in</option></select>
-        <label>Conditions <span style="font-weight:400">· filled from the weather, tap to change</span></label>
-        <div id="newCond"></div>
-        <div style="display:flex;gap:8px;margin-top:12px"><button class="btn sm" onclick="toast('Saved to the log'); document.getElementById('newEntry').style.display='none'"><i data-ic="check"></i>Save entry</button><button class="btn q sm" onclick="document.getElementById('newEntry').style.display='none'">Cancel</button></div>
-      </div>
-      <div class="seg big" id="logFilter"><button class="on">All</button><button>Roofing</button><button>Framing</button><button>Foundation</button></div>
-      <div id="logList"></div>
-    </section>
-
-    <!-- Photo detail -->
-    <section class="screen" data-s="photo">
-      <div class="photo-big" id="photoBig"></div>
-      <div class="card">
-        <div id="photoMeta"></div>
-      </div>
-      <div class="actions"><button class="btn" onclick="usePhotoOnCover()"><i data-ic="image"></i>Use on cover</button><button class="btn q" onclick="openSheet('photo')"><i data-ic="share"></i>Share</button></div>
-      <button class="btn danger" onclick="toast('Photo removed from log')"><i data-ic="trash"></i>Remove from log</button>
-    </section>
-
-    <!-- Progress: values + schedule -->
-    <section class="screen" data-s="sov">
-      <div class="seg big" id="modeSeg"><button class="on" data-m="items">Line items</button><button data-m="gantt">Schedule</button></div>
-      <div id="modeItems">
-        <div class="card">
-          <div class="row" style="border:0;padding:0"><div class="l"><b>Contract</b><small>10 line items</small></div><div class="r"><b id="sovTotal"></b></div></div>
-          <div class="row" style="border:0;padding:4px 0 0"><div class="l"><small>Earned to date</small></div><div class="r" id="sovEarned"></div></div>
-          <div class="row" style="border:0;padding:4px 0 0"><div class="l"><small>Cost to date</small></div><div class="r" id="sovCost"></div></div>
-        </div>
-        <p class="hint" style="margin:0 0 10px">Drag a slider. Every number on every screen follows. Tap a name for costs and photos.</p>
-        <div id="sovList"></div>
-      </div>
-      <div id="modeGantt" style="display:none">
-        <div class="card">
-          <h3>Schedule <small>Sep 8 → Dec 19</small></h3>
-          <svg class="gantt" id="gantt" viewBox="0 0 340 300"></svg>
-          <div class="legend"><span><i style="background:#d9d6cc"></i>planned</span><span><i style="background:var(--green)"></i>done</span><span><i style="background:var(--yellow)"></i>in progress</span><span><i style="background:var(--red)"></i>behind</span></div>
-        </div>
-        <div class="card">
-          <h3>Finish forecast</h3>
-          <div class="row"><div class="l"><b>Planned finish</b></div><div class="r">Dec 19</div></div>
-          <div class="row"><div class="l"><b>At current pace</b><small id="paceNote"></small></div><div class="r" id="paceDate"></div></div>
-          <div class="row"><div class="l"><b>Schedule used</b><small>calendar days elapsed</small></div><div class="r" id="schedUsed"></div></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Line item detail -->
-    <section class="screen" data-s="item">
-      <div id="itemBody"></div>
-    </section>
-
-    <!-- Report -->
-    <section class="screen" data-s="report">
-      <div class="report" id="reportBody"></div>
-      <div class="actions" style="margin-top:12px">
-        <button class="btn" onclick="openSheet('report')"><i data-ic="share"></i>Share</button>
-        <button class="btn q" onclick="toast('Saved as PDF')"><i data-ic="file"></i>Save PDF</button>
-      </div>
-      <p class="hint">Same numbers as the dashboard, laid out as one page she can hand to an owner, a lender or an inspector.</p>
-    </section>
-
-    <div class="tabs">
-      <button data-t="home" onclick="go('home')"><span class="pill"><i data-ic="home" data-size="21"></i></span>Home</button>
-      <button data-t="log" onclick="go('log')"><span class="pill"><i data-ic="camera" data-size="21"></i></span>Log</button>
-      <button data-t="cover" onclick="go('cover')"><span class="pill"><i data-ic="image" data-size="21"></i></span>Cover</button>
-      <button data-t="sov" onclick="go('sov')"><span class="pill"><i data-ic="percent" data-size="21"></i></span>Progress</button>
-      <button data-t="report" onclick="go('report')"><span class="pill"><i data-ic="file" data-size="21"></i></span>Report</button>
+    <div class="tabs" id="tabs">
+      <button data-t="home" onclick="App.go('home')"><span class="pill"><i data-ic="home" data-size="21"></i></span>Home</button>
+      <button data-t="log" onclick="App.go('log')"><span class="pill"><i data-ic="camera" data-size="21"></i></span>Log</button>
+      <button data-t="cover" onclick="App.go('cover')"><span class="pill"><i data-ic="image" data-size="21"></i></span>Cover</button>
+      <button data-t="sov" onclick="App.go('sov')"><span class="pill"><i data-ic="percent" data-size="21"></i></span>Progress</button>
+      <button data-t="report" onclick="App.go('report')"><span class="pill"><i data-ic="file" data-size="21"></i></span>Report</button>
     </div>
-    <button class="fab" id="fab" onclick="openIdeas()" aria-label="Suggest an idea"><i data-ic="bulb" data-size="26"></i><span class="n" id="fabN"></span></button>
+    <button class="fab" id="fab" onclick="App.openIdeas()" aria-label="Suggest an idea"><i data-ic="bulb" data-size="26"></i><span class="n" id="fabN"></span></button>
     <div class="toast" id="toast"></div>
-    <div class="sheet-bg" id="sheetBg" onclick="closeSheet()"></div>
+    <div class="sheet-bg" id="sheetBg" onclick="App.closeSheet()"></div>
+
+    <div class="sheet" id="shareSheet">
+      <div class="grab"></div>
+      <h4 id="shareTitle">Share</h4>
+      <div class="opts">
+        <div onclick="App.shareDo('share')"><div class="ib y"><i data-ic="share" data-size="24"></i></div>Share…</div>
+        <div onclick="App.shareDo('save')"><div class="ib"><i data-ic="download" data-size="24"></i></div>Save image</div>
+        <div onclick="App.shareDo('print')"><div class="ib"><i data-ic="file" data-size="24"></i></div>Print / PDF</div>
+        <div onclick="App.shareDo('mail')"><div class="ib"><i data-ic="mail" data-size="24"></i></div>Email</div>
+      </div>
+    </div>
     <div class="sheet" id="ideaSheet">
       <div class="grab"></div>
       <h4>What would you want here?</h4>
       <p class="hint" style="margin:0 0 8px">You're on <b id="ideaScreen"></b>. Say what's missing, confusing, or would make this worth using.</p>
       <textarea class="in" id="ideaText" placeholder="e.g. I'd want to text the cover page straight to the owner"></textarea>
       <div class="imp" id="ideaImp"><button data-i="nice">Nice to have</button><button class="on" data-i="want">I'd use this</button><button data-i="must">Must have</button></div>
-      <div style="display:flex;gap:8px;margin-top:10px"><button class="btn sm" onclick="saveIdea()"><i data-ic="check"></i>Save idea</button><button class="btn q sm" onclick="sendIdeas()"><i data-ic="send"></i>Email all ideas</button></div>
+      <div style="display:flex;gap:8px;margin-top:10px"><button class="btn sm" onclick="App.saveIdea()"><i data-ic="check"></i>Save idea</button><button class="btn q sm" onclick="App.sendIdeas()"><i data-ic="send"></i>Email all ideas</button></div>
       <div class="ideas" id="ideaList"></div>
-      <div class="foot"><a onclick="openWelcome()">About this prototype</a><a onclick="resetDemo()">Reset demo data</a></div>
+      <div class="foot"><a onclick="App.openWelcome()">About</a><a onclick="App.exportData()">Back up my data</a><a onclick="App.resetAll()">Start over</a></div>
     </div>
-    <div class="sheet welcome" id="welcomeSheet">
+    <div class="sheet" id="welcomeSheet">
       <div class="grab"></div>
       <div class="mark">CT</div>
-      <h4 id="welcomeTitle">Welcome to CostTooling</h4>
-      <p>This is a working prototype, not the finished app. Everything in it is sample data from one made-up job, so tap anything, drag the sliders, make a cover page.</p>
-      <p>When you catch yourself thinking "I wish it did…", tap the yellow bulb and tell us. Your ideas stay on your phone until you email them.</p>
-      <button class="btn" onclick="closeSheet()"><i data-ic="check"></i>Start exploring</button>
+      <h4 id="welcomeTitle" style="font-size:20px">Welcome to CostTooling</h4>
+      <p>Track a job from the site: photos, progress, costs and schedule, and the cover pages and reports that come out of them.</p>
+      <p>This is an early working version. Everything you add stays on this phone. There's a sample job to poke at, and you can start your own.</p>
+      <p>When you think "I wish it did…", tap the yellow bulb and tell us.</p>
+      <button class="btn" onclick="App.closeSheet()"><i data-ic="check"></i>Let's go</button>
       <p class="hint" style="text-align:center;margin-top:10px">Tip: add this page to your home screen and it opens like an app.</p>
     </div>
-    <div class="sheet" id="sheet">
+    <div class="sheet" id="confirmSheet">
       <div class="grab"></div>
-      <h4 id="sheetTitle">Share</h4>
-      <div class="opts">
-        <div onclick="closeSheet(); toast('Opening Messages')"><div class="ib y"><i data-ic="msg" data-size="24"></i></div>Message</div>
-        <div onclick="closeSheet(); toast('Opening Mail')"><div class="ib"><i data-ic="mail" data-size="24"></i></div>Email</div>
-        <div onclick="closeSheet(); toast('Saved to Photos')"><div class="ib"><i data-ic="download" data-size="24"></i></div>Save image</div>
-        <div onclick="closeSheet(); toast('PDF ready')"><div class="ib"><i data-ic="file" data-size="24"></i></div>PDF</div>
-      </div>
+      <h4 id="confirmTitle">Are you sure?</h4>
+      <p id="confirmText"></p>
+      <div style="display:flex;gap:8px"><button class="btn danger solid" id="confirmBtn">Delete</button><button class="btn q" onclick="App.closeSheet()">Cancel</button></div>
     </div>
+    <input type="file" id="fileCam" accept="image/*" capture="environment" hidden>
+    <input type="file" id="fileGal" accept="image/*" multiple hidden>
+    <canvas id="reportCanvas" hidden></canvas>
   </div></div>
 
   <aside class="notes">
     <h1>CostTooling</h1>
-    <p class="lede">A phone app for tracking a job from the site: photos, progress, costs, schedule, and the one-page report that comes out of them. This is a working prototype with one sample job. It's built for a phone, so open it there if you can, but everything works here too.</p>
-    <p><b>How to help:</b> tap around. Whenever you think "I wish it did…", tap the yellow bulb in the corner and write it down. Ideas save on your device; "Email all ideas" sends them to us.</p>
+    <p class="lede">A phone app for tracking a job from the site: photos, progress, costs, schedule, and the one-page report that comes out of them. This is an early working version with one sample job. Open it on your phone for the real thing; it works here with a mouse too.</p>
+    <p><b>Everything you add stays on your device.</b> Nothing is sent anywhere unless you share it. "Back up my data" in the bulb menu saves a copy.</p>
+    <p><b>How to help:</b> use it like you would on a job. Whenever you think "I wish it did…", tap the yellow bulb and write it down. "Email all ideas" sends them to us.</p>
     <a class="sb" href="mockups/">See every screen at a glance →</a>
-    <h2>Screens</h2>
-    <ol>
-      <li><a data-j="projects">Projects</a> — the list she lands on, with the three numbers that matter per job.</li>
-      <li><a data-j="newproj">New project</a> — name, client, dates, contract, and a template of line items to start from.</li>
-      <li><a data-j="home">Project home</a> — percent complete, days left, cost so far, cost to finish, the four things she does most, and a mini schedule.</li>
-      <li><a data-j="log">Site log</a> — dated photo entries with a note, conditions and the line item they belong to. "Add photo" opens the camera.</li>
-      <li><a data-j="photo">Photo detail</a> — one entry full-size, with "use on cover".</li>
-      <li><a data-j="cover">Cover page maker</a> — pick photos, choose a layout; the numbers come from the schedule or she types them. Save to Photos really works.</li>
-      <li><a data-j="sov">Progress</a> — one slider per line item, with a Schedule toggle for the Gantt and finish forecast.</li>
-      <li><a data-j="item">Line item detail</a> — budget, dates, the costs logged against it, and its photos.</li>
-      <li><a data-j="report">Report</a> — the one page she shows someone: numbers, summary, table, photos, note.</li>
-    </ol>
-    <h2>The idea underneath</h2>
-    <p>Everything is a view of one project record: line items (budget, percent complete, costs, planned dates) and log entries (photo, date, note, conditions, line item). The cover page, the schedule and the report are three ways of showing the same data, which is why moving a slider on Progress changes the cover page too.</p>
+    <h2>What works</h2>
+    <ul>
+      <li>Your own projects, with line items from a template or from scratch.</li>
+      <li>Photos from the camera or the camera roll, with a note, conditions and the line item they belong to.</li>
+      <li>Progress sliders and logged costs per line item; every number updates everywhere.</li>
+      <li>Cover page from your photos, saved to Photos or shared.</li>
+      <li>Schedule view and a one-page report you can share, save or print.</li>
+    </ul>
     <div class="callout">
       <b>Things we'd love your take on</b>
       <ol style="margin-top:6px">
         <li>Is percent complete per line item how you think about progress, or is it tasks and dollars separately?</li>
-        <li>Should "cost so far" come from receipts and invoices you log, or is earned value enough?</li>
+        <li>Should "cost so far" come from receipts you log, or is earned value enough?</li>
         <li>Which photos belong on a cover page: the latest, or ones you pick?</li>
         <li>Who sees your reports most often, and what do they ask you?</li>
       </ol>
     </div>
   </aside>
 </div>
-
-<script>
-// ---------- icons (24×24 stroke) ----------
-const ICONS = {
-  home:'<path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/>',
-  camera:'<path d="M4 8h3.2l1.6-2.5h6.4L16.8 8H20v11H4z"/><circle cx="12" cy="13" r="3.3"/>',
-  image:'<rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M21 16l-5.5-5.5L7 19"/>',
-  percent:'<path d="M19 5L5 19"/><circle cx="7" cy="7" r="2.6"/><circle cx="17" cy="17" r="2.6"/>',
-  file:'<path d="M6 3h8l5 5v13H6z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/>',
-  plus:'<path d="M12 5v14M5 12h14"/>',
-  chevl:'<path d="M15 5l-7 7 7 7"/>',
-  chevr:'<path d="M9 5l7 7-7 7"/>',
-  share:'<path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 12v8h14v-8"/>',
-  download:'<path d="M12 3v12"/><path d="M8 11l4 4 4-4"/><path d="M5 20h14"/>',
-  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
-  cloud:'<path d="M7 17a4 4 0 0 1 .5-8 5.5 5.5 0 0 1 10.5 1.5A3.5 3.5 0 0 1 17.5 17z"/>',
-  rain:'<path d="M7 15a4 4 0 0 1 .5-8 5.5 5.5 0 0 1 10.5 1.5A3.5 3.5 0 0 1 17.5 15z"/><path d="M9 18v3M13 18v3M17 18v3"/>',
-  wind:'<path d="M3 8h10a2.5 2.5 0 1 0-2.5-2.5"/><path d="M3 13h14a2.5 2.5 0 1 1-2.5 2.5"/><path d="M3 18h7a2 2 0 1 1-2 2"/>',
-  users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8"/><path d="M17.5 13.6a6.5 6.5 0 0 1 4 6.4"/>',
-  edit:'<path d="M4 20l4.5-1L19 8.5l-3.5-3.5L5 15.5z"/><path d="M13 7.5l3.5 3.5"/>',
-  check:'<path d="M5 12l5 5 9-10"/>',
-  dollar:'<path d="M12 3v18"/><path d="M16.5 7.5c-.4-1.5-1.8-2.5-3.5-2.5h-2a3 3 0 0 0 0 6h2a3 3 0 0 1 0 6h-2.5c-1.7 0-3.1-1-3.5-2.5"/>',
-  calendar:'<rect x="3" y="5" width="18" height="16" rx="2.5"/><path d="M3 10h18M8 3v4M16 3v4"/>',
-  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
-  trend:'<path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
-  flag:'<path d="M5 21V4"/><path d="M5 4h12l-2.5 4L17 12H5"/>',
-  trash:'<path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 14h10l1-14"/><path d="M10 11v6M14 11v6"/>',
-  msg:'<path d="M4 5h16v11H9l-5 4z"/>',
-  mail:'<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 8l9 6 9-6"/>',
-  hardhat:'<path d="M4 16a8 8 0 0 1 16 0"/><path d="M2 16h20v3H2z"/><path d="M10 7.5V13M14 7.5V13"/>',
-  pin:'<path d="M12 21s-6-6-6-11a6 6 0 0 1 12 0c0 5-6 11-6 11z"/><circle cx="12" cy="10" r="2"/>',
-  receipt:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
-  bulb:'<path d="M9 18h6"/><path d="M10 21h4"/><path d="M8.3 14.2A6 6 0 1 1 15.7 14.2c-.7.7-1.2 1.6-1.2 2.8H9.5c0-1.2-.5-2.1-1.2-2.8z"/>',
-  send:'<path d="M21 3L10 14"/><path d="M21 3l-7 18-4-7-7-4z"/>',
-  refresh:'<path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/>',
-  more:'<circle cx="6" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="18" cy="12" r="1.5"/>',
-};
-const ic = (n, s=18, cls='') => `<svg class="ic ${cls}" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]||''}</svg>`;
-document.querySelectorAll('[data-ic]').forEach(e => { const w = document.createElement('span'); w.innerHTML = ic(e.dataset.ic, +(e.dataset.size||18)); e.replaceWith(w.firstChild); });
-
-// ---------- sample data (one project) ----------
-const TODAY = new Date(2026, 9, 12);
-const P = {
-  name: 'Maple St Duplex — Unit B remodel', client: 'Hernandez', addr: '1418 Maple St, Unit B', start: new Date(2026,8,8), finish: new Date(2026,11,19),
-  items: [
-    { n:'Demolition',           b:8500,  pct:100, s:'2026-09-08', e:'2026-09-15', costs:[['Haul-away dumpster','Sep 9',1450],['Labor (3 days)','Sep 12',4200],['Permit & disposal','Sep 15',2470]] },
-    { n:'Foundation repair',    b:14200, pct:100, s:'2026-09-14', e:'2026-09-30', costs:[['Pier & beam sub','Sep 22',9800],['Concrete','Sep 26',3250],['Engineer letter','Sep 30',2000]] },
-    { n:'Framing',              b:22800, pct:85,  s:'2026-09-24', e:'2026-10-17', costs:[['Lumber package','Sep 24',11400],['Framing crew wk1','Oct 3',4100],['Framing crew wk2','Oct 10',3400]] },
-    { n:'Roofing',              b:16500, pct:60,  s:'2026-10-08', e:'2026-10-22', costs:[['Trusses','Oct 8',6900],['Decking & underlayment','Oct 11',2300]] },
-    { n:'Plumbing rough-in',    b:12400, pct:40,  s:'2026-10-13', e:'2026-10-29', costs:[['Plumber deposit','Oct 12',4800]] },
-    { n:'Electrical rough-in',  b:11900, pct:30,  s:'2026-10-15', e:'2026-10-31', costs:[['Electrician deposit','Oct 12',3100]] },
-    { n:'HVAC',                 b:15600, pct:10,  s:'2026-10-20', e:'2026-11-05', costs:[['Equipment deposit','Oct 9',1200]] },
-    { n:'Insulation & drywall', b:18300, pct:0,   s:'2026-11-03', e:'2026-11-21', costs:[] },
-    { n:'Interior finishes',    b:31200, pct:0,   s:'2026-11-17', e:'2026-12-15', costs:[] },
-    { n:'Exterior & site',      b:19000, pct:0,   s:'2026-11-24', e:'2026-12-19', costs:[] },
-  ],
-  photos: [
-    { d:'2026-10-12', time:'2:41 pm', t:'Roofing',   kind:'roof',  wx:'sun',   note:'North slope decked, underlayment on. Shingles Tue.', cond:[['sun','71°'],['users','4 on site']], seed:3 },
-    { d:'2026-10-12', time:'9:05 am', t:'Framing',   kind:'walls', wx:'sun',   note:'Last interior walls plumbed and braced.', cond:[['sun','71°'],['users','4 on site']], seed:7 },
-    { d:'2026-10-10', time:'11:30 am',t:'Roofing',   kind:'roof',  wx:'cloud', note:'Trusses set, all 14. Crane out by noon.', cond:[['cloud','66°'],['wind','12 mph']], seed:2 },
-    { d:'2026-10-09', time:'4:10 pm', t:'Framing',   kind:'walls', wx:'sun',   note:'Second-floor subfloor glued and screwed.', cond:[['sun','69°']], seed:5 },
-    { d:'2026-10-07', time:'1:15 pm', t:'Framing',   kind:'frame', wx:'rain',  note:'Exterior walls stood, sheathing started. Rain pushed start to 10am.', cond:[['rain','58°'],['clock','rain delay 2h']], seed:9 },
-    { d:'2026-10-03', time:'3:50 pm', t:'Framing',   kind:'frame', wx:'sun',   note:'Sill plates down, first floor deck.', cond:[['sun','74°']], seed:4 },
-    { d:'2026-09-29', time:'10:20 am',t:'Foundation repair', kind:'slab', wx:'sun',  note:'Pier pour complete, forms stripped.', cond:[['sun','77°']], seed:1 },
-    { d:'2026-09-22', time:'8:45 am', t:'Foundation repair', kind:'slab', wx:'cloud', note:'Underpinning excavated, inspector passed.', cond:[['cloud','72°'],['hardhat','inspection']], seed:6 },
-  ],
-};
-P.items.forEach(i => i.cost = i.costs.reduce((a,c)=>a+c[2],0));
-const fmt$ = n => '$' + Math.round(n).toLocaleString();
-const d = s => new Date(s + 'T00:00:00');
-const md = x => x.toLocaleDateString('en-US', { month:'short', day:'numeric' });
-const DAY = 864e5;
-
-function calc() {
-  const total = P.items.reduce((a,i)=>a+i.b,0);
-  const earned = P.items.reduce((a,i)=>a+i.b*i.pct/100,0);
-  const cost = P.items.reduce((a,i)=>a+i.cost,0);
-  const toGo = P.items.reduce((a,i)=>{ const rem = i.b*(1-i.pct/100); const ratio = i.pct>0 ? Math.max(1, i.cost/(i.b*i.pct/100)) : 1; return a + rem*ratio; },0);
-  const pct = earned/total;
-  const elapsed = (TODAY - P.start)/DAY, span = (P.finish - P.start)/DAY;
-  const daysLeft = Math.round((P.finish - TODAY)/DAY);
-  const pace = pct>0 ? elapsed/pct : span;
-  const paceFinish = new Date(P.start.getTime() + pace*DAY);
-  return { total, earned, cost, toGo, pct, elapsed, span, daysLeft, paceFinish, schedPct: elapsed/span };
-}
-
-// ---------- procedurally drawn "site photos" ----------
-const rnd = seed => { let s = seed*9301+49297; return () => { s = (s*9301+49297)%233280; return s/233280; }; };
-const cache = {};
-function photoCanvas(p, size) {
-  const key = p.seed+'-'+size; if (!cache[key]) cache[key] = drawPhoto(p, size);
-  const out = document.createElement('canvas'); out.width = out.height = size; out.getContext('2d').drawImage(cache[key], 0, 0); return out;
-}
-function drawPhoto(p, size) {
-  const c = document.createElement('canvas'); c.width = c.height = size; const g = c.getContext('2d'); const r = rnd(p.seed); const S = size;
-  const sky = { sun:['#8fb2cf','#e4ecf1'], cloud:['#a3aab0','#d9dcde'], rain:['#7b8389','#b1b7bc'] }[p.wx];
-  let gr = g.createLinearGradient(0,0,0,S*0.7); gr.addColorStop(0,sky[0]); gr.addColorStop(1,sky[1]); g.fillStyle = gr; g.fillRect(0,0,S,S);
-  if (p.wx!=='sun') { g.fillStyle='rgba(255,255,255,.35)'; for(let i=0;i<4;i++){ g.beginPath(); g.ellipse(S*(0.1+i*0.28), S*(0.12+r()*0.15), S*0.18, S*0.06, 0, 0, 7); g.fill(); } }
-  // ground
-  gr = g.createLinearGradient(0,S*0.68,0,S); gr.addColorStop(0,'#9a8c78'); gr.addColorStop(1,'#6f6253'); g.fillStyle = gr; g.fillRect(0,S*0.68,S,S*0.32);
-  g.strokeStyle='rgba(0,0,0,.08)'; g.lineWidth=S*0.004; for(let i=0;i<6;i++){ g.beginPath(); g.moveTo(0,S*(0.72+i*0.05)); g.lineTo(S,S*(0.70+i*0.055)); g.stroke(); }
-  const wood='#b58a57', wood2='#8d6a40', osb='#c9a970', conc='#9b9a95';
-  if (p.kind==='frame' || p.kind==='walls') {
-    const n = 7 + Math.floor(r()*4), x0 = S*0.08, w = S*0.84, y0 = S*0.28, h = S*0.42;
-    if (p.kind==='walls') { g.fillStyle = osb; for (let i=0;i<3;i++){ if (r()>0.35) g.fillRect(x0+i*w/3+S*0.01, y0, w/3-S*0.02, h); } }
-    g.fillStyle = wood; for (let i=0;i<=n;i++){ const x = x0 + i*(w/n); g.fillRect(x-S*0.012, y0, S*0.024, h); }
-    g.fillRect(x0-S*0.012, y0-S*0.03, w+S*0.024, S*0.03); g.fillRect(x0-S*0.012, y0+h, w+S*0.024, S*0.03);
-    g.fillStyle = wood2; if (p.kind==='frame') { g.save(); g.translate(x0+w*0.5,y0+h*0.5); g.rotate(-0.45); g.fillRect(-w*0.45,-S*0.01,w*0.9,S*0.02); g.restore(); }
-    // second floor joists hint
-    g.fillStyle='rgba(0,0,0,.12)'; for (let i=0;i<=n;i++){ g.fillRect(x0+i*(w/n)+S*0.012, y0, S*0.006, h); }
-  } else if (p.kind==='roof') {
-    const x0=S*0.06, w=S*0.88, base=S*0.7, peak=S*0.22;
-    g.fillStyle = osb; g.beginPath(); g.moveTo(x0, base); g.lineTo(x0+w/2, peak); g.lineTo(x0+w, base); g.closePath(); g.fill();
-    g.strokeStyle = wood2; g.lineWidth = S*0.016; const n = 9; for (let i=0;i<=n;i++){ const t=i/n; const bx = x0 + t*w; const topy = peak + Math.abs(t-0.5)*2*(base-peak); g.beginPath(); g.moveTo(bx, base); g.lineTo(bx, topy); g.stroke(); }
-    g.beginPath(); g.moveTo(x0,base); g.lineTo(x0+w/2,peak); g.lineTo(x0+w,base); g.stroke();
-    g.fillStyle = wood; g.fillRect(x0, base-S*0.02, w, S*0.035);
-    if (r()>0.5) { g.fillStyle='rgba(40,40,45,.55)'; g.fillRect(x0+w*0.55, peak+S*0.09, w*0.3, S*0.14); } // tarp/underlayment patch
-  } else { // slab / foundation
-    g.fillStyle = conc; g.fillRect(S*0.06, S*0.5, S*0.88, S*0.22);
-    g.fillStyle = wood2; g.fillRect(S*0.04, S*0.48, S*0.92, S*0.035); g.fillRect(S*0.04, S*0.70, S*0.92, S*0.035);
-    g.strokeStyle='#5c5a55'; g.lineWidth=S*0.008; for(let i=0;i<7;i++){ const x=S*(0.12+i*0.12); g.beginPath(); g.moveTo(x,S*0.52); g.lineTo(x,S*0.7); g.stroke(); }
-    g.fillStyle='rgba(0,0,0,.18)'; g.fillRect(S*0.06,S*0.5,S*0.88,S*0.03);
-  }
-  // sun flare / vignette
-  if (p.wx==='sun') { gr = g.createRadialGradient(S*0.85,S*0.1,0,S*0.85,S*0.1,S*0.5); gr.addColorStop(0,'rgba(255,245,200,.55)'); gr.addColorStop(1,'rgba(255,245,200,0)'); g.fillStyle=gr; g.fillRect(0,0,S,S); }
-  gr = g.createRadialGradient(S/2,S/2,S*0.35,S/2,S/2,S*0.75); gr.addColorStop(0,'rgba(0,0,0,0)'); gr.addColorStop(1,'rgba(0,0,0,.28)'); g.fillStyle=gr; g.fillRect(0,0,S,S);
-  return c;
-}
-function ph(p, idx, extra, onclick) {
-  const el = document.createElement('div'); el.className = 'ph' + (extra||''); el.dataset.i = idx;
-  el.appendChild(photoCanvas(p, 256)); const s = document.createElement('small'); s.textContent = md(d(p.d)); el.appendChild(s);
-  el.onclick = onclick || (() => openPhoto(idx)); return el;
-}
-const condChips = (cond, cls='') => cond.map(([i,l]) => `<span class="chip ${cls}">${ic(i,13)}${l}</span>`).join('');
-
-// ---------- persistence (so her changes stick on her phone) ----------
-const FEEDBACK_EMAIL = 'will@clickplumbing.com';
-let picked = [0, 2, 3, 1], layout = 'hero', numMode = 'auto', curPhoto = 0, curItem = 2, mode = 'items';
-const store = { get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } }, set(k,v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }, del(k){ try { localStorage.removeItem(k); } catch(e){} } };
-(function restore(){ const d0 = store.get('ct-demo'); if (!d0) return; if (d0.pct) d0.pct.forEach((v,i)=>{ if (P.items[i]) P.items[i].pct = v; }); if (d0.picked) picked = d0.picked; if (d0.layout) layout = d0.layout; if (d0.numMode) numMode = d0.numMode; ['cHead','cDate','cNote'].forEach(id=>{ if (d0[id]!=null) document.getElementById(id).value = d0[id]; }); })();
-function persist(){ store.set('ct-demo', { pct: P.items.map(i=>i.pct), picked, layout, numMode, cHead: cHead.value, cDate: cDate.value, cNote: cNote.value }); }
-function resetDemo(){ store.del('ct-demo'); location.href = location.pathname; }
-// ---------- render ----------
-function render() {
-  const k = calc();
-  const pctTxt = Math.round(k.pct*100) + '%';
-  p1pct.textContent = pctTxt; p1bar.style.width = pctTxt; p1hint.textContent = fmt$(k.toGo) + ' to finish · ' + k.daysLeft + ' days'; sToGo.textContent = fmt$((k.toGo+4600)/1000) + 'k';
-  kPct.textContent = pctTxt; kPctNote.textContent = Math.round(k.schedPct*100) + '% of schedule used' + (k.pct >= k.schedPct ? ' · ahead' : ' · behind');
-  kDays.textContent = k.daysLeft; kDaysNote.textContent = 'planned finish ' + md(P.finish);
-  kSpent.textContent = fmt$(k.cost); kSpentNote.textContent = fmt$(k.earned) + ' earned · ' + (k.cost > k.earned ? fmt$(k.cost-k.earned) + ' over' : fmt$(k.earned-k.cost) + ' under');
-  kToGo.textContent = fmt$(k.toGo); kToGoNote.textContent = 'of ' + fmt$(k.total) + ' contract';
-  homeStrip.innerHTML = ''; P.photos.slice(0,6).forEach((p,i)=>homeStrip.appendChild(ph(p,i)));
-  homeLines.innerHTML = P.items.map((i,x)=>({i,x})).filter(o=>o.i.pct>0 && o.i.pct<100).map(({i,x})=>`<div class="row tap" onclick="openItem(${x})"><div class="l"><b>${i.n}</b><small>${fmt$(i.cost)} of ${fmt$(i.b)} · due ${md(d(i.e))}</small><div class="mini"><i style="width:${i.pct}%"></i></div></div><div class="r"><b>${i.pct}%</b></div><span class="chev">${ic('chevr',16)}</span></div>`).join('');
-  homeSched.textContent = 'finishes ' + md(k.paceFinish) + ' at this pace';
-  drawGantt(k, ganttMini, true);
-  sovTotal.textContent = fmt$(k.total); sovEarned.textContent = fmt$(k.earned) + ' (' + pctTxt + ')'; sovCost.textContent = fmt$(k.cost);
-  sovList.innerHTML = P.items.map((i,x)=>{ const over = i.pct>0 && i.cost > i.b*i.pct/100; return `<div class="card" style="padding:12px 14px 10px">
-    <div class="row tap" style="border:0;padding:0" onclick="openItem(${x})"><div class="l"><b>${i.n}</b><small>${md(d(i.s))} – ${md(d(i.e))} · budget ${fmt$(i.b)}</small></div><div class="r"><b>${i.pct}%</b><small>${fmt$(i.cost)} spent</small></div><span class="chev">${ic('chevr',16)}</span></div>
-    <input type="range" min="0" max="100" step="5" value="${i.pct}" oninput="P.items[${x}].pct=+this.value; render()">
-    <div>${i.pct===100?'<span class="chip g">'+ic('check',13)+'complete</span>':i.pct>0?'<span class="chip a">in progress</span>':'<span class="chip">not started</span>'}${over?'<span class="chip r">'+ic('trend',13)+'running over</span>':''}</div></div>`; }).join('');
-  const byDay = {}; P.photos.forEach((p,i)=>{ (byDay[p.d] ||= []).push([p,i]); });
-  logList.innerHTML = ''; Object.keys(byDay).sort().reverse().forEach(day => {
-    const h = document.createElement('div'); h.className = 'day'; h.innerHTML = `<span>${d(day).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}</span><span>${byDay[day].length} photo${byDay[day].length>1?'s':''}</span>`; logList.appendChild(h);
-    byDay[day].forEach(([p,i]) => { const e = document.createElement('div'); e.className = 'entry'; e.onclick = ()=>openPhoto(i); e.appendChild(ph(p,i,'',()=>openPhoto(i))); const t = document.createElement('div'); t.innerHTML = `<span class="chip k">${p.t}</span><span class="chip" style="border:0;padding-left:2px">${p.time}</span><p>${p.note}</p>${condChips(p.cond)}`; e.appendChild(t); logList.appendChild(e); });
-  });
-  newCond.innerHTML = condChips([['sun','71°'],['wind','6 mph'],['users','4 on site']]) + '<span class="chip">'+ic('plus',13)+'</span>';
-  coverPick.innerHTML = ''; P.photos.forEach((p,i)=>{ coverPick.appendChild(ph(p,i, picked.includes(i)?' sel':'', ()=>{ if (picked.includes(i)) picked = picked.filter(x=>x!==i); else if (picked.length<4) picked.push(i); else picked = [...picked.slice(1), i]; render(); })); });
-  drawCover(k);
-  drawGantt(k, gantt, false);
-  paceDate.textContent = md(k.paceFinish); const diff = Math.round((k.paceFinish - P.finish)/DAY); paceNote.textContent = diff>0 ? diff + ' days late' : diff<0 ? Math.abs(diff) + ' days early' : 'on time';
-  schedUsed.textContent = Math.round(k.schedPct*100) + '% · ' + Math.round(k.elapsed) + ' of ' + Math.round(k.span) + ' days';
-  reportBody.innerHTML = `<div class="hd"><div class="mark">CT</div><div><h4>${P.name}</h4><div class="meta">Progress report · ${md(TODAY)}, 2026 · for ${P.client}</div></div></div>
-    <div class="num4"><div><b>${pctTxt}</b><span>complete</span></div><div><b>${fmt$(k.cost/1000)}k</b><span>cost so far</span></div><div><b>${fmt$(k.toGo/1000)}k</b><span>to finish</span></div><div><b>${k.daysLeft}</b><span>days left</span></div></div>
-    <p><b>Summary.</b> ${cHead.value}. ${k.pct>=k.schedPct?'Work is ahead of the calendar':'Work is behind the calendar'} (${Math.round(k.pct*100)}% done with ${Math.round(k.schedPct*100)}% of the schedule used). Costs are ${k.cost>k.earned?'running '+fmt$(k.cost-k.earned)+' over earned value, driven by foundation repair.':'tracking '+fmt$(k.earned-k.cost)+' under earned value.'} At the current pace the job finishes ${md(k.paceFinish)}.</p>
-    <table class="sov"><tr><td><b>Line item</b></td><td class="n"><b>Budget</b></td><td class="n"><b>%</b></td><td class="n"><b>Cost</b></td></tr>
-    ${P.items.map(i=>`<tr><td>${i.n}</td><td class="n">${fmt$(i.b)}</td><td class="n">${i.pct}%</td><td class="n">${fmt$(i.cost)}</td></tr>`).join('')}
-    <tr class="tot"><td>Total</td><td class="n">${fmt$(k.total)}</td><td class="n">${pctTxt}</td><td class="n">${fmt$(k.cost)}</td></tr></table>
-    <p style="margin-top:12px"><b>This week on site</b></p><div class="grid3" id="repPh"></div>
-    <p>${cNote.value}</p>`;
-  const rp = document.getElementById('repPh'); P.photos.slice(0,3).forEach((p,i)=>rp.appendChild(ph(p,i)));
-  renderPhoto(); renderItem(); persist();
-}
-
-function renderPhoto() {
-  const p = P.photos[curPhoto]; photoBig.innerHTML = ''; photoBig.appendChild(photoCanvas(p, 800));
-  const st = document.createElement('div'); st.className='stamp'; st.textContent = d(p.d).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}) + ' · ' + p.time; photoBig.appendChild(st);
-  const it = P.items.findIndex(i=>i.n===p.t);
-  photoMeta.innerHTML = `<p style="margin:0 0 8px;font-size:15px">${p.note}</p><div class="row tap" onclick="openItem(${it})"><div class="l"><b>${p.t}</b><small>line item · ${P.items[it].pct}% complete</small></div><span class="chev">${ic('chevr',16)}</span></div><div class="row" style="border:0"><div class="l"><small>Conditions</small><div>${condChips(p.cond)}</div></div></div><div class="row" style="border:0;padding-top:0"><div class="l"><small>Location</small><div><span class="chip">${ic('pin',13)}${P.addr}</span></div></div></div>`;
-}
-function renderItem() {
-  const i = P.items[curItem], x = curItem, earned = i.b*i.pct/100, over = i.cost > earned && i.pct>0;
-  const pics = P.photos.map((p,n)=>[p,n]).filter(([p])=>p.t===i.n);
-  itemBody.innerHTML = `<div class="kpis"><div class="kpi">${ic('percent',18)}<b>${i.pct}%</b><span>complete</span><em>${md(d(i.s))} – ${md(d(i.e))}</em></div><div class="kpi light">${ic('dollar',18)}<b>${fmt$(i.cost)}</b><span>cost so far</span><em>${over?fmt$(i.cost-earned)+' over earned':fmt$(earned-i.cost)+' under earned'}</em></div></div>
-    <div class="card"><div class="row" style="border:0;padding:0 0 4px"><div class="l"><b>Progress</b><small>budget ${fmt$(i.b)} · earned ${fmt$(earned)}</small></div><div class="r"><b>${i.pct}%</b></div></div><input type="range" min="0" max="100" step="5" value="${i.pct}" oninput="P.items[${x}].pct=+this.value; render()"></div>
-    <div class="card"><h3>Costs <small class="lnk" onclick="toast('Add a cost: vendor, date, amount, photo of the receipt')">${ic('plus',14)} add</small></h3>
-      ${i.costs.length ? i.costs.map(c=>`<div class="row"><div class="l"><b>${c[0]}</b><small>${c[1]}</small></div><div class="r">${fmt$(c[2])}</div></div>`).join('') : '<p class="hint" style="margin:0">No costs logged yet.</p>'}
-      ${i.costs.length ? `<div class="row" style="border:0"><div class="l"><b>Total</b></div><div class="r"><b>${fmt$(i.cost)}</b></div></div>` : ''}</div>
-    <div class="card"><h3>Photos <small>${pics.length} tagged</small></h3><div class="grid3" id="itemPics"></div></div>`;
-  const g = document.getElementById('itemPics'); pics.forEach(([p,n])=>g.appendChild(ph(p,n))); if (!pics.length) g.innerHTML = '<p class="hint" style="margin:0;grid-column:1/-1">No photos yet. Tag one from the log.</p>';
-}
-
-function drawCover(k) {
-  const c = cover, g = c.getContext('2d'), W = c.width, H = c.height;
-  g.fillStyle = '#f6f5f1'; g.fillRect(0,0,W,H);
-  g.fillStyle = '#161617'; g.fillRect(0,0,W,220);
-  g.fillStyle = '#e8c547'; g.fillRect(60, 56, 58, 58); g.fillStyle='#161617'; g.font='900 26px -apple-system, Helvetica, Arial'; g.textAlign='center'; g.fillText('CT', 89, 95); g.textAlign='left';
-  g.fillStyle = '#e8c547'; g.font = '700 24px -apple-system, Helvetica, Arial'; g.fillText('PROGRESS UPDATE', 140, 72);
-  g.fillStyle = '#fff'; g.font = '700 44px -apple-system, Helvetica, Arial'; g.fillText(P.name, 140, 120, W-200);
-  g.fillStyle = '#b9b7af'; g.font = '400 28px -apple-system, Helvetica, Arial'; g.fillText(cDate.value + '  ·  ' + P.client + '  ·  ' + P.addr, 60, 185, W-120);
-  const sel = picked.map(i=>P.photos[i]); const area = { x:60, y:250, w:W-120, h:710 };
-  const draw = (p, x, y, w, h) => { if (!p) { g.fillStyle='#ddd'; g.fillRect(x,y,w,h); return; } const pc = photoCanvas(p, 800); const s = Math.min(800/w, 800/h); const sw = w*s, sh = h*s; g.drawImage(pc, (800-sw)/2, (800-sh)/2, sw, sh, x, y, w, h); const lbl = md(d(p.d)) + ' · ' + p.t; g.font='600 22px -apple-system, Helvetica, Arial'; const tw = g.measureText(lbl).width + 24; g.fillStyle='rgba(22,22,23,.72)'; g.fillRect(x, y+h-44, tw, 44); g.fillStyle='#fff'; g.fillText(lbl, x+12, y+h-14); };
-  const gap = 16;
-  if (layout === 'hero') draw(sel[0], area.x, area.y, area.w, area.h);
-  else if (layout === 'grid') { const w=(area.w-gap)/2, h=(area.h-gap)/2; [0,1,2,3].forEach(i=>draw(sel[i], area.x+(i%2)*(w+gap), area.y+Math.floor(i/2)*(h+gap), w, h)); }
-  else { const w=(area.w-gap)*0.62, w2=area.w-gap-w, h=(area.h-gap)/2; draw(sel[0], area.x, area.y, w, area.h); draw(sel[1], area.x+w+gap, area.y, w2, h); draw(sel[2], area.x+w+gap, area.y+h+gap, w2, h); }
-  const nums = numMode==='auto' ? [[Math.round(k.pct*100)+'%','complete'],[fmt$(k.cost),'cost so far'],[fmt$(k.toGo),'to finish'],[k.daysLeft,'days left']]
-                                : [[mPct.value+'%','complete'],[fmt$(+mToGo.value||0),'to finish'],[mDays.value,'days left'],[cDate.value.split(',')[0],'as of']];
-  const by = 990; g.fillStyle = '#fff'; g.fillRect(60, by, W-120, 180); g.strokeStyle = '#e2dfd6'; g.lineWidth = 3; g.strokeRect(60, by, W-120, 180);
-  nums.forEach(([v,l],i)=>{ const cx = 60 + (W-120)/8 + i*(W-120)/4; if (i) { g.fillStyle='#e2dfd6'; g.fillRect(60 + i*(W-120)/4, by+30, 2, 120); } g.textAlign='center'; g.fillStyle='#161617'; g.font='800 50px -apple-system, Helvetica, Arial'; g.fillText(String(v), cx, by+88, (W-120)/4-24); g.fillStyle='#6b6a66'; g.font='600 20px -apple-system, Helvetica, Arial'; g.fillText(l.toUpperCase(), cx, by+135); });
-  g.textAlign='left';
-  g.fillStyle = '#161617'; g.font = '700 40px -apple-system, Helvetica, Arial'; g.fillText(cHead.value, 60, 1240, W-120);
-  g.fillStyle = '#6b6a66'; g.font = '400 26px -apple-system, Helvetica, Arial'; g.fillText(cNote.value, 60, 1288, W-120);
-  g.fillStyle = '#e8c547'; g.fillRect(0, H-12, W, 12);
-}
-
-function drawGantt(k, svg, mini) {
-  const L = mini ? 4 : 118, R = mini ? 336 : 312, T = mini ? 14 : 22, rowH = mini ? 4.2 : 24; const x = dt => L + (R-L) * ((dt - P.start)/(P.finish - P.start));
-  let s = '';
-  [new Date(2026,8,1), new Date(2026,9,1), new Date(2026,10,1), new Date(2026,11,1)].forEach(m => { if (m < P.start) return; s += `<line x1="${x(m)}" y1="${T-6}" x2="${x(m)}" y2="${T+rowH*P.items.length}" stroke="#e2dfd6"/><text x="${x(m)+3}" y="${T-8}" font-size="9" fill="#6b6a66">${m.toLocaleDateString('en-US',{month:'short'})}</text>`; });
-  P.items.forEach((i,r) => { const y = T + r*rowH, s0 = d(i.s), e0 = d(i.e); const late = i.pct<100 && e0 < TODAY; const col = i.pct===100 ? '#2f7d4f' : late ? '#b3261e' : i.pct>0 ? '#e8c547' : '#d9d6cc';
-    if (!mini) s += `<text x="${L-6}" y="${y+14}" font-size="10" text-anchor="end" fill="#161617">${i.n.length>20?i.n.slice(0,19)+'…':i.n}</text>`;
-    const bh = mini ? 3 : 14, by = mini ? y : y+4;
-    s += `<rect x="${x(s0)}" y="${by}" width="${Math.max(2,x(e0)-x(s0))}" height="${bh}" rx="${mini?1:3}" fill="#d9d6cc"/>`;
-    if (i.pct>0) s += `<rect x="${x(s0)}" y="${by}" width="${Math.max(2,(x(e0)-x(s0))*i.pct/100)}" height="${bh}" rx="${mini?1:3}" fill="${col}"/>`;
-    if (!mini) s += `<text x="${x(e0)+4}" y="${y+15}" font-size="9" fill="#6b6a66">${i.pct}%</text>`; });
-  s += `<line x1="${x(TODAY)}" y1="${T-4}" x2="${x(TODAY)}" y2="${T+rowH*P.items.length}" stroke="#161617" stroke-width="1.5" stroke-dasharray="3 2"/><text x="${x(TODAY)-2}" y="${T+rowH*P.items.length+12}" font-size="9" text-anchor="end" fill="#161617" font-weight="700">today</text>`;
-  svg.setAttribute('viewBox', `0 0 340 ${T+rowH*P.items.length+18}`); svg.innerHTML = s;
-}
-
-// ---------- save cover (real) ----------
-async function saveCover() {
-  const blob = await new Promise(r => cover.toBlob(r, 'image/jpeg', 0.92));
-  const file = new File([blob], 'costtooling-cover.jpg', { type:'image/jpeg' });
-  if (navigator.canShare && navigator.canShare({ files:[file] })) { try { await navigator.share({ files:[file], title:'Progress update' }); toast('Shared'); return; } catch(e) { if (e.name === 'AbortError') return; } }
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; a.click(); toast('Cover page downloaded');
-}
-function usePhotoOnCover() { if (!picked.includes(curPhoto)) picked = [curPhoto, ...picked].slice(0,4); render(); go('cover'); toast('Added to the cover page'); }
-function openPhoto(i) { curPhoto = i; renderPhoto(); go('photo'); }
-function openItem(x) { curItem = x; renderItem(); go('item'); }
-function setMode(m) { mode = m; [...modeSeg.children].forEach(b=>b.classList.toggle('on', b.dataset.m===m)); modeItems.style.display = m==='items'?'':'none'; modeGantt.style.display = m==='gantt'?'':'none'; }
-modeSeg.onclick = e => { if (e.target.dataset.m) setMode(e.target.dataset.m); };
-function openSheet(what) { sheetTitle.textContent = { cover:'Share cover page', report:'Share report', photo:'Share photo' }[what]; sheetBg.classList.add('show'); sheet.classList.add('show'); }
-function closeSheet() { sheetBg.classList.remove('show'); sheet.classList.remove('show'); ideaSheet.classList.remove('show'); welcomeSheet.classList.remove('show'); }
-
-// ---------- ideas (feature requests) ----------
-const SCREEN_NAMES = { projects:'Projects', newproj:'New project', home:'Project home', log:'Site log', photo:'Photo', cover:'Cover page', sov:'Progress', item:'Line item', report:'Report' };
-let ideaImp = 'want';
-function ideas(){ return store.get('ct-ideas') || []; }
-function renderIdeas(){ const list = ideas(); fabN.textContent = list.length; fabN.classList.toggle('show', list.length>0);
-  ideaList.innerHTML = list.length ? list.slice().reverse().map(i=>`<div class="row"><div class="l"><b style="white-space:normal">${i.text.replace(/</g,'&lt;')}</b><small>${i.screen} · ${i.imp} · ${i.when}</small></div></div>`).join('') : ''; }
-function openIdeas(){ ideaScreen.textContent = SCREEN_NAMES[cur] || cur; renderIdeas(); sheetBg.classList.add('show'); ideaSheet.classList.add('show'); setTimeout(()=>ideaText.focus(), 250); }
-function saveIdea(){ const t = ideaText.value.trim(); if (!t) { ideaText.focus(); return; } const list = ideas(); list.push({ text:t, screen: SCREEN_NAMES[cur]||cur, imp: {nice:'nice to have', want:"I'd use this", must:'must have'}[ideaImp], when: new Date().toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) }); store.set('ct-ideas', list); ideaText.value=''; renderIdeas(); toast('Saved. Keep going!'); }
-function sendIdeas(){ const list = ideas(); if (!list.length) { toast('No ideas saved yet'); return; } const who = new URLSearchParams(location.search).get('for') || store.get('ct-for') || ''; const body = `Ideas for CostTooling${who?' from '+who:''}\n\n` + list.map((i,n)=>`${n+1}. [${i.screen} · ${i.imp}] ${i.text}`).join('\n') + `\n\n(sent from the prototype, ${navigator.userAgent.includes('iPhone')?'iPhone':navigator.userAgent.includes('Android')?'Android':'desktop'})`; location.href = 'mailto:' + FEEDBACK_EMAIL + '?subject=' + encodeURIComponent('CostTooling ideas' + (who?' from '+who:'')) + '&body=' + encodeURIComponent(body); }
-ideaImp_ = document.getElementById('ideaImp'); ideaImp_.onclick = e => { if (!e.target.dataset.i) return; ideaImp = e.target.dataset.i; [...ideaImp_.children].forEach(b=>b.classList.toggle('on', b===e.target)); };
-function openWelcome(){ const who = new URLSearchParams(location.search).get('for') || store.get('ct-for'); if (who) { store.set('ct-for', who); welcomeTitle.textContent = 'Hi ' + who + ', welcome to CostTooling'; } sheetBg.classList.add('show'); ideaSheet.classList.remove('show'); welcomeSheet.classList.add('show'); store.set('ct-welcomed', 1); }
-// ---------- navigation ----------
-const TITLES = { projects:['Projects','CostTooling'], newproj:['New project','Set up in a minute'], home:[P.name,'Hernandez · due Dec 19'], log:['Site log','Maple St Duplex'], photo:['Photo','Maple St Duplex'], cover:['Cover page','Maple St Duplex'], sov:['Progress','Maple St Duplex'], item:['Line item','Maple St Duplex'], report:['Report','Maple St Duplex'] };
-const TOPACT = { log:['plus', ()=>{ newEntry.style.display='block'; document.querySelector('[data-s=log]').scrollTop=0; }], sov:['plus', ()=>toast('Add a line item')], home:['edit', ()=>toast('Edit project details')], item:['edit', ()=>toast('Edit name, budget, dates')], report:['share', ()=>openSheet('report')] };
-const PARENT = { projects:null, newproj:'projects', home:'projects', log:'home', photo:'log', cover:'home', sov:'home', item:'sov', report:'home' };
-const TABOF = { log:'log', photo:'log', cover:'cover', sov:'sov', item:'sov', report:'report', home:'home' };
-let cur = 'projects';
-function go(s, addEntry) {
-  cur = s; document.querySelectorAll('.screen').forEach(e=>e.classList.toggle('on', e.dataset.s===s));
-  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on', b.dataset.t===TABOF[s]));
-  document.querySelectorAll('.notes a').forEach(a=>a.classList.toggle('on', a.dataset.j===s));
-  ttl.textContent = TITLES[s][0]; sub.textContent = TITLES[s][1]; back.classList.toggle('show', s!=='projects'); mark.style.display = s==='projects' ? '' : 'none';
-  const ta = TOPACT[s]; topAct.style.display = ta ? '' : 'none'; if (ta) { topAct.innerHTML = ic(ta[0], 18); topAct.onclick = ta[1]; }
-  if (addEntry) TOPACT.log[1]();
-  document.querySelector('.screen.on').scrollTop = 0; closeSheet();
-}
-back.onclick = () => go(PARENT[cur] || 'projects');
-document.querySelectorAll('.notes a').forEach(a=>a.onclick=()=>go(a.dataset.j));
-layoutSeg.onclick = e => { if (!e.target.dataset.l) return; layout = e.target.dataset.l; [...layoutSeg.children].forEach(b=>b.classList.toggle('on', b===e.target)); render(); };
-numSeg.onclick = e => { if (!e.target.dataset.n) return; numMode = e.target.dataset.n; [...numSeg.children].forEach(b=>b.classList.toggle('on', b===e.target)); manualNums.style.display = numMode==='manual'?'':'none'; render(); };
-logFilter.onclick = e => { if (e.target.tagName!=='BUTTON') return; [...logFilter.children].forEach(b=>b.classList.toggle('on', b===e.target)); const f = e.target.textContent; document.querySelectorAll('#logList .entry').forEach(en => { en.style.display = (f==='All' || en.querySelector('.chip.k').textContent.startsWith(f)) ? '' : 'none'; }); document.querySelectorAll('#logList .day').forEach(h=>{ let n = h.nextElementSibling, any=false; while (n && n.classList.contains('entry')) { if (n.style.display!=='none') any=true; n = n.nextElementSibling; } h.style.display = any?'':'none'; }); };
-['cHead','cDate','cNote','mPct','mToGo','mDays'].forEach(id=>document.getElementById(id).oninput=render);
-let tt; const toastEl = document.getElementById('toast'); function toast(m) { toastEl.innerHTML = ic('check',16) + '<span>' + m + '</span>'; toastEl.classList.add('show'); clearTimeout(tt); tt = setTimeout(()=>toastEl.classList.remove('show'), 1800); }
-render();
-const Q = new URLSearchParams(location.search); const q = Q.get('s'); if (q && TITLES[q]) go(q);
-renderIdeas(); if (!store.get('ct-welcomed') || Q.get('welcome')) setTimeout(openWelcome, 400);
-if (Q.get('m')==='gantt') setMode('gantt'); if (Q.get('ideas')) setTimeout(openIdeas, 300); if (Q.get('new')) TOPACT.log[1](); if (Q.get('sheet')) openSheet(Q.get('sheet')); if (Q.get('layout')) { layout = Q.get('layout'); [...layoutSeg.children].forEach(b=>b.classList.toggle('on', b.dataset.l===layout)); render(); }
-</script>
+<div id="printArea" hidden></div>
+<script src="js/db.js?v=2"></script>
+<script src="js/photos.js?v=2"></script>
+<script src="js/data.js?v=2"></script>
+<script src="js/cover.js?v=2"></script>
+<script src="js/ui.js?v=2"></script>
+<script src="js/app.js?v=2"></script>
 </body></html>

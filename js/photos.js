@@ -60,13 +60,17 @@ const Photos = (() => {
     const tc = fit(d, THUMB, true), fc = fit(d, FULL, false); const w = fc.width, h = fc.height; d.close();
     const thumb = await toBlob(tc, 0.82), full = await toBlob(fc, 0.86); tc.width = tc.height = fc.width = fc.height = 0;
     if (!thumb || !full) throw new Error('Could not process the photo (out of image memory)');
-    await DB.putPhoto({ id, thumb, full, w, h, added: Date.now() });
+    // Store as ArrayBuffers: some WebKit builds cannot put Blobs in IndexedDB ("Error preparing Blob/File data").
+    const [tb, fb] = await Promise.all([thumb.arrayBuffer(), full.arrayBuffer()]);
+    try { await DB.putPhoto({ id, thumb: tb, full: fb, w, h, added: Date.now() }); }
+    catch (e) { throw new Error('Could not save the photo' + (e && e.name === 'QuotaExceededError' ? ' (storage is full)' : '') + (e && e.message ? ': ' + e.message : '')); }
     urls[id] = { thumb: URL.createObjectURL(thumb), full: URL.createObjectURL(full) };
     return id;
   }
   async function load(id) {
     if (urls[id]) return urls[id];
-    if (!pending[id]) pending[id] = DB.getPhoto(id).then(rec => { if (!rec || !rec.thumb || !rec.full) return null; urls[id] = { thumb: URL.createObjectURL(rec.thumb), full: URL.createObjectURL(rec.full) }; return urls[id]; }).catch(e => { delete pending[id]; console.warn('photo load failed', e); return null; });
+    const asBlob = v => v instanceof Blob ? v : new Blob([v], { type: 'image/jpeg' });
+    if (!pending[id]) pending[id] = DB.getPhoto(id).then(rec => { if (!rec || !rec.thumb || !rec.full) return null; urls[id] = { thumb: URL.createObjectURL(asBlob(rec.thumb)), full: URL.createObjectURL(asBlob(rec.full)) }; return urls[id]; }).catch(e => { delete pending[id]; console.warn('photo load failed', e); return null; });
     return pending[id];
   }
   async function remove(id) { await DB.delPhoto(id); const u = urls[id]; if (u) { try { URL.revokeObjectURL(u.thumb); URL.revokeObjectURL(u.full); } catch (e) {} } delete urls[id]; delete pending[id]; delete decoded[id]; }

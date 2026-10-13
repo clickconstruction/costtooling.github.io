@@ -9,7 +9,6 @@ const App = (() => {
   const save = () => { const ok = DB.save(S); if (!ok) toast('Could not save: storage is full'); return ok; };
   const P = () => S.projects.find(p => p.id === S.cur) || S.projects[0];
   let cur = 'projects', mode = 'items', logFilter = 'all', form = null, tpl = 'remodel', editProj = null, editItem = null, photoCtx = { entryId: null, idx: 0 }, shareKind = 'report';
-  const pendingMap = {};
   let importing = 0;
   // ---------- session (draft + screen) persistence: iOS reloads the tab after the camera ----------
   const persistSession = () => DB.set('ct-session', { cur, form, editProj, editItem, photoCtx, mode, logFilter, at: Date.now() });
@@ -80,7 +79,7 @@ const App = (() => {
     for (const f of files) {
       n++; if (hint) hint.textContent = 'Importing ' + n + ' of ' + files.length + '…';
       await new Promise(r => setTimeout(r, 0)); // one photo per macrotask so the UI breathes and memory frees
-      try { const id = await Photos.importFile(f); if (!form) break; form.photos.push({ id }); form.added.push(id); pendingMap[id] = { id }; UI.entryPhotos(P(), form); persistSession(); }
+      try { const id = await Photos.importFile(f); if (!form) break; form.photos.push({ id }); form.added.push(id); UI.entryPhotos(P(), form); persistSession(); }
       catch (e) { console.warn(e); logLine('import: ' + (e && e.message)); toast("Couldn't read that photo" + (e && /memory/i.test(e.message) ? ' (too large)' : '')); }
       importing--;
     }
@@ -88,7 +87,6 @@ const App = (() => {
   }
   function setFormBusy(b) { document.querySelectorAll('#entryBody .btn').forEach(x => { x.disabled = b; }); }
   $('fileCam').onchange = e => filesPicked(e.target); $('fileGal').onchange = e => filesPicked(e.target);
-  const pendingPhoto = key => pendingMap[key] || null;
   document.getElementById('entryBody').addEventListener('input', () => { captureForm(); clearTimeout(captureForm._t); captureForm._t = setTimeout(persistSession, 300); });
   function captureForm() { if (!form || cur !== 'entryform') return; const v = id => ($(id) || {}).value ?? ''; form.note = v('efNote'); form.itemId = v('efItem'); form.temp = v('efTemp'); form.crew = v('efCrew'); form.d = v('efDate') || form.d; }
   function setWx(w) { captureForm(); form.wx = form.wx === w ? '' : w; document.querySelectorAll('#efWx button').forEach((b, i) => b.classList.toggle('on', ['sun', 'cloud', 'rain', 'wind'][i] === form.wx)); }
@@ -172,7 +170,7 @@ const App = (() => {
   async function exportData() { closeSheet(); const name = 'costtooling-backup-' + Data.iso(Data.today()) + '.json'; const blob = new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' }); const file = new File([blob], name, { type: 'application/json' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: 'CostTooling backup' }); return toast('Backup shared (photos not included yet)'); } catch (e) { if (e.name === 'AbortError') return; } }
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); toast('Backup saved (photos not included yet)'); }
-  function resetAll() { confirm('Start over?', 'This removes every project, photo and idea from this phone and brings back the sample job.', async () => { await DB.clearPhotos(); DB.del(DB.KEY); DB.del('ct-ideas'); location.href = location.pathname; }); }
+  function resetAll() { confirm('Start over?', 'This removes every project, photo and idea from this phone and brings back the sample job.', async () => { await DB.clearPhotos(); DB.del(DB.KEY); DB.del('ct-ideas'); DB.del('ct-session'); DB.del('ct-log'); location.href = location.pathname; }); }
 
   // ---------- diagnostics ----------
   const LOG = 'ct-log'; const logLine = m => { const l = DB.get(LOG) || []; l.push(new Date().toISOString().slice(11, 19) + ' ' + m); DB.set(LOG, l.slice(-50)); };
@@ -191,6 +189,7 @@ const App = (() => {
     setInterval(tick, 500);
   }
   let lastRender = 0;
+  function boot() {
   // ---------- boot ----------
   document.querySelectorAll('[data-ic]').forEach(e => { const w = document.createElement('span'); w.innerHTML = UI.ic(e.dataset.ic, +(e.dataset.size || 18)); e.replaceWith(w.firstChild); });
   const sess = Q.get('s') || Q.get('new') || Q.get('welcome') ? null : DB.get('ct-session');
@@ -209,5 +208,7 @@ const App = (() => {
   if (Q.get('s') === 'photo' && P() && P().entries[0]) openPhoto(P().entries[0].id);
   if (Q.get('s') === 'item' && P() && P().items[2]) openItem(P().items[2].id);
 
-  return { go, openGantt, quickPct, openProject, newProject, editProject, pickTemplate, saveProject, deleteProject, restoreSample, newEntry, editEntry, cam, gal, setWx, removeFormPhoto, saveEntry, cancelEntry, deleteEntry, openPhoto, photoIdx, usePhotoOnCover, filterLog, pendingPhoto, coverPick, coverLayout, coverNum, coverField, coverManual, saveCover, setPct, setMode, openItem, newItem, saveItem, deleteItem, addCost, deleteCost, openShare, shareDo, closeSheet, openIdeas, saveIdea, sendIdeas, openWelcome, exportData, resetAll, state: () => S, filesPicked };
+  }
+  return { boot, go, openGantt, quickPct, openProject, newProject, editProject, pickTemplate, saveProject, deleteProject, restoreSample, newEntry, editEntry, cam, gal, setWx, removeFormPhoto, saveEntry, cancelEntry, deleteEntry, openPhoto, photoIdx, usePhotoOnCover, filterLog, coverPick, coverLayout, coverNum, coverField, coverManual, saveCover, setPct, setMode, openItem, newItem, saveItem, deleteItem, addCost, deleteCost, openShare, shareDo, closeSheet, openIdeas, saveIdea, sendIdeas, openWelcome, exportData, resetAll, state: () => S, filesPicked };
 })();
+App.boot();

@@ -79,6 +79,7 @@ html.shot .notes { display:none; }
 .chips { display:flex; gap:6px; overflow:auto; margin:0 -14px 10px; padding:0 14px 2px; } .chips .chip { flex:none; padding:7px 12px; font-size:13px; cursor:pointer; margin:0; } .chips .chip.on { background:var(--ink); color:var(--yellow); border-color:var(--ink); font-weight:700; }
 label { display:block; font-size:12px; color:var(--muted); margin:10px 0 4px; font-weight:500; } label:first-child { margin-top:0; }
 .in { width:100%; min-width:0; min-height:46px; border:1px solid var(--line); border-radius:10px; padding:10px 12px; background:#fff; font:inherit; font-size:16px; color:var(--ink); -webkit-appearance:none; appearance:none; }
+input[type=number].in::-webkit-inner-spin-button, input[type=number].in::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
 input[type=date].in { height:46px; line-height:24px; display:block; white-space:nowrap; overflow:hidden; font-size:15px; padding-left:10px; padding-right:8px; } input[type=date].in::-webkit-date-and-time-value { text-align:left; margin:0; }
 select.in { background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b6a66' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") right 12px center/16px no-repeat; padding-right:36px; }
 textarea.in { min-height:96px; resize:none; line-height:1.4; }

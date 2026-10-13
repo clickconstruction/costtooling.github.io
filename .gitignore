@@ -1,4 +1,6 @@
 .DS_Store
 costtooling.github.io/
 icons/_render.html
-qa/
+qa/shots/
+qa/shots-*/
+qa/ios/

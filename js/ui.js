@@ -44,9 +44,9 @@ const UI = (() => {
   const slider = i => `<input type="range" min="0" max="100" step="5" value="${i.pct || 0}" style="--v:${i.pct || 0}%" oninput="App.setPct('${i.id}', this.value, false)" onchange="App.setPct('${i.id}', this.value, true)"><div class="quick">${[0, 25, 50, 75, 100].map(v => `<button class="${(i.pct || 0) === v ? 'on' : ''}" data-v="${v}" onclick="App.quickPct('${i.id}', ${v})">${v}%</button>`).join('')}</div>`;
 
   /** Fill photo placeholders with real elements. */
-  function hydrate(root, p) {
-    const map = {}; Data.allPhotos(p).forEach(({ ph }) => { map[Data.photoKey(ph)] = ph; });
-    root.querySelectorAll('[data-ph]').forEach(el => { const ph = map[el.dataset.ph] || App.pendingPhoto(el.dataset.ph); if (!ph) return; el.prepend(Photos.el(ph, el.dataset.size || 'thumb')); });
+  function hydrate(root, p, extra) {
+    const map = {}; Data.allPhotos(p).forEach(({ ph }) => { map[Data.photoKey(ph)] = ph; }); (extra || []).forEach(ph => { map[Data.photoKey(ph)] = ph; });
+    root.querySelectorAll('[data-ph]').forEach(el => { const ph = map[el.dataset.ph]; if (!ph) return; el.prepend(Photos.el(ph, el.dataset.size || 'thumb')); });
   }
 
   function gantt(p, mini) {
@@ -152,11 +152,11 @@ const UI = (() => {
       <div class="in3" style="margin-top:8px"><div><label>Temp °F</label><input class="in" type="number" inputmode="numeric" id="efTemp" value="${esc(f.temp)}" placeholder="—"></div><div><label>On site</label><input class="in" type="number" inputmode="numeric" id="efCrew" value="${esc(f.crew)}" placeholder="—"></div><div><label>Date</label><input class="in" type="date" id="efDate" value="${esc(f.d)}"></div></div>
     </div>
     <div style="display:flex;gap:8px"><button class="btn" onclick="App.saveEntry()">${ic('check')}Save entry</button><button class="btn q" style="width:auto" onclick="App.cancelEntry()">Cancel</button></div>`;
-    hydrate(entryBody, p);
+    hydrate(entryBody, p, f.photos);
   }
 
   const entryPhotosHtml = f => f.photos.map((ph, i) => `<div class="ph" data-ph="${esc(Data.photoKey(ph))}"><button class="x" aria-label="Remove photo" onclick="event.stopPropagation(); App.removeFormPhoto(${i})"><i>${ic('x', 12)}</i></button></div>`).join('') + `<div class="ph add cam" onclick="App.cam()">${ic('camera', 26)}Camera</div><div class="ph add gal" onclick="App.gal()">${ic('image', 24)}Photos</div>`;
-  function entryPhotos(p, f) { const g = document.getElementById('pendGrid'); if (!g) return; g.innerHTML = entryPhotosHtml(f); hydrate(g, p); }
+  function entryPhotos(p, f) { const g = document.getElementById('pendGrid'); if (!g) return; g.innerHTML = entryPhotosHtml(f); hydrate(g, p, f.photos); }
 
   function photo(p, e, idx) {
     const ph = e.photos[idx], it = itemOf(p, e.itemId);

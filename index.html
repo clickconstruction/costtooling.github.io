@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="CostTooling">
 <script>if (new URLSearchParams(location.search).get("shot")) document.documentElement.classList.add("shot");</script>
 <link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="css/app.css?v=6">
+<link rel="stylesheet" href="css/app.css?v=7">
 </head>
 <body>
 <div class="shell">
@@ -70,9 +70,10 @@
       <h4 id="welcomeTitle" style="font-size:20px">Welcome to CostTooling</h4>
       <p>Track a job from the site: photos, progress, costs and schedule, and the cover pages and reports that come out of them.</p>
       <p>This is an early working version. Everything you add stays on this phone. There's a sample job to poke at, and you can start your own.</p>
+      <p id="installTip" style="display:none"><b>Before you add real jobs:</b> tap Share <span style="display:inline-block;vertical-align:-3px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 12v8h14v-8"/></svg></span> in Safari and choose <b>Add to Home Screen</b>. The home-screen app keeps its own data, so set it up first.</p>
       <p>When you think "I wish it did…", tap the yellow bulb and tell us.</p>
       <button class="btn" onclick="App.closeSheet()"><i data-ic="check"></i>Let's go</button>
-      <p class="hint" style="text-align:center;margin-top:10px">Tip: add this page to your home screen and it opens like an app.</p>
+
     </div>
     <div class="sheet" id="confirmSheet">
       <div class="grab"></div>
@@ -111,10 +112,17 @@
   </aside>
 </div>
 <div id="printArea" hidden></div>
-<script src="js/db.js?v=6"></script>
-<script src="js/photos.js?v=6"></script>
-<script src="js/data.js?v=6"></script>
-<script src="js/cover.js?v=6"></script>
-<script src="js/ui.js?v=6"></script>
-<script src="js/app.js?v=6"></script>
+<script src="js/db.js?v=7"></script>
+<script src="js/photos.js?v=7"></script>
+<script src="js/data.js?v=7"></script>
+<script src="js/cover.js?v=7"></script>
+<script src="js/ui.js?v=7"></script>
+<script src="js/app.js?v=7"></script>
+<script>
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    reg.addEventListener('updatefound', () => { const nw = reg.installing; nw && nw.addEventListener('statechange', () => { if (nw.state === 'installed' && navigator.serviceWorker.controller) { const t = document.getElementById('toast'); if (t) { t.innerHTML = '<span>Update ready. </span><a style="color:var(--yellow);font-weight:700;margin-left:6px" onclick="location.reload()">Reload</a>'; t.style.pointerEvents = 'auto'; t.classList.add('show'); } } }); });
+  }).catch(() => {});
+}
+</script>
 </body></html>

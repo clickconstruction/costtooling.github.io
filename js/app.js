@@ -166,7 +166,8 @@ const App = (() => {
   function saveIdea() { const t = $('ideaText').value.trim(); if (!t) return $('ideaText').focus(); const list = ideas(); list.push({ text: t, screen: SCREEN_NAMES[cur] || cur, imp: { nice: 'nice to have', want: "I'd use this", must: 'must have' }[ideaImp], when: new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) }); DB.set('ct-ideas', list); $('ideaText').value = ''; renderIdeas(); toast('Saved. Keep going!'); }
   function sendIdeas() { const list = ideas(); if (!list.length) return toast('No ideas saved yet'); const who = Q.get('for') || DB.get('ct-for') || ''; const body = `Ideas for CostTooling${who ? ' from ' + who : ''}\n\n` + list.map((i, n) => `${n + 1}. [${i.screen} · ${i.imp}] ${i.text}`).join('\n') + `\n\n(sent from the app, ${/iPhone|iPad/.test(navigator.userAgent) ? 'iPhone' : /Android/.test(navigator.userAgent) ? 'Android' : 'desktop'})` + ((DB.get('ct-log') || []).length ? '\n\nDiagnostics:\n' + (DB.get('ct-log') || []).slice(-20).join('\n') : ''); location.href = 'mailto:' + FEEDBACK_EMAIL + '?subject=' + encodeURIComponent('CostTooling ideas' + (who ? ' from ' + who : '')) + '&body=' + encodeURIComponent(body); }
   $('ideaImp').onclick = e => { if (!e.target.dataset.i) return; ideaImp = e.target.dataset.i; [...$('ideaImp').children].forEach(b => b.classList.toggle('on', b === e.target)); };
-  function openWelcome() { const who = Q.get('for') || DB.get('ct-for'); if (who) { DB.set('ct-for', who); $('welcomeTitle').textContent = 'Hi ' + who + ', welcome to CostTooling'; } showSheet('welcomeSheet'); DB.set('ct-welcomed', 1); }
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent), standalone = window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+  function openWelcome() { const tip = $('installTip'); if (tip) tip.style.display = isIOS && !standalone ? '' : 'none'; const who = Q.get('for') || DB.get('ct-for'); if (who) { DB.set('ct-for', who); $('welcomeTitle').textContent = 'Hi ' + who + ', welcome to CostTooling'; } showSheet('welcomeSheet'); DB.set('ct-welcomed', 1); }
   async function exportData() { closeSheet(); const name = 'costtooling-backup-' + Data.iso(Data.today()) + '.json'; const blob = new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' }); const file = new File([blob], name, { type: 'application/json' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: 'CostTooling backup' }); return toast('Backup shared (photos not included yet)'); } catch (e) { if (e.name === 'AbortError') return; } }
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); toast('Backup saved (photos not included yet)'); }
@@ -190,6 +191,7 @@ const App = (() => {
   }
   let lastRender = 0;
   function boot() {
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().then(ok => { if (!ok) logLine('storage.persist declined'); }).catch(() => {});
   // ---------- boot ----------
   document.querySelectorAll('[data-ic]').forEach(e => { const w = document.createElement('span'); w.innerHTML = UI.ic(e.dataset.ic, +(e.dataset.size || 18)); e.replaceWith(w.firstChild); });
   const sess = Q.get('s') || Q.get('new') || Q.get('welcome') ? null : DB.get('ct-session');

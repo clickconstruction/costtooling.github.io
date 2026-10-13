@@ -40,7 +40,8 @@ const jpeg = async (page, label) => Buffer.from((await page.evaluate((label) => 
   await A.page.evaluate(() => { App.newProject(); document.getElementById('pfName').value = 'E2E Garage'; document.getElementById('pfClient').value = 'Test Client'; document.getElementById('pfContract').value = '12000'; App.pickTemplate('garage'); App.saveProject(); });
   await A.page.evaluate(() => App.newEntry());
   await A.page.locator('#fileGal').setInputFiles({ name: 'e2e.jpg', mimeType: 'image/jpeg', buffer: await jpeg(A.page, 'E2E PHOTO') });
-  await A.page.waitForTimeout(1500);
+  // wait for the import to finish: the hint returns to its idle text and Save is enabled again
+  await A.page.waitForFunction(() => /Take a photo/.test(document.getElementById('pendHint')?.textContent || '') && document.querySelector('#entryBody .ph') && ![...document.querySelectorAll('#entryBody .btn')].some(b => b.disabled), null, { timeout: 30000 }).catch(() => issues.push('photo import never finished on phone A'));
   await A.page.fill('#efNote', 'Synced from phone A');
   await A.page.evaluate(() => App.saveEntry());
   await waitStatus(A.page, 'synced', 30000);

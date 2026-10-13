@@ -10,7 +10,11 @@ const Render = (() => {
     if (label) { g.font = '600 22px ' + F; const tw = g.measureText(label).width + 24; g.fillStyle = 'rgba(22,22,23,.72)'; g.fillRect(x, y + h - 44, tw, 44); txt(g, label, x + 12, y + h - 14, '600 22px ' + F, '#fff'); }
   };
 
-  async function cover(c, p, k, sel) {
+  let coverSeq = 0, coverReady = Promise.resolve();
+  function cover(c, p, k, sel) { const t = ++coverSeq; coverReady = coverInner(c, p, k, sel, t).catch(e => console.warn('cover render', e)); return coverReady; }
+  async function coverInner(c, p, k, sel, t) {
+    const imgs = await Promise.all(sel.map(s => s ? Photos.drawable(s.ph) : null));
+    if (t !== coverSeq) return;
     const g = c.getContext('2d'), W = c.width, H = c.height; const cv = p.cover;
     g.fillStyle = '#f6f5f1'; g.fillRect(0, 0, W, H);
     g.fillStyle = '#161617'; g.fillRect(0, 0, W, 220);
@@ -19,7 +23,6 @@ const Render = (() => {
     txt(g, p.name || 'Untitled project', 140, 120, '700 44px ' + F, '#fff', 'left', W - 200);
     txt(g, [cv.date || Data.mdy(Data.iso(Data.today())), p.client, p.addr].filter(Boolean).join('  ·  '), 60, 185, '400 28px ' + F, '#b9b7af', 'left', W - 120);
     const area = { x: 60, y: 250, w: W - 120, h: 710 }, gap = 16;
-    const imgs = await Promise.all(sel.map(s => s ? Photos.drawable(s.ph) : null));
     const lbl = s => s ? Data.md(s.e.d) + (s.item ? ' · ' + s.item : '') : '';
     const L = cv.layout || 'hero';
     if (L === 'hero') coverPhoto(g, imgs[0], area.x, area.y, area.w, area.h, lbl(sel[0]));
@@ -35,6 +38,7 @@ const Render = (() => {
   }
 
   async function report(c, p, k, photos) {
+    const imgs = await Promise.all(photos.slice(0, 3).map(s => Photos.drawable(s.ph)));
     const W = 1080, H = 4000; const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H; const g = tmp.getContext('2d');
     g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
     g.fillStyle = '#161617'; g.fillRect(0, 0, W, 16);
@@ -52,7 +56,7 @@ const Render = (() => {
     (p.items || []).forEach(i => { y += 46; g.fillStyle = '#e2dfd6'; g.fillRect(60, y - 32, W - 120, 1); txt(g, i.n, cols[0], y, '400 24px ' + F, '#161617', 'left', 520); txt(g, Data.fmt$(i.b), cols[1], y, '400 24px ' + F, '#161617', 'right'); txt(g, (i.pct || 0) + '%', cols[2], y, '400 24px ' + F, '#161617', 'right'); txt(g, Data.fmt$(Data.itemCost(i)), cols[3], y, '400 24px ' + F, '#161617', 'right'); });
     y += 50; g.fillStyle = '#161617'; g.fillRect(60, y - 36, W - 120, 2);
     txt(g, 'Total', cols[0], y, '700 24px ' + F, '#161617'); txt(g, Data.fmt$(k.total), cols[1], y, '700 24px ' + F, '#161617', 'right'); txt(g, Math.round(k.pct * 100) + '%', cols[2], y, '700 24px ' + F, '#161617', 'right'); txt(g, Data.fmt$(k.cost), cols[3], y, '700 24px ' + F, '#161617', 'right');
-    if (photos.length) { y += 60; txt(g, 'Recent photos', 60, y, '700 26px ' + F, '#161617'); y += 20; const imgs = await Promise.all(photos.slice(0, 3).map(s => Photos.drawable(s.ph))); imgs.forEach((im, i) => coverPhoto(g, im, 60 + i * 330, y, 300, 300, Data.md(photos[i].e.d))); y += 320; }
+    if (photos.length) { y += 60; txt(g, 'Recent photos', 60, y, '700 26px ' + F, '#161617'); y += 20; imgs.forEach((im, i) => coverPhoto(g, im, 60 + i * 330, y, 300, 300, Data.md(photos[i].e.d))); y += 320; }
     y += 50; if (p.cover?.note) y = wrap(g, p.cover.note, 60, y, W - 120, 32, '400 24px ' + F, '#6b6a66', 3);
     const endY = Math.ceil(y + 40); c.width = W; c.height = endY; const out = c.getContext('2d'); out.drawImage(tmp, 0, 0, W, endY, 0, 0, W, endY); out.fillStyle = '#e8c547'; out.fillRect(0, endY - 12, W, 12);
   }
@@ -63,5 +67,5 @@ const Render = (() => {
     if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title }); return 'shared'; } catch (e) { if (e.name === 'AbortError') return 'cancelled'; } }
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); return 'downloaded';
   }
-  return { cover, report, shareCanvas };
+  return { cover, report, shareCanvas, ready: () => coverReady };
 })();

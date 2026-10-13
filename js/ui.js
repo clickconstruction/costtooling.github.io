@@ -40,6 +40,8 @@ const UI = (() => {
   const condChips = e => { const out = []; if (e.wx) out.push(`<span class="chip">${ic(e.wx, 13)}${e.temp !== '' && e.temp != null ? esc(e.temp) + '°' : WX[e.wx]}</span>`); if (e.crew) out.push(`<span class="chip">${ic('users', 13)}${esc(e.crew)} on site</span>`); return out.join(''); };
   const sortedEntries = p => (p.entries || []).slice().sort((a, b) => (b.d + (b.ts || 0)).localeCompare(a.d + (a.ts || 0)) || (b.ts || 0) - (a.ts || 0));
   const photoPh = (ph, key, extra, attrs) => `<div class="ph ${extra || ''}" data-ph="${esc(key)}" ${attrs || ''}></div>`;
+  const statusChips = i => { const over = i.pct > 0 && Data.itemCost(i) > Data.itemEarned(i); return (i.pct === 100 ? '<span class="chip g">' + ic('check', 13) + 'complete</span>' : i.pct > 0 ? '<span class="chip a">in progress</span>' : '<span class="chip">not started</span>') + (over ? '<span class="chip r">' + ic('trend', 13) + 'running over</span>' : ''); };
+  const slider = i => `<input type="range" min="0" max="100" step="5" value="${i.pct || 0}" style="--v:${i.pct || 0}%" oninput="App.setPct('${i.id}', this.value, false)" onchange="App.setPct('${i.id}', this.value, true)"><div class="quick">${[0, 25, 50, 75, 100].map(v => `<button class="${(i.pct || 0) === v ? 'on' : ''}" data-v="${v}" onclick="App.quickPct('${i.id}', ${v})">${v}%</button>`).join('')}</div>`;
 
   /** Fill photo placeholders with real elements. */
   function hydrate(root, p) {
@@ -108,31 +110,40 @@ const UI = (() => {
         <button class="btn q" onclick="App.openShare('report')">${ic('share')}Share report</button></div>
       <div class="card"><h3>Latest photos <small class="lnk" onclick="App.go('log')">see log ›</small></h3>${latest.length ? `<div class="strip">${latest.map(({ ph, e }) => photoPh(ph, Data.photoKey(ph), '', `onclick="App.openPhoto('${e.id}','${Data.photoKey(ph)}')"`)).join('')}</div>` : `<p class="hint" style="margin:0">No photos yet. Tap Add photo to start the log.</p>`}</div>
       <div class="card"><h3>In progress now <small class="lnk" onclick="App.go('sov')">all items ›</small></h3>${inProg.length ? inProg.map(i => `<div class="row tap" onclick="App.openItem('${i.id}')"><div class="l"><b>${esc(i.n)}</b><small>${fmt$(Data.itemCost(i))} of ${fmt$(i.b)}${i.e ? ' · due ' + md(i.e) : ''}</small><div class="mini"><i style="width:${i.pct}%"></i></div></div><div class="r"><b>${i.pct}%</b></div><span class="chev">${ic('chevr', 16)}</span></div>`).join('') : `<p class="hint" style="margin:0">${(p.items || []).length ? 'Nothing started yet. Drag a slider on Progress.' : 'No line items yet. Add some on Progress.'}</p>`}</div>
-      ${(p.items || []).length ? `<div class="card tap" onclick="App.go('sov'); App.setMode('gantt')"><h3>Schedule <small>${k.total && k.pct > 0 ? 'finishes ' + md(Data.iso(k.paceFinish)) + ' at this pace' : ''}</small></h3>${gantt(p, true)}</div>` : ''}`;
+      ${(p.items || []).length ? `<div class="card tap" onclick="App.openGantt()"><h3>Schedule <small>${k.total && k.pct > 0 ? 'finishes ' + md(Data.iso(k.paceFinish)) + ' at this pace' : ''}</small></h3>${gantt(p, true)}</div>` : ''}`;
     hydrate(homeBody, p);
   }
 
   function log(p, filter) {
     const entries = sortedEntries(p).filter(e => filter === 'all' || e.itemId === filter);
     const used = [...new Set((p.entries || []).map(e => e.itemId).filter(Boolean))];
-    let html = `<div class="chips"><span class="chip ${filter === 'all' ? 'on' : ''}" onclick="App.filterLog('all')">All</span>${used.map(id => `<span class="chip ${filter === id ? 'on' : ''}" onclick="App.filterLog('${id}')">${esc(itemName(p, id))}</span>`).join('')}</div>`;
-    if (!entries.length) html += `<div class="empty">${ic('camera', 36)}${(p.entries || []).length ? 'Nothing for this line item.' : 'No entries yet.'}<br><button class="btn sm" style="margin-top:12px" onclick="App.newEntry()">${ic('camera')}Add the first photo</button></div>`;
-    let lastDay = '';
-    entries.forEach(e => {
-      if (e.d !== lastDay) { lastDay = e.d; const n = entries.filter(x => x.d === e.d).length; html += `<div class="day"><span>${wd(e.d)}</span><span>${n} entr${n > 1 ? 'ies' : 'y'}</span></div>`; }
+    let html = `<div class="chips" id="logChips"><span class="chip ${filter === 'all' ? 'on' : ''}" data-filter="all" onclick="App.filterLog('all')">All</span>${used.map(id => `<span class="chip ${filter === id ? 'on' : ''}" data-filter="${id}" onclick="App.filterLog('${id}')">${esc(itemName(p, id))}</span>`).join('')}</div>`;
+    html += `<div class="empty" id="logEmpty" style="display:${entries.length ? 'none' : ''}">${ic('camera', 36)}<span id="logEmptyText">${(p.entries || []).length ? 'Nothing for this line item.' : 'No entries yet.'}</span><br><button class="btn sm" style="margin-top:12px" onclick="App.newEntry()">${ic('camera')}Add the first photo</button></div>`;
+    const all = sortedEntries(p); let lastDay = '';
+    all.forEach(e => {
+      const show = filter === 'all' || e.itemId === filter;
+      if (e.d !== lastDay) { lastDay = e.d; const n = all.filter(x => x.d === e.d).length; html += `<div class="day" data-day="${e.d}"><span>${wd(e.d)}</span><span class="dayN">${n} entr${n > 1 ? 'ies' : 'y'}</span></div>`; }
       const ph = e.photos[0];
-      html += `<div class="entry ${ph ? '' : 'nophoto'}" onclick="App.openPhoto('${e.id}')">${ph ? photoPh(ph, Data.photoKey(ph), '', e.photos.length > 1 ? `data-n="${e.photos.length}"` : '') : ''}<div>${e.itemId ? `<span class="chip k">${esc(itemName(p, e.itemId))}</span>` : ''}<span class="chip" style="border:0;padding-left:2px">${esc(e.time || '')}</span><p>${esc(e.note) || '<i style="color:var(--muted)">No note</i>'}</p>${condChips(e)}</div></div>`;
+      html += `<div class="entry ${ph ? '' : 'nophoto'}" data-day="${e.d}" data-item="${esc(e.itemId || '')}" style="display:${show ? '' : 'none'}" onclick="App.openPhoto('${e.id}')">${ph ? photoPh(ph, Data.photoKey(ph), '', e.photos.length > 1 ? `data-n="${e.photos.length}"` : '') : ''}<div>${e.itemId ? `<span class="chip k">${esc(itemName(p, e.itemId))}</span>` : ''}<span class="chip" style="border:0;padding-left:2px">${esc(e.time || '')}</span><p>${esc(e.note) || '<i style="color:var(--muted)">No note</i>'}</p>${condChips(e)}</div></div>`;
     });
     logBody.innerHTML = html; hydrate(logBody, p);
     logBody.querySelectorAll('.ph[data-n]').forEach(el => { const b = document.createElement('span'); b.className = 'n'; b.textContent = '+' + (el.dataset.n - 1); el.appendChild(b); });
+    applyLogFilter(filter);
+  }
+  /** Show/hide entries and day headers in place. */
+  function applyLogFilter(filter) {
+    logBody.querySelectorAll('#logChips .chip').forEach(c => c.classList.toggle('on', c.dataset.filter === filter));
+    let visible = 0; const perDay = {};
+    logBody.querySelectorAll('.entry').forEach(e => { const show = filter === 'all' || e.dataset.item === filter; e.style.display = show ? '' : 'none'; if (show) { visible++; perDay[e.dataset.day] = (perDay[e.dataset.day] || 0) + 1; } });
+    logBody.querySelectorAll('.day').forEach(h => { const n = perDay[h.dataset.day] || 0; h.style.display = n ? '' : 'none'; h.querySelector('.dayN').textContent = n + ' entr' + (n > 1 ? 'ies' : 'y'); });
+    const empty = document.getElementById('logEmpty'); if (empty) { empty.style.display = visible ? 'none' : ''; }
   }
 
   function entryform(p, f) {
     const items = p.items || [];
     entryBody.innerHTML = `<div class="card">
       <h3>${f.id ? 'Edit entry' : 'New entry'} <small>${wd(f.d)}${f.time ? ' · ' + esc(f.time) : ''}</small></h3>
-      <div class="pend" id="pendGrid">${f.photos.map((ph, i) => `<div class="ph" data-ph="${esc(Data.photoKey(ph))}"><button class="x" onclick="event.stopPropagation(); App.removeFormPhoto(${i})">${ic('x', 12)}</button></div>`).join('')}
-        <div class="ph add cam" onclick="App.cam()">${ic('camera', 26)}Camera</div><div class="ph add gal" onclick="App.gal()">${ic('image', 24)}Photos</div></div>
+      <div class="pend" id="pendGrid">${entryPhotosHtml(f)}</div>
       <p class="hint" style="margin:0 0 6px" id="pendHint">Take a photo, or pick ones you were texted.</p>
       <label>Note</label><textarea class="in" id="efNote" placeholder="What happened today?">${esc(f.note)}</textarea>
       <label>Line item</label><select class="in" id="efItem"><option value="">— none —</option>${items.map(i => `<option value="${i.id}" ${i.id === f.itemId ? 'selected' : ''}>${esc(i.n)}</option>`).join('')}</select>
@@ -144,10 +155,13 @@ const UI = (() => {
     hydrate(entryBody, p);
   }
 
+  const entryPhotosHtml = f => f.photos.map((ph, i) => `<div class="ph" data-ph="${esc(Data.photoKey(ph))}"><button class="x" aria-label="Remove photo" onclick="event.stopPropagation(); App.removeFormPhoto(${i})"><i>${ic('x', 12)}</i></button></div>`).join('') + `<div class="ph add cam" onclick="App.cam()">${ic('camera', 26)}Camera</div><div class="ph add gal" onclick="App.gal()">${ic('image', 24)}Photos</div>`;
+  function entryPhotos(p, f) { const g = document.getElementById('pendGrid'); if (!g) return; g.innerHTML = entryPhotosHtml(f); hydrate(g, p); }
+
   function photo(p, e, idx) {
     const ph = e.photos[idx], it = itemOf(p, e.itemId);
-    photoBody.innerHTML = `${ph ? `<div class="photo-big" data-ph="${esc(Data.photoKey(ph))}" data-size="full"><div class="stamp">${wd(e.d)}${e.time ? ' · ' + esc(e.time) : ''}</div></div>` : ''}
-      ${e.photos.length > 1 ? `<div class="strip" style="margin-bottom:12px">${e.photos.map((q, i) => photoPh(q, Data.photoKey(q), i === idx ? 'sel' : '', `onclick="App.photoIdx(${i})"`)).join('')}</div>` : ''}
+    photoBody.innerHTML = `${ph ? `<div class="photo-big" id="photoBig" data-ph="${esc(Data.photoKey(ph))}" data-size="full"><div class="stamp">${wd(e.d)}${e.time ? ' · ' + esc(e.time) : ''}</div></div>` : ''}
+      ${e.photos.length > 1 ? `<div class="strip" id="photoStrip" style="margin-bottom:12px">${e.photos.map((q, i) => photoPh(q, Data.photoKey(q), i === idx ? 'sel' : '', `data-idx="${i}" onclick="App.photoIdx(${i})"`)).join('')}</div>` : ''}
       <div class="card"><p style="margin:0 0 8px;font-size:15px">${esc(e.note) || '<i style="color:var(--muted)">No note</i>'}</p>
         ${it ? `<div class="row tap" onclick="App.openItem('${it.id}')"><div class="l"><b>${esc(it.n)}</b><small>line item · ${it.pct || 0}% complete</small></div><span class="chev">${ic('chevr', 16)}</span></div>` : ''}
         ${e.wx || e.crew ? `<div class="row" style="border:0"><div class="l"><small>Conditions</small><div>${condChips(e)}</div></div></div>` : ''}
@@ -155,6 +169,11 @@ const UI = (() => {
       <div class="actions">${ph ? `<button class="btn" onclick="App.usePhotoOnCover()">${ic('image')}Use on cover</button>` : '<span></span>'}<button class="btn q" onclick="App.editEntry('${e.id}')">${ic('edit')}Edit</button></div>
       <button class="btn danger" onclick="App.deleteEntry('${e.id}')">${ic('trash')}Delete entry</button>`;
     hydrate(photoBody, p);
+  }
+  function photoSwap(p, e, idx) {
+    const big = document.getElementById('photoBig'); if (!big) return; const ph = e.photos[idx]; if (!ph) return;
+    big.querySelectorAll('img, canvas').forEach(n => n.remove()); big.dataset.ph = Data.photoKey(ph); big.prepend(Photos.el(ph, 'full'));
+    document.querySelectorAll('#photoStrip .ph').forEach(el => el.classList.toggle('sel', +el.dataset.idx === idx));
   }
 
   const allPhotosSorted = p => Data.allPhotos(p).sort((a, b) => (b.e.d + (b.e.ts || 0)).localeCompare(a.e.d + (a.e.ts || 0)));
@@ -169,50 +188,63 @@ const UI = (() => {
     const picked = cv.picked.filter(key => all.some(a => Data.photoKey(a.ph) === key));
     coverBody.innerHTML = `<div class="actions" style="margin-bottom:4px"><button class="btn" onclick="App.saveCover()">${ic('download')}Save to Photos</button><button class="btn q" onclick="App.openShare('cover')">${ic('share')}Share</button></div>
       <p class="hint">Saves a 1080×1350 image. On a phone the share sheet lands it in the camera roll, a text or an email.</p>
-      <div class="card" style="margin-top:12px"><h3>Photos <small>tap to pick up to 4</small></h3>${all.length ? `<div class="grid3">${all.map(({ ph, e }) => photoPh(ph, Data.photoKey(ph), picked.includes(Data.photoKey(ph)) ? 'sel' : '', `onclick="App.coverPick('${Data.photoKey(ph)}')"`)).join('')}</div>` : `<p class="hint" style="margin:0">No photos yet. Add some in the log and they show up here.</p>`}</div>
-      <div class="card">
-        <label>Layout</label><div class="seg">${[['hero', 'One big'], ['grid', '2 × 2'], ['split', 'Big + 2']].map(([l, n]) => `<button class="${cv.layout === l ? 'on' : ''}" onclick="App.coverLayout('${l}')">${n}</button>`).join('')}</div>
+      <div class="card" style="margin-top:12px"><h3>Photos <small>tap to pick up to 4</small></h3>${all.length ? `<div class="grid3" id="coverGrid">${all.map(({ ph, e }) => photoPh(ph, Data.photoKey(ph), picked.includes(Data.photoKey(ph)) ? 'sel' : '', `onclick="App.coverPick('${Data.photoKey(ph)}')"`)).join('')}</div>` : `<p class="hint" style="margin:0">No photos yet. Add some in the log and they show up here.</p>`}</div>
+      <div class="card" id="coverCtl">${coverCtlHtml(cv)}</div>`;
+    hydrate(coverBody, p);
+    return coverSelection(p);
+  }
+  const coverCtlHtml = cv => `<label>Layout</label><div class="seg" id="coverLayoutSeg">${[['hero', 'One big'], ['grid', '2 × 2'], ['split', 'Big + 2']].map(([l, n]) => `<button class="${cv.layout === l ? 'on' : ''}" data-l="${l}" onclick="App.coverLayout('${l}')">${n}</button>`).join('')}</div>
         <label>Headline</label><input class="in" value="${esc(cv.head)}" oninput="App.coverField('head', this.value)">
         <label>Date on cover</label><input class="in" value="${esc(cv.date || Data.mdy(Data.iso(Data.today())))}" oninput="App.coverField('date', this.value)">
         <label>Numbers shown</label><div class="seg"><button class="${cv.numMode !== 'manual' ? 'on' : ''}" onclick="App.coverNum('auto')">From progress</button><button class="${cv.numMode === 'manual' ? 'on' : ''}" onclick="App.coverNum('manual')">Type my own</button></div>
         ${cv.numMode === 'manual' ? `<div class="in2"><div><label>% complete</label><input class="in" type="number" inputmode="numeric" value="${esc(cv.manual.pct)}" oninput="App.coverManual('pct', this.value)"></div><div><label>Days to finish</label><input class="in" type="number" inputmode="numeric" value="${esc(cv.manual.days)}" oninput="App.coverManual('days', this.value)"></div></div><label>$ to finish</label><input class="in" type="number" inputmode="decimal" value="${esc(cv.manual.toGo)}" oninput="App.coverManual('toGo', this.value)">` : ''}
-        <label>Note at the bottom</label><input class="in" value="${esc(cv.note)}" oninput="App.coverField('note', this.value)">
-      </div>`;
-    hydrate(coverBody, p);
-    return coverSelection(p);
-  }
+        <label>Note at the bottom</label><input class="in" value="${esc(cv.note)}" oninput="App.coverField('note', this.value)">`;
+  function coverCtl(cv) { const c = document.getElementById('coverCtl'); if (c) c.innerHTML = coverCtlHtml(cv); }
 
+  const sovSummaryHtml = (p, k) => { const n = (p.items || []).length; return `<div class="row" style="border:0;padding:0"><div class="l"><b>Contract</b><small>${n} line item${n === 1 ? '' : 's'}</small></div><div class="r"><b>${fmt$(k.total)}</b></div></div><div class="row" style="border:0;padding:4px 0 0"><div class="l"><small>Earned to date</small></div><div class="r">${fmt$(k.earned)} (${Math.round(k.pct * 100)}%)</div></div><div class="row" style="border:0;padding:4px 0 0"><div class="l"><small>Cost to date</small></div><div class="r">${fmt$(k.cost)}</div></div>`; };
+  const ganttHtml = (p, k) => { const items = p.items || []; const diff = Math.round((k.paceFinish - Data.parse(p.finish)) / Data.DAY); return `<div class="card"><h3>Schedule <small>${p.start ? md(p.start) + ' → ' + md(p.finish) : ''}</small></h3>${items.length ? gantt(p, false) : '<p class="hint" style="margin:0">Add line items with dates to see a schedule.</p>'}<div class="legend"><span><i style="background:#d9d6cc"></i>planned</span><span><i style="background:var(--green)"></i>done</span><span><i style="background:var(--yellow)"></i>in progress</span><span><i style="background:var(--red)"></i>behind</span></div></div>
+        <div class="card"><h3>Finish forecast</h3><div class="row"><div class="l"><b>Planned finish</b></div><div class="r">${p.finish ? md(p.finish) : '—'}</div></div><div class="row"><div class="l"><b>At current pace</b><small>${k.pct > 0 ? (diff > 0 ? diff + ' days late' : diff < 0 ? Math.abs(diff) + ' days early' : 'on time') : 'no progress logged yet'}</small></div><div class="r">${k.pct > 0 ? md(Data.iso(k.paceFinish)) : '—'}</div></div><div class="row"><div class="l"><b>Schedule used</b><small>calendar days elapsed</small></div><div class="r">${Math.round(k.schedPct * 100)}% · ${Math.round(k.elapsed)} of ${Math.round(k.span)} days</div></div></div>`; };
   function sov(p, k, mode) {
     const items = p.items || [];
-    let html = `<div class="seg big"><button class="${mode === 'items' ? 'on' : ''}" onclick="App.setMode('items')">Line items</button><button class="${mode === 'gantt' ? 'on' : ''}" onclick="App.setMode('gantt')">Schedule</button></div>`;
-    if (mode === 'items') {
-      html += `<div class="card"><div class="row" style="border:0;padding:0"><div class="l"><b>Contract</b><small>${items.length} line item${items.length === 1 ? '' : 's'}</small></div><div class="r"><b>${fmt$(k.total)}</b></div></div><div class="row" style="border:0;padding:4px 0 0"><div class="l"><small>Earned to date</small></div><div class="r">${fmt$(k.earned)} (${Math.round(k.pct * 100)}%)</div></div><div class="row" style="border:0;padding:4px 0 0"><div class="l"><small>Cost to date</small></div><div class="r">${fmt$(k.cost)}</div></div></div>`;
-      html += items.length ? `<p class="hint" style="margin:0 0 10px">Drag a slider. Every number on every screen follows. Tap a name for costs and photos.</p>` : `<div class="empty">${ic('percent', 36)}No line items yet.<br><button class="btn sm" style="margin-top:12px" onclick="App.newItem()">${ic('plus')}Add a line item</button></div>`;
-      html += items.map(i => { const over = i.pct > 0 && Data.itemCost(i) > Data.itemEarned(i); return `<div class="card" style="padding:12px 14px 10px">
-        <div class="row tap" style="border:0;padding:0" onclick="App.openItem('${i.id}')"><div class="l"><b>${esc(i.n)}</b><small>${i.s ? md(i.s) + ' – ' + md(i.e) + ' · ' : ''}budget ${fmt$(i.b)}</small></div><div class="r"><b>${i.pct || 0}%</b><small>${fmt$(Data.itemCost(i))} spent</small></div><span class="chev">${ic('chevr', 16)}</span></div>
-        <input type="range" min="0" max="100" step="5" value="${i.pct || 0}" oninput="App.setPct('${i.id}', this.value, this)" onchange="App.setPct('${i.id}', this.value, this, true)">
-        <div>${i.pct === 100 ? '<span class="chip g">' + ic('check', 13) + 'complete</span>' : i.pct > 0 ? '<span class="chip a">in progress</span>' : '<span class="chip">not started</span>'}${over ? '<span class="chip r">' + ic('trend', 13) + 'running over</span>' : ''}</div></div>`; }).join('');
-      if (items.length) html += `<button class="btn q" onclick="App.newItem()">${ic('plus')}Add a line item</button>`;
-    } else {
-      const diff = Math.round((k.paceFinish - Data.parse(p.finish)) / Data.DAY);
-      html += `<div class="card"><h3>Schedule <small>${p.start ? md(p.start) + ' → ' + md(p.finish) : ''}</small></h3>${items.length ? gantt(p, false) : '<p class="hint" style="margin:0">Add line items with dates to see a schedule.</p>'}<div class="legend"><span><i style="background:#d9d6cc"></i>planned</span><span><i style="background:var(--green)"></i>done</span><span><i style="background:var(--yellow)"></i>in progress</span><span><i style="background:var(--red)"></i>behind</span></div></div>
-        <div class="card"><h3>Finish forecast</h3><div class="row"><div class="l"><b>Planned finish</b></div><div class="r">${p.finish ? md(p.finish) : '—'}</div></div><div class="row"><div class="l"><b>At current pace</b><small>${k.pct > 0 ? (diff > 0 ? diff + ' days late' : diff < 0 ? Math.abs(diff) + ' days early' : 'on time') : 'no progress logged yet'}</small></div><div class="r">${k.pct > 0 ? md(Data.iso(k.paceFinish)) : '—'}</div></div><div class="row"><div class="l"><b>Schedule used</b><small>calendar days elapsed</small></div><div class="r">${Math.round(k.schedPct * 100)}% · ${Math.round(k.elapsed)} of ${Math.round(k.span)} days</div></div></div>`;
-    }
+    let html = `<div class="seg big" id="modeSeg"><button class="${mode === 'items' ? 'on' : ''}" data-m="items" onclick="App.setMode('items')">Line items</button><button class="${mode === 'gantt' ? 'on' : ''}" data-m="gantt" onclick="App.setMode('gantt')">Schedule</button></div>`;
+    html += `<div id="modeItems" style="display:${mode === 'items' ? '' : 'none'}"><div class="card" id="sovSummary">${sovSummaryHtml(p, k)}</div>`;
+    html += items.length ? `<p class="hint" style="margin:0 0 10px">Drag a slider or tap a percent. Every number on every screen follows. Tap a name for costs and photos.</p>` : `<div class="empty">${ic('percent', 36)}No line items yet.<br><button class="btn sm" style="margin-top:12px" onclick="App.newItem()">${ic('plus')}Add a line item</button></div>`;
+    html += items.map(i => `<div class="card" style="padding:12px 14px 10px" data-item="${i.id}">
+        <div class="row tap" style="border:0;padding:0" onclick="App.openItem('${i.id}')"><div class="l"><b>${esc(i.n)}</b><small>${i.s ? md(i.s) + ' – ' + md(i.e) + ' · ' : ''}budget ${fmt$(i.b)}</small></div><div class="r"><b class="pctLbl">${i.pct || 0}%</b><small>${fmt$(Data.itemCost(i))} spent</small></div><span class="chev">${ic('chevr', 16)}</span></div>
+        ${slider(i)}
+        <div class="status">${statusChips(i)}</div></div>`).join('');
+    if (items.length) html += `<button class="btn q" onclick="App.newItem()">${ic('plus')}Add a line item</button>`;
+    html += `</div><div id="modeGantt" style="display:${mode === 'gantt' ? '' : 'none'}">${ganttHtml(p, k)}</div>`;
     sovBody.innerHTML = html;
   }
+  function sovSummary(p, k) { const c = document.getElementById('sovSummary'); if (c) c.innerHTML = sovSummaryHtml(p, k); const g = document.getElementById('modeGantt'); if (g) g.innerHTML = ganttHtml(p, k); }
+  /** Update one item's slider card (on Progress or Line item screen) in place. */
+  function itemSlider(i) {
+    document.querySelectorAll(`[data-item="${i.id}"]`).forEach(card => {
+      const lbl = card.querySelector('.pctLbl'); if (lbl) lbl.textContent = (i.pct || 0) + '%';
+      const r = card.querySelector('input[type=range]'); if (r) { if (+r.value !== i.pct) r.value = i.pct; r.style.setProperty('--v', (i.pct || 0) + '%'); }
+      card.querySelectorAll('.quick button').forEach(b => b.classList.toggle('on', +b.dataset.v === (i.pct || 0)));
+      const st = card.querySelector('.status'); if (st) st.innerHTML = statusChips(i);
+    });
+  }
 
+  const itemKpisHtml = i => { const earned = Data.itemEarned(i), cost = Data.itemCost(i), over = i.pct > 0 && cost > earned; return `<div class="kpi">${ic('percent')}<b>${i.pct || 0}%</b><span>complete</span><em>${i.s ? md(i.s) + ' – ' + md(i.e) : 'no dates'}</em></div><div class="kpi light">${ic('dollar')}<b>${fmt$(cost)}</b><span>cost so far</span><em>${over ? fmt$(cost - earned) + ' over earned' : fmt$(earned - cost) + ' under earned'}</em></div>`; };
+  const itemCostsHtml = i => { const cost = Data.itemCost(i); return `<h3>Costs <small>${fmt$(cost)} total</small></h3>
+        <div id="costRows">${(i.costs || []).map(c => `<div class="row"><div class="l"><b>${esc(c.desc)}</b><small>${c.date ? md(c.date) : ''}</small></div><div class="r">${fmt$(c.amt)}</div><button class="del" aria-label="Remove cost" onclick="App.deleteCost('${i.id}','${c.id}')">${ic('x', 16)}</button></div>`).join('') || '<p class="hint" style="margin:0 0 8px">No costs logged yet.</p>'}
+        ${(i.costs || []).length ? `<div class="row" style="border:0"><div class="l"><b>Total</b></div><div class="r"><b>${fmt$(cost)}</b></div></div>` : ''}</div>
+        <div style="border-top:1px solid var(--line);padding-top:10px;margin-top:6px"><div class="in2"><div><label>What</label><input class="in" id="cfDesc" placeholder="e.g. Lumber"></div><div><label>Amount</label><input class="in" type="number" inputmode="decimal" id="cfAmt" placeholder="$"></div></div><label>Date</label><input class="in" type="date" id="cfDate" value="${Data.iso(Data.today())}"><button class="btn q sm" style="margin-top:10px" onclick="App.addCost('${i.id}')">${ic('plus')}Add cost</button></div>`; };
   function item(p, i) {
-    const earned = Data.itemEarned(i), cost = Data.itemCost(i), over = i.pct > 0 && cost > earned;
+    const earned = Data.itemEarned(i);
     const pics = (p.entries || []).filter(e => e.itemId === i.id).flatMap(e => e.photos.map(ph => ({ ph, e })));
-    itemBody.innerHTML = `<div class="kpis"><div class="kpi">${ic('percent')}<b>${i.pct || 0}%</b><span>complete</span><em>${i.s ? md(i.s) + ' – ' + md(i.e) : 'no dates'}</em></div><div class="kpi light">${ic('dollar')}<b>${fmt$(cost)}</b><span>cost so far</span><em>${over ? fmt$(cost - earned) + ' over earned' : fmt$(earned - cost) + ' under earned'}</em></div></div>
-      <div class="card"><div class="row" style="border:0;padding:0 0 4px"><div class="l"><b>Progress</b><small>budget ${fmt$(i.b)} · earned ${fmt$(earned)}</small></div><div class="r"><b id="itemPctLbl">${i.pct || 0}%</b></div></div><input type="range" min="0" max="100" step="5" value="${i.pct || 0}" oninput="App.setPct('${i.id}', this.value, this)" onchange="App.setPct('${i.id}', this.value, this, true)"></div>
-      <div class="card"><h3>Costs <small>${fmt$(cost)} total</small></h3>
-        ${(i.costs || []).map(c => `<div class="row"><div class="l"><b>${esc(c.desc)}</b><small>${c.date ? md(c.date) : ''}</small></div><div class="r">${fmt$(c.amt)}</div><button class="del" onclick="App.deleteCost('${i.id}','${c.id}')">${ic('x', 14)}</button></div>`).join('') || '<p class="hint" style="margin:0 0 8px">No costs logged yet.</p>'}
-        <div style="border-top:1px solid var(--line);padding-top:10px;margin-top:6px"><div class="in2"><div><label>What</label><input class="in" id="cfDesc" placeholder="e.g. Lumber"></div><div><label>Amount</label><input class="in" type="number" inputmode="decimal" id="cfAmt" placeholder="$"></div></div><label>Date</label><input class="in" type="date" id="cfDate" value="${Data.iso(Data.today())}"><button class="btn q sm" style="margin-top:10px" onclick="App.addCost('${i.id}')">${ic('plus')}Add cost</button></div></div>
+    itemBody.innerHTML = `<div class="kpis" id="itemKpis">${itemKpisHtml(i)}</div>
+      <div class="card" data-item="${i.id}"><div class="row" style="border:0;padding:0 0 4px"><div class="l"><b>Progress</b><small>budget ${fmt$(i.b)} · earned <span class="earnedLbl">${fmt$(earned)}</span></small></div><div class="r"><b class="pctLbl">${i.pct || 0}%</b></div></div>${slider(i)}<div class="status">${statusChips(i)}</div></div>
+      <div class="card" id="itemCosts">${itemCostsHtml(i)}</div>
       <div class="card"><h3>Photos <small>${pics.length} tagged</small></h3>${pics.length ? `<div class="grid3">${pics.map(({ ph, e }) => photoPh(ph, Data.photoKey(ph), '', `onclick="App.openPhoto('${e.id}','${Data.photoKey(ph)}')"`)).join('')}</div>` : '<p class="hint" style="margin:0">No photos yet. Tag one from the log.</p>'}</div>
       <button class="btn danger" onclick="App.deleteItem('${i.id}')">${ic('trash')}Delete line item</button>`;
     hydrate(itemBody, p);
   }
+  function itemKpis(i) { const k = document.getElementById('itemKpis'); if (k) k.innerHTML = itemKpisHtml(i); const e = document.querySelector('[data-item] .earnedLbl'); if (e) e.textContent = fmt$(Data.itemEarned(i)); }
+  function itemCosts(i) { const c = document.getElementById('itemCosts'); if (c) c.innerHTML = itemCostsHtml(i); }
 
   function itemform(p, i) {
     itemformBody.innerHTML = `<div class="card">
@@ -235,5 +267,5 @@ const UI = (() => {
     reportBody.innerHTML = html; hydrate(reportBody, p); return pics;
   }
 
-  return { ic, esc, hydrate, coverSelection, projects, projform, home, log, entryform, photo, cover, sov, item, itemform, report, sortedEntries, itemName };
+  return { ic, esc, hydrate, coverSelection, projects, projform, home, log, applyLogFilter, entryform, entryPhotos, photo, photoSwap, cover, coverCtl, sov, sovSummary, itemSlider, item, itemKpis, itemCosts, itemform, report, sortedEntries, itemName };
 })();

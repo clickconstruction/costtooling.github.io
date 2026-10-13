@@ -19,26 +19,26 @@ const Photos = (() => {
   async function importFile(file) {
     const bmp = await decode(file);
     const id = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    const thumb = await toBlob(fit(bmp, THUMB, true), 0.82), full = await toBlob(fit(bmp, FULL, false), 0.86);
-    await DB.putPhoto({ id, thumb, full, w: bmp.width, h: bmp.height, added: Date.now() });
+    const tc = fit(bmp, THUMB, true), fc = fit(bmp, FULL, false); const w = bmp.width, h = bmp.height; if (bmp.close) bmp.close();
+    const thumb = await toBlob(tc, 0.82), full = await toBlob(fc, 0.86); tc.width = tc.height = fc.width = fc.height = 0;
+    if (!thumb || !full) throw new Error('Could not process the photo (out of image memory)');
+    await DB.putPhoto({ id, thumb, full, w, h, added: Date.now() });
     urls[id] = { thumb: URL.createObjectURL(thumb), full: URL.createObjectURL(full) };
     return id;
   }
   async function load(id) {
     if (urls[id]) return urls[id];
-    if (!pending[id]) pending[id] = DB.getPhoto(id).then(rec => { if (!rec) return null; urls[id] = { thumb: URL.createObjectURL(rec.thumb), full: URL.createObjectURL(rec.full) }; return urls[id]; });
+    if (!pending[id]) pending[id] = DB.getPhoto(id).then(rec => { if (!rec || !rec.thumb || !rec.full) return null; urls[id] = { thumb: URL.createObjectURL(rec.thumb), full: URL.createObjectURL(rec.full) }; return urls[id]; }).catch(e => { delete pending[id]; console.warn('photo load failed', e); return null; });
     return pending[id];
   }
-  async function remove(id) { await DB.delPhoto(id); delete urls[id]; delete pending[id]; }
+  async function remove(id) { await DB.delPhoto(id); const u = urls[id]; if (u) { try { URL.revokeObjectURL(u.thumb); URL.revokeObjectURL(u.full); } catch (e) {} } delete urls[id]; delete pending[id]; delete decoded[id]; }
 
   // ----- sample photos: drawn, not stored -----
   const rnd = seed => { let s = seed * 9301 + 49297; return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; }; };
-  const sampleCache = {};
-  function sample(ph, size) {
-    const key = ph.seed + '-' + ph.kind + '-' + ph.wx + '-' + size;
-    if (!sampleCache[key]) sampleCache[key] = drawSample(ph, size);
-    const out = document.createElement('canvas'); out.width = out.height = size; out.getContext('2d').drawImage(sampleCache[key], 0, 0); return out;
-  }
+  const sampleCache = {}, sampleUrl = {};
+  const skey = (ph, size) => ph.seed + '-' + ph.kind + '-' + ph.wx + '-' + size;
+  function sample(ph, size) { const key = skey(ph, size); if (!sampleCache[key]) sampleCache[key] = drawSample(ph, size); return sampleCache[key]; }
+  function sampleSrc(ph, size) { const key = skey(ph, size); if (!sampleUrl[key]) sampleUrl[key] = sample(ph, size).toDataURL('image/jpeg', 0.85); return sampleUrl[key]; }
   function drawSample(p, S) {
     const c = document.createElement('canvas'); c.width = c.height = S; const g = c.getContext('2d'); const r = rnd(p.seed);
     const sky = { sun: ['#8fb2cf', '#e4ecf1'], cloud: ['#a3aab0', '#d9dcde'], rain: ['#7b8389', '#b1b7bc'], wind: ['#9db6c8', '#dde6ec'] }[p.wx] || ['#8fb2cf', '#e4ecf1'];
@@ -74,16 +74,22 @@ const Photos = (() => {
 
   /** Element for a photo ref ({id} real or {seed,kind,wx} sample). Real ones fill in asynchronously. */
   function el(ph, size) {
-    if (ph.seed != null) return sample(ph, size === 'full' ? 800 : 256);
     const img = document.createElement('img'); img.alt = ''; img.decoding = 'async';
-    load(ph.id).then(u => { if (u) img.src = size === 'full' ? u.full : u.thumb; else img.classList.add('missing'); });
+    if (ph.seed != null) { img.src = sampleSrc(ph, size === 'full' ? 800 : 256); return img; }
+    const u = urls[ph.id];
+    if (u) { img.src = size === 'full' ? u.full : u.thumb; return img; }
+    img.classList.add('pending');
+    load(ph.id).then(u2 => { if (u2) { img.onload = () => img.classList.remove('pending'); img.src = size === 'full' ? u2.full : u2.thumb; } else img.classList.add('missing'); }).catch(() => img.classList.add('missing'));
     return img;
   }
-  /** Drawable (canvas or loaded Image) for canvas renderers. */
+  /** Drawable (canvas or decoded Image) for canvas renderers; cached per photo. */
+  const decoded = {};
   async function drawable(ph) {
     if (ph.seed != null) return sample(ph, 800);
+    if (decoded[ph.id]) return decoded[ph.id];
     const u = await load(ph.id); if (!u) return null;
-    return new Promise((res, rej) => { const img = new Image(); img.onload = () => res(img); img.onerror = () => res(null); img.src = u.full; });
+    const img = await new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = u.full; });
+    if (img) decoded[ph.id] = img; return img;
   }
   return { importFile, load, remove, el, drawable, sample };
 })();

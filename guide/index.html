@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Short photo steps for adding people and resetting passwords in CostTooling and CharityTooling.">
+<meta name="description" content="Short photo steps for CostTooling and CharityTooling: your first day, adding people, and resetting passwords.">
 <link rel="icon" href="../icons/icon.svg">
-<title>Tooling Accounts Guide</title>
+<title>Tooling Guide</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
 <style>
 /* Layout: one long scroll per app, each step = words on the left, phone on the right; stacks on narrow screens */
@@ -20,6 +20,8 @@
 body { background:var(--bg); color:var(--fg); font-family:var(--font); font-size:19px; line-height:1.45; margin:0; padding-block:0 64px; padding-inline:16px }
 .wrap { max-width:900px; margin:0 auto }
 header { padding:28px 0 8px }
+.back { display:inline-block; font-size:17px; font-weight:700; color:var(--fg); text-decoration:none; border:2px solid var(--line); background:var(--card); padding:10px 16px; border-radius:999px; margin-bottom:18px }
+.back:focus-visible { outline:3px solid var(--ring); outline-offset:2px }
 h1 { font-size:clamp(30px,5vw,44px); line-height:1.1; margin:0 0 10px; text-wrap:balance }
 .lede { color:var(--muted); margin:0 0 20px; max-width:38em }
 .tabs { display:flex; gap:8px; position:sticky; top:env(safe-area-inset-top,0px); background:var(--bg); padding:10px 0; z-index:5; border-bottom:1px solid var(--line) }
@@ -56,7 +58,8 @@ footer { margin-top:48px; color:var(--muted); font-size:15px; border-top:1px sol
 <body>
 <div class="wrap">
 <header>
-  <h1>Adding people and resetting passwords</h1>
+  <a class="back" href="../">&larr; Back to the app</a>
+  <h1>How to use the app</h1>
   <p class="lede">Short steps with a photo of every button. Pick your app, then follow the numbers.</p>
   <div class="tabs" role="tablist">
     <button type="button" role="tab" id="tab-costtooling" aria-selected="true" aria-controls="costtooling" data-tab="costtooling"><span class="mark ct">CT</span>CostTooling</button>
@@ -64,7 +67,66 @@ footer { margin-top:48px; color:var(--muted); font-size:15px; border-top:1px sol
   </div>
 </header>
 <section class="app" id="costtooling" data-app="costtooling">
-<nav class="toc" aria-label="Sections"><a href="#costtooling-add">Add someone to your team</a><a href="#costtooling-join">Join with a code</a><a href="#costtooling-forgot">Forgot your password</a><a href="#costtooling-locked">Help someone who is locked out</a></nav>
+<nav class="toc" aria-label="Sections"><a href="#costtooling-first">Your first day</a><a href="#costtooling-add">Add someone to your team</a><a href="#costtooling-join">Join with a code</a><a href="#costtooling-forgot">Forgot your password</a><a href="#costtooling-locked">Help someone who is locked out</a></nav>
+<h2 id="costtooling-first">Your first day</h2><p class="intro">Nine taps from opening the app to sending a report. Try them on the sample job first.</p><ol class="steps">
+<li class="step">
+<div class="words"><div class="num">1</div><p>Open <b>costtooling.com</b> on your phone. Tap <b>Let's go</b>.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="fd-01-welcome-zoom.png" alt="" loading="lazy"></figure>
+<p class="note">On an iPhone, the card also shows how to put the app on your home screen. Do that first.</p>
+</div>
+<div class="phone"><img src="fd-01-welcome.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">2</div><p>Tap the job to open it. There is a sample job to practise on.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="fd-02-projects-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="fd-02-projects.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">3</div><p>Tap <b>Add photo</b>.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="fd-03-home-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="fd-03-home.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">4</div><p>Tap <b>Camera</b> and take the picture. Or tap <b>Photos</b> to pick one you already have.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="fd-04-camera-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="fd-04-camera.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">5</div><p>Write a short note if you like. Tap <b>Save entry</b>.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="fd-05-save-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="fd-05-save.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">6</div><p>Tap <b>Progress</b> at the bottom. Drag the slider for the work that got done. Or tap a percent.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="fd-06-progress-zoom.png" alt="" loading="lazy"></figure>
+<p class="note">Every number on every screen follows the slider.</p>
+</div>
+<div class="phone"><img src="fd-06-progress.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">7</div><p>Tap <b>Report</b> at the bottom. Tap the share button in the top corner.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="fd-07-report-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="fd-07-report.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">8</div><p>Pick how to send it: <b>Share…</b>, <b>Save image</b>, <b>Print / PDF</b> or <b>Email</b>.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="fd-08-share-zoom.png" alt="" loading="lazy"></figure>
+</div>
+<div class="phone"><img src="fd-08-share.png" alt="" loading="lazy"></div>
+</li>
+<li class="step">
+<div class="words"><div class="num">9</div><p>Want your jobs on every phone? Tap <b>Sign in</b> at the top of the job list. The next section shows how.</p>
+<figure class="look"><figcaption>Look for this</figcaption><img src="fd-09-signin-zoom.png" alt="" loading="lazy"></figure>
+<p class="note">Not ready? Everything still works on this one phone.</p>
+</div>
+<div class="phone"><img src="fd-09-signin.png" alt="" loading="lazy"></div>
+</li>
+</ol>
 <h2 id="costtooling-add">Add someone to your team</h2><p class="intro">For the person who runs the company. There are three ways: by email, with a one-time code, or with a team code for the whole crew.</p><ol class="steps">
 <li class="step">
 <div class="words"><div class="num">1</div><p>Open <b>costtooling.com</b>. Tap the account button in the top corner.</p>

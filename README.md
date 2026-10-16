@@ -7,6 +7,7 @@ Source for https://costtooling.com (GitHub Pages).
 - `index.html` — app shell; `css/app.css`; `js/db.js` (storage), `js/photos.js` (import, downscale, sample photos), `js/data.js` (model, sample job, templates, calc), `js/cover.js` (cover + report canvas renderers, sharing), `js/ui.js` (screens), `js/app.js` (state, navigation, actions). No build step, no dependencies.
 - `mockups/` — storyboard of every screen as PNG, captured with headless Chrome
 - `icons/`, `manifest.webmanifest` — home-screen install
+- `guide/` — plain-English step guide with a photo of every button (your first day, adding people, passwords); linked from the welcome card and the bulb menu. `qa/guide-shots.js` regenerates the first-day photos against a local server.
 - `.claude/launch.json` — local static server for previewing
 
 Useful URLs: `/?for=Diane` personalises the welcome card; `/?s=cover` opens a screen directly (`projects`, `projform`, `home`, `log`, `entryform` via `log&new=1`, `photo`, `cover`, `sov`, `item`, `itemform`, `report`); `/?welcome=1` re-shows the welcome card; `/?shot=1` pins the layout to 390×844 for screenshots.

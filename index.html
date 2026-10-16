@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="CostTooling">
 <script>if (new URLSearchParams(location.search).get("shot")) document.documentElement.classList.add("shot");</script>
 <link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="css/app.css?v=10">
+<link rel="stylesheet" href="css/app.css?v=11">
 </head>
 <body>
 <div class="shell">
@@ -93,41 +93,16 @@
     <input type="file" id="fileGal" accept="image/*" multiple hidden>
     <canvas id="reportCanvas" hidden></canvas>
   </div></div>
-
-  <aside class="notes">
-    <h1>CostTooling</h1>
-    <p class="lede">A phone app for tracking a job from the site: photos, progress, costs, schedule, and the one-page report that comes out of them. This is an early working version with one sample job. Open it on your phone for the real thing; it works here with a mouse too.</p>
-    <p><b>Everything you add stays on your device.</b> Nothing is sent anywhere unless you share it. "Back up my data" in the bulb menu saves a copy.</p>
-    <p><b>How to help:</b> use it like you would on a job. Whenever you think "I wish it did…", tap the yellow bulb and write it down. "Email all ideas" sends them to us.</p>
-    <a class="sb" href="mockups/">See every screen at a glance →</a>
-    <h2>What works</h2>
-    <ul>
-      <li>Your own projects, with line items from a template or from scratch.</li>
-      <li>Photos from the camera or the camera roll, with a note, conditions and the line item they belong to.</li>
-      <li>Progress sliders and logged costs per line item; every number updates everywhere.</li>
-      <li>Cover page from your photos, saved to Photos or shared.</li>
-      <li>Schedule view and a one-page report you can share, save or print.</li>
-    </ul>
-    <div class="callout">
-      <b>Things we'd love your take on</b>
-      <ol style="margin-top:6px">
-        <li>Is percent complete per line item how you think about progress, or is it tasks and dollars separately?</li>
-        <li>Should "cost so far" come from receipts you log, or is earned value enough?</li>
-        <li>Which photos belong on a cover page: the latest, or ones you pick?</li>
-        <li>Who sees your reports most often, and what do they ask you?</li>
-      </ol>
-    </div>
-  </aside>
 </div>
 <div id="printArea" hidden></div>
-<script src="js/db.js?v=10"></script>
-<script src="js/photos.js?v=10"></script>
-<script src="js/data.js?v=10"></script>
-<script src="js/cover.js?v=10"></script>
-<script src="js/ui.js?v=10"></script>
+<script src="js/db.js?v=11"></script>
+<script src="js/photos.js?v=11"></script>
+<script src="js/data.js?v=11"></script>
+<script src="js/cover.js?v=11"></script>
+<script src="js/ui.js?v=11"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
-<script src="js/cloud.js?v=10"></script>
-<script src="js/app.js?v=10"></script>
+<script src="js/cloud.js?v=11"></script>
+<script src="js/app.js?v=11"></script>
 <script>
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
   navigator.serviceWorker.register('sw.js').then(reg => {

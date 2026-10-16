@@ -2,22 +2,15 @@
 * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html { touch-action:manipulation; }
 html,body { margin:0; height:100%; }
-body { background:#ecebe6; color:var(--ink); font:15px/1.45 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+body { background:var(--paper); color:var(--ink); font:15px/1.45 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
 svg.ic { display:inline-block; vertical-align:-0.2em; flex:none; }
-/* desktop shell */
-.shell { display:grid; grid-template-columns: 420px 1fr; gap:28px; max-width:1180px; margin:0 auto; padding:28px 20px 60px; align-items:start; }
-.phone { width:390px; height:800px; background:var(--paper); border-radius:44px; border:10px solid #1d1d1f; box-shadow:0 30px 60px rgba(0,0,0,.25); overflow:clip; position:relative; }
-.notes h1 { margin:0 0 4px; font-size:24px; } .notes .lede { color:var(--muted); margin:0 0 14px; max-width:70ch; }
-.notes h2 { font-size:13px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin:22px 0 8px; }
-.notes ol, .notes ul { padding-left:20px; margin:0; } .notes li { margin:0 0 6px; }
-.notes p { margin:0 0 10px; max-width:70ch; }
-.callout { background:#fff; border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-top:12px; }
-.notes .sb { display:inline-block; margin-top:4px; background:var(--ink); color:var(--yellow); padding:8px 14px; border-radius:8px; text-decoration:none; font-weight:600; font-size:13px; }
-html.shot, html.shot body { width:390px; height:844px; overflow:hidden; background:var(--paper); }
-html.shot .shell { display:block; padding:0; max-width:none; margin:0; }
-html.shot .phone { width:390px; height:844px; border:0; border-radius:0; box-shadow:none; }
-html.shot .notes { display:none; }
-@media (max-width:860px) { html, body { position:fixed; inset:0; width:100%; height:100%; overflow:hidden; overscroll-behavior:none; } body { background:var(--paper); } .shell { display:block; padding:0; max-width:none; height:100%; } .phone { width:100%; height:100%; border:0; border-radius:0; box-shadow:none; } .notes { display:none; } }
+/* app shell: the app fills the window at every size */
+html, body { position:fixed; inset:0; width:100%; height:100%; overflow:hidden; overscroll-behavior:none; }
+.shell { height:100%; }
+.phone { width:100%; height:100%; background:var(--paper); overflow:clip; position:relative; }
+/* ?shot=1 pins the layout to 390x844 for the storyboard captures */
+html.shot, html.shot body { width:390px; height:844px; }
+html.shot .phone { width:390px; height:844px; }
 /* app chrome */
 .app { position:absolute; inset:0; display:flex; flex-direction:column; overflow:clip; }
 .top { background:var(--ink); color:#fff; padding:calc(14px + env(safe-area-inset-top)) 14px 12px; display:flex; align-items:center; gap:10px; flex:none; }

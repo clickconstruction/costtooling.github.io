@@ -133,3 +133,22 @@ input[type=range]::-moz-range-track { height:8px; border-radius:99px; background
 #cloudBtn .dot { position:absolute; right:6px; top:6px; width:8px; height:8px; border-radius:50%; border:2px solid var(--ink); box-sizing:content-box; }
 .btn.danger.sm { width:auto; }
 .auth .mark { background:var(--yellow); color:var(--ink); font-weight:900; display:flex; align-items:center; justify-content:center; letter-spacing:-.5px; }
+
+/* tour: "Show me around" — a mask with one hole, and a card that says what the hole shows */
+#tour { position:absolute; inset:0; z-index:40; display:none; }
+#tour.show { display:block; }
+#tourHole { position:absolute; box-shadow:0 0 0 200vmax rgba(22,22,23,.66); border:2px solid var(--yellow); border-radius:16px; pointer-events:none; transition:left .32s ease, top .32s ease, width .32s ease, height .32s ease, border-radius .32s ease; }
+#tour.done #tourHole { border-width:0; }
+#tourCard { position:absolute; left:14px; right:14px; max-width:460px; margin:0 auto; bottom:calc(14px + env(safe-area-inset-bottom)); background:#fff; border-radius:16px; padding:14px 16px; box-shadow:0 14px 40px rgba(0,0,0,.35); animation:tourIn .25s ease; }
+#tourCard.mid { top:50%; bottom:auto; transform:translateY(-50%); text-align:center; }
+#tourCard .x { position:absolute; top:6px; right:6px; width:40px; height:40px; border:0; background:none; color:var(--muted); display:flex; align-items:center; justify-content:center; cursor:pointer; border-radius:50%; }
+#tourCard .x:active { background:#f0eee8; }
+#tourCard .dots { display:flex; gap:5px; margin:2px 0 8px; } #tourCard.mid .dots { justify-content:center; }
+#tourCard .dots i { width:6px; height:6px; border-radius:50%; background:#e2dfd6; transition:.2s; } #tourCard .dots i.past { background:#c9c6bc; } #tourCard .dots i.on { background:var(--yellow); width:18px; border-radius:3px; }
+#tourCard h4 { margin:0 0 4px; font-size:18px; padding-right:36px; } #tourCard.mid h4 { padding-right:0; font-size:22px; }
+#tourCard p { margin:0 0 12px; font-size:15px; line-height:1.45; color:var(--ink2); } #tourCard.mid p { font-size:16px; }
+#tourCard .btns { display:flex; gap:8px; } #tourCard .btns .btn { padding:12px 10px; font-size:15px; } #tourCard .btns .btn.q { flex:0 0 auto; width:auto; padding:12px 14px; } #tourCard .btns .btn:disabled { opacity:.35; }
+#tourCard.mid .btns { flex-direction:column; } #tourCard.mid .btns .btn.q { width:100%; }
+.touring .fab { display:none; }
+@keyframes tourIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+#tourCard.mid { animation:none; }

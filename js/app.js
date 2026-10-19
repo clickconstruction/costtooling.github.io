@@ -198,7 +198,7 @@ const App = (() => {
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().then(ok => { if (!ok) logLine('storage.persist declined'); }).catch(() => {});
   // ---------- boot ----------
   document.querySelectorAll('[data-ic]').forEach(e => { const w = document.createElement('span'); w.innerHTML = UI.ic(e.dataset.ic, +(e.dataset.size || 18)); e.replaceWith(w.firstChild); });
-  const sess = Q.get('s') || Q.get('new') || Q.get('welcome') || Q.get('auth') || Q.get('code') ? null : DB.get('ct-session');
+  const sess = Q.get('s') || Q.get('new') || Q.get('welcome') || Q.get('tour') || Q.get('auth') || Q.get('code') ? null : DB.get('ct-session');
   if (sess && sess.at && Date.now() - sess.at < 6 * 3600e3 && P()) {
     if (sess.photoCtx) photoCtx = Object.assign(photoCtx, sess.photoCtx); if (sess.mode) mode = sess.mode; if (sess.logFilter) logFilter = sess.logFilter;
     if (sess.form) { form = sess.form; form.added ||= []; form.photos ||= []; go('entryform'); toast('Picked up where you left off'); }
@@ -209,7 +209,7 @@ const App = (() => {
   } else { const s0 = Q.get('s'); go(s0 && PARENT.hasOwnProperty(s0) && s0 !== 'entryform' && s0 !== 'itemform' && s0 !== 'projform' ? s0 : 'projects'); }
   setTimeout(async () => { try { const ids = await Photos.listIds(); const used = new Set(); S.projects.forEach(p => p.entries.forEach(e => e.photos.forEach(ph => ph.id && used.add(ph.id)))); if (form) form.photos.forEach(ph => ph.id && used.add(ph.id)); const orphans = (ids || []).filter(id => !used.has(id)); for (const id of orphans) await Photos.remove(id); if (orphans.length) logLine('cleaned ' + orphans.length + ' orphan photo(s)'); } catch (e) { logLine('cleanup: ' + (e && e.message)); } }, 3000);
   if (Q.get('new')) newEntry(); if (Q.get('s') === 'projform') newProject(); if (Q.get('s') === 'itemform') newItem(); if (Q.get('m') === 'gantt') { setMode('gantt'); } if (Q.get('layout')) coverLayout(Q.get('layout'));
-  renderIdeas(); if (!DB.get('ct-welcomed') || Q.get('welcome')) setTimeout(openWelcome, 400);
+  renderIdeas(); if (Q.get('tour')) setTimeout(() => Tour.start(), 500); else if (!DB.get('ct-welcomed') || Q.get('welcome')) setTimeout(openWelcome, 400);
   if (Q.get('ideas')) setTimeout(openIdeas, 300); if (Q.get('sheet')) setTimeout(() => openShare(Q.get('sheet')), 300);
   if (Q.get('s') === 'photo' && P() && P().entries[0]) openPhoto(P().entries[0].id);
   if (Q.get('s') === 'item' && P() && P().items[2]) openItem(P().items[2].id);

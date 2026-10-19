@@ -277,8 +277,8 @@ const Cloud = (() => {
   // Projects-screen card when signed out.
   function promoHtml() {
     if (!enabled()) return '';
-    if (signedIn()) return companyId ? '' : `<div class="card" style="border-color:var(--yellow)"><h3>Finish setting up</h3><p class="hint" style="margin:0 0 10px">Your jobs aren't saving to the cloud yet. Start a company or join one with a code.</p><button class="btn sm" onclick="App.go('company')">${ic('users')}Set up my company</button></div>`;
-    return `<div class="card" style="border-color:var(--yellow)"><h3>Save your jobs to the cloud</h3><p class="hint" style="margin:0 0 10px">Sign in and every job and photo follows you to any phone, and your team can see them too.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" onclick="App.go('signin')">${ic('cloud')}Sign in</button><button class="btn q sm" onclick="App.go('join')">${ic('key')}I have a code</button></div></div>`;
+    if (signedIn()) return companyId ? '' : `<div class="card" id="cloudPromo" style="border-color:var(--yellow)"><h3>Finish setting up</h3><p class="hint" style="margin:0 0 10px">Your jobs aren't saving to the cloud yet. Start a company or join one with a code.</p><button class="btn sm" onclick="App.go('company')">${ic('users')}Set up my company</button></div>`;
+    return `<div class="card" id="cloudPromo" style="border-color:var(--yellow)"><h3>Save your jobs to the cloud</h3><p class="hint" style="margin:0 0 10px">Sign in and every job and photo follows you to any phone, and your team can see them too.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" onclick="App.go('signin')">${ic('cloud')}Sign in</button><button class="btn q sm" onclick="App.go('join')">${ic('key')}I have a code</button></div></div>`;
   }
 
   return { init, render, ui, SCREENS, promoHtml, schedulePush, push, pull, deleteProject, fetchPhoto, onStatusTap, paintStatus, signedIn, enabled, state: () => ({ status, detail, companyId, memberships, user }) };

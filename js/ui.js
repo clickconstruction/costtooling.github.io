@@ -117,17 +117,22 @@ const UI = (() => {
     hydrate(homeBody, p);
   }
 
+  /** Is an entry under a log filter? 'all' takes every entry, 'none' the untagged ones, anything else is a line item id. */
+  const inFilter = (itemId, filter) => filter === 'all' || (filter === 'none' ? !itemId : itemId === filter);
   function log(p, filter) {
-    const entries = sortedEntries(p).filter(e => filter === 'all' || e.itemId === filter);
-    const used = [...new Set((p.entries || []).map(e => e.itemId).filter(Boolean))];
-    let html = `<div class="chips" id="logChips"><span class="chip ${filter === 'all' ? 'on' : ''}" data-filter="all" onclick="App.filterLog('all')">All</span>${used.map(id => `<span class="chip ${filter === id ? 'on' : ''}" data-filter="${id}" onclick="App.filterLog('${id}')">${esc(itemName(p, id))}</span>`).join('')}</div>`;
-    html += `<div class="empty" id="logEmpty" style="display:${entries.length ? 'none' : ''}">${ic('camera', 36)}<span id="logEmptyText">${(p.entries || []).length ? 'Nothing for this line item.' : 'No entries yet.'}</span><br><button class="btn sm" style="margin-top:12px" onclick="App.newEntry()">${ic('camera')}Add the first photo</button></div>`;
+    const items = p.items || [], every = p.entries || [];
+    const count = id => every.filter(e => (e.itemId || '') === id).length;
+    const untagged = count('');
+    // Every line item gets a chip with its entry count, so a new item is visible here before its first photo.
+    const chip = (id, name, n) => `<span class="chip ${filter === id ? 'on' : ''}${n ? '' : ' z'}" data-filter="${id}" data-name="${esc(name)}" onclick="App.filterLog('${id}')">${esc(name)}<b class="n">${n}</b></span>`;
+    let html = `<div class="chips wrap" id="logChips">${chip('all', 'All', every.length)}${items.map(i => chip(i.id, i.n, count(i.id))).join('')}${untagged && items.length ? chip('none', 'No line item', untagged) : ''}</div>`;
+    html += `<div class="empty" id="logEmpty" style="display:none">${ic('camera', 36)}<span id="logEmptyText"></span><br><button class="btn sm" id="logEmptyBtn" style="margin-top:12px"></button></div>`;
     const all = sortedEntries(p); let lastDay = '';
     all.forEach(e => {
-      const show = filter === 'all' || e.itemId === filter;
+      const show = inFilter(e.itemId, filter);
       if (e.d !== lastDay) { lastDay = e.d; const n = all.filter(x => x.d === e.d).length; html += `<div class="day" data-day="${e.d}"><span>${wd(e.d)}</span><span class="dayN">${n} entr${n > 1 ? 'ies' : 'y'}</span></div>`; }
       const ph = e.photos[0];
-      html += `<div class="entry ${ph ? '' : 'nophoto'}" data-day="${e.d}" data-item="${esc(e.itemId || '')}" style="display:${show ? '' : 'none'}" onclick="App.openPhoto('${e.id}')">${ph ? photoPh(ph, Data.photoKey(ph), '', e.photos.length > 1 ? `data-n="${e.photos.length}"` : '') : ''}<div>${e.itemId ? `<span class="chip k">${esc(itemName(p, e.itemId))}</span>` : ''}<span class="chip" style="border:0;padding-left:2px">${esc(e.time || '')}</span><p>${esc(e.note) || '<i style="color:var(--muted)">No note</i>'}</p>${condChips(e)}</div></div>`;
+      html += `<div class="entry ${ph ? '' : 'nophoto'}" data-day="${e.d}" data-item="${esc(e.itemId || '')}" style="display:${show ? '' : 'none'}" onclick="App.openPhoto('${e.id}')">${ph ? photoPh(ph, Data.photoKey(ph), '', e.photos.length > 1 ? `data-n="${e.photos.length}"` : '') : ''}<div>${e.itemId ? `<span class="chip k">${esc(itemName(p, e.itemId))}</span>` : '<span class="chip z">No line item</span>'}<span class="chip" style="border:0;padding-left:2px">${esc(e.time || '')}</span><p>${esc(e.note) || '<i style="color:var(--muted)">No note</i>'}</p>${condChips(e)}</div></div>`;
     });
     logBody.innerHTML = html; hydrate(logBody, p);
     logBody.querySelectorAll('.ph[data-n]').forEach(el => { const b = document.createElement('span'); b.className = 'n'; b.textContent = '+' + (el.dataset.n - 1); el.appendChild(b); });
@@ -137,9 +142,16 @@ const UI = (() => {
   function applyLogFilter(filter) {
     logBody.querySelectorAll('#logChips .chip').forEach(c => c.classList.toggle('on', c.dataset.filter === filter));
     let visible = 0; const perDay = {};
-    logBody.querySelectorAll('.entry').forEach(e => { const show = filter === 'all' || e.dataset.item === filter; e.style.display = show ? '' : 'none'; if (show) { visible++; perDay[e.dataset.day] = (perDay[e.dataset.day] || 0) + 1; } });
+    logBody.querySelectorAll('.entry').forEach(e => { const show = inFilter(e.dataset.item, filter); e.style.display = show ? '' : 'none'; if (show) { visible++; perDay[e.dataset.day] = (perDay[e.dataset.day] || 0) + 1; } });
     logBody.querySelectorAll('.day').forEach(h => { const n = perDay[h.dataset.day] || 0; h.style.display = n ? '' : 'none'; h.querySelector('.dayN').textContent = n + ' entr' + (n > 1 ? 'ies' : 'y'); });
-    const empty = document.getElementById('logEmpty'); if (empty) { empty.style.display = visible ? 'none' : ''; }
+    const empty = document.getElementById('logEmpty'); if (!empty) return;
+    empty.style.display = visible ? 'none' : '';
+    if (visible) return;
+    // A line item with no photos yet offers one that is already tagged to it.
+    const chip = logBody.querySelector(`#logChips .chip[data-filter="${filter}"]`), name = chip ? chip.dataset.name : '';
+    const item = filter !== 'all' && filter !== 'none' ? filter : '';
+    document.getElementById('logEmptyText').textContent = item ? `No photos for ${name} yet.` : 'No entries yet.';
+    const btn = document.getElementById('logEmptyBtn'); btn.innerHTML = ic('camera') + (item ? `Add a photo to ${esc(name)}` : 'Add the first photo'); btn.onclick = () => App.newEntry(item);
   }
 
   function entryform(p, f) {
@@ -148,8 +160,10 @@ const UI = (() => {
       <h3>${f.id ? 'Edit entry' : 'New entry'} <small>${wd(f.d)}${f.time ? ' · ' + esc(f.time) : ''}</small></h3>
       <div class="pend" id="pendGrid">${entryPhotosHtml(f)}</div>
       <p class="hint" style="margin:0 0 6px" id="pendHint">Take a photo, or pick ones you were texted.</p>
+      <label>Line item</label>${items.length
+        ? `<select class="in${f.itemId ? '' : ' pick'}" id="efItem" onchange="this.classList.toggle('pick', !this.value)"><option value="">Pick a line item…</option>${items.map(i => `<option value="${i.id}" ${i.id === f.itemId ? 'selected' : ''}>${esc(i.n)}</option>`).join('')}</select>`
+        : `<p class="hint" style="margin:0 0 4px">No line items yet. Add them on the Progress tab, then tag photos to them here.</p>`}
       <label>Note</label><textarea class="in" id="efNote" placeholder="What happened today?">${esc(f.note)}</textarea>
-      <label>Line item</label><select class="in" id="efItem"><option value="">— none —</option>${items.map(i => `<option value="${i.id}" ${i.id === f.itemId ? 'selected' : ''}>${esc(i.n)}</option>`).join('')}</select>
       <label>Conditions</label>
       <div class="seg" id="efWx">${['sun', 'cloud', 'rain', 'wind'].map(w => `<button class="${f.wx === w ? 'on' : ''}" onclick="App.setWx('${w}')">${ic(w, 15)}${WX[w]}</button>`).join('')}</div>
       <div class="in3" style="margin-top:8px"><div><label>Temp °F</label><input class="in" type="number" inputmode="numeric" id="efTemp" value="${esc(f.temp)}" placeholder="—"></div><div><label>On site</label><input class="in" type="number" inputmode="numeric" id="efCrew" value="${esc(f.crew)}" placeholder="—"></div><div><label>Date</label><input class="in" type="date" id="efDate" value="${esc(f.d)}"></div></div>

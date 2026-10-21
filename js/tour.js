@@ -18,6 +18,8 @@ const Tour = (() => {
         go: () => App.go('home'), target: () => document.querySelector('#homeBody .actions .btn') },
       { title: 'The site log', text: 'Every photo lands here by day. Each one keeps its note, the weather and who was on site.',
         go: () => { App.filterLog('all'); App.go('log'); }, target: () => $('logBody'), block: 'start', cap: 0.5 },
+      { title: 'By line item', text: 'Every line item is here with its photo count, even before its first photo. Tap one to see only its photos. Add a photo from there and it is tagged for you.',
+        go: () => { App.filterLog('all'); App.go('log'); }, target: () => $('logChips'), block: 'start' },
       { title: 'Update progress', text: 'Drag a slider when work gets done, or tap a percent. Every number on every screen follows.',
         go: () => { App.setMode('items'); App.go('sov'); }, target: () => document.querySelector('#sovBody [data-item]') || document.querySelector('#sovBody .empty') },
       { title: 'The cover page', text: 'A picture to text the owner. Pick up to four photos and a headline, then save or share it.',

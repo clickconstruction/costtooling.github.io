@@ -28,7 +28,10 @@ const App = (() => {
     if (s === 'projects') UI.projects(S);
     else if (s === 'projform') UI.projform(editProj || {}, tpl);
     else if (s === 'home') UI.home(p, k);
-    else if (s === 'log') UI.log(p, logFilter);
+    else if (s === 'log') { // a filter can outlive its line item, or belong to another job: fall back to All
+      if (logFilter === 'none' ? !p.entries.some(e => !e.itemId) : logFilter !== 'all' && !p.items.some(i => i.id === logFilter)) logFilter = 'all';
+      UI.log(p, logFilter);
+    }
     else if (s === 'entryform') UI.entryform(p, form);
     else if (s === 'photo') { const e = p.entries.find(x => x.id === photoCtx.entryId); if (!e) return go('log'); UI.photo(p, e, Math.min(photoCtx.idx, Math.max(0, e.photos.length - 1))); }
     else if (s === 'cover') { const sel = UI.cover(p, k); Render.cover($('cover'), p, k, sel); }
@@ -71,7 +74,8 @@ const App = (() => {
   function restoreSample() { S.projects.push(Data.sampleProject()); save(); toast('Sample job is back'); refresh(); }
 
   // ---------- log entries ----------
-  function newEntry() { form = { id: null, d: Data.iso(Data.today()), time: Data.nowTime(), itemId: '', wx: 'sun', temp: '', crew: '', note: '', photos: [], added: [] }; go('entryform'); }
+  /** A line item id tags the new entry up front. With none given, the line item filtered in the log is the default, but only when starting from the log. */
+  function newEntry(itemId) { const has = id => !!id && (P().items || []).some(i => i.id === id); const pick = has(itemId) ? itemId : cur === 'log' && has(logFilter) ? logFilter : ''; form = { id: null, d: Data.iso(Data.today()), time: Data.nowTime(), itemId: pick, wx: 'sun', temp: '', crew: '', note: '', photos: [], added: [] }; go('entryform'); }
   function editEntry(id) { const e = P().entries.find(x => x.id === id); if (!e) return; form = Object.assign({ added: [] }, JSON.parse(JSON.stringify(e))); go('entryform'); }
   function cam() { captureForm(); persistSession(); $('pendHint').textContent = 'Preparing…'; $('fileCam').click(); } function gal() { captureForm(); persistSession(); $('pendHint').textContent = 'Preparing…'; $('fileGal').click(); }
   async function filesPicked(input) {

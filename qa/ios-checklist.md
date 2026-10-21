@@ -18,7 +18,7 @@ Run on the iPhone simulator (or a real phone) in two launch modes: Safari tab, a
 | 12 | Entry form · remove a photo (×) | Thumbnail gone; 44 pt target | | |
 | 13 | Entry form · Save | Toast, log shows the entry with +n badge | | |
 | 14 | Entry form · Cancel | Returns to log; nothing saved; imported photos removed | | |
-| 15 | Log · filter chips | Entries and day headers filter in place | | |
+| 15 | Log · filter chips | Every line item has a chip with its count; entries and day headers filter in place; an empty item offers Add a photo to it | | |
 | 16 | Log · tap entry | Photo detail; strip thumbnails switch the big image in place | | |
 | 17 | Photo · Edit | Form prefilled; Save updates | | |
 | 18 | Photo · Delete entry | Confirm sheet; entry gone from log | | |

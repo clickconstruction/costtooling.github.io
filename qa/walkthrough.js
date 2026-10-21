@@ -80,7 +80,7 @@ let n = 0;
   await tap('.tabs button[data-t=sov]'); await shot('blank-project-progress'); await tap('.tabs button[data-t=report]'); await shot('blank-project-report');
   // ---- Wave 3 coverage ----
   await page.goto(BASE + '/?s=projects', { waitUntil: 'networkidle' }); await page.evaluate(() => { App.openProject('sample'); App.go('log'); }); await page.waitForTimeout(400);
-  await tap('#logChips .chip', 1); await shot('log-filter-one'); const shown = await page.evaluate(() => [...document.querySelectorAll('#logBody .entry')].filter(e => e.style.display !== 'none').length); if (!shown) issues.push('log filter hid everything'); await tap('#logChips .chip', 0);
+  await tap('#logChips .chip:not(.z)', 1); await shot('log-filter-one'); const shown = await page.evaluate(() => [...document.querySelectorAll('#logBody .entry')].filter(e => e.style.display !== 'none').length); if (!shown) issues.push('log filter hid everything'); await tap('#logChips .chip', 0);
   // edit an entry and save
   await page.locator('#logBody .entry').filter({ visible: true }).first().click(); await page.waitForTimeout(400); await tap(byText('Edit')); await page.fill('#efNote', 'Edited note after save'); await tap(byText('Save entry')); await page.waitForTimeout(400);
   const edited = await page.evaluate(() => App.state().projects.find(p => p.id === 'sample').entries.some(e => e.note === 'Edited note after save')); if (!edited) issues.push('edit entry did not save'); await shot('log-after-edit');

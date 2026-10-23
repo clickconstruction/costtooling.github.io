@@ -81,7 +81,7 @@ SUPABASE PROJECT cjwybuhogxyayjnuxpem, SHARED WITH CHARITYTOOLING
 ```
 
 - There is no framework and no bundler. Each script defines one global (`App`, `UI`, `Data`, `Render`, `Photos`, `DB`, `Cloud`, `Tour`), and `index.html` loads them in order.
-- Buttons mostly call `App` functions through inline `onclick` handlers. `App.go(screen)` redraws a whole screen; sliders, filters and cover picks update the page in place.
+- Buttons mostly call `App` functions through inline `onclick` handlers. `App.go(screen)` redraws a whole screen; sliders, filters and cover picks update the page in place. Back follows `PARENT` in `app.js`, except the photo, line item and entry form screens, which return to the screen that opened them: a short `trail` kept with the session, cleared whenever a tab root opens.
 - The one outside library is supabase-js 2.49.4, loaded from jsDelivr.
 
 ## Data and cloud sync
@@ -122,10 +122,10 @@ The Edge Functions and the sign-up triggers are shared with CharityTooling. Depl
 
 A push to `main` is live in about a minute. There are no pull requests, no automated tests and no branch protection, so check your change before you push.
 
-1. **Bump the version when you change any file that is not a page:** a stylesheet, a script, an icon or a guide photo. The service worker serves those from its cache first, so phones keep the old ones until the version moves. Three places, all one number up (today 15):
-   - every `?v=15` in `index.html`
-   - every `?v=15` in the `SHELL` list in `sw.js`
-   - `VERSION = 'ct-v15'` in `sw.js`
+1. **Bump the version when you change any file that is not a page:** a stylesheet, a script, an icon or a guide photo. The service worker serves those from its cache first, so phones keep the old ones until the version moves. Three places, all one number up (today 16):
+   - every `?v=16` in `index.html`
+   - every `?v=16` in the `SHELL` list in `sw.js`
+   - `VERSION = 'ct-v16'` in `sw.js`
 2. **A new script or stylesheet** goes in both `index.html` and the `SHELL` list in `sw.js`.
 3. **Commit and push to `main`.** The workflow `.github/workflows/pages.yml` uploads the whole repo and deploys it. The last deploy took 54 seconds.
 4. **Check it is live.** `gh run list` shows the deploy. Then load the live page and look for the new version number. Phones that had the old version see an **Update ready. Reload** message the next time they open the app.
@@ -155,7 +155,7 @@ Leave out the URL and `walkthrough.js`, `offline.js` and `guide-shots.js` run ag
 
 `cloud-e2e.js` writes to the live Supabase project. Use a test user whose address is not on example.com, which Resend refuses. Afterwards delete the test company with SQL, and its photos through the Storage API, since direct deletes on storage are blocked.
 
-For anything the browser cannot fake, use `qa/ios-checklist.md`: 56 steps to run in a Safari tab and again as a home-screen app. Its pass and fail columns are still blank. `qa/ios-findings.md` logs what the iPhone simulator turned up, wave by wave.
+For anything the browser cannot fake, use `qa/ios-checklist.md`: 57 steps to run in a Safari tab and again as a home-screen app. Its pass and fail columns are still blank. `qa/ios-findings.md` logs what the iPhone simulator turned up, wave by wave.
 
 `mockups/` holds a storyboard of 15 screens from Oct 12. It predates accounts, the guide and the tour.
 
@@ -165,6 +165,7 @@ The whole history is one week, newest first. `git log` has every commit.
 
 | Date | Change | Commit |
 | --- | --- | --- |
+| Oct 22 | Back, Cancel and Delete return to the screen that opened a photo, a line item or the entry form (Home, the log, a folder or a photo) instead of a fixed parent; the untagged save toast says so; a line item with notes only says so; + Add to this day is a button with a wide tap target; a line item or project edit that was saved no longer reopens its form after a reload; a note typed just before the app is backgrounded survives the reload | 9417c98 |
 | Oct 22 | Line item as a folder: its photos and notes grouped as Day 1, Day 2… (its own first day is Day 1), Add a photo to it and Add to this day; Move to… on the photo screen moves an entry, or one photo as its own entry, to another line item; Save entry lands in the line item's folder with the entry outlined; log day headers carry the job day | 7c5ad38 |
 | Oct 20 | Every line item in the site log: a chip with its photo count for each, an untagged chip when entries have no line item, Add a photo to an empty item already tagged, the line item picker above the note on New entry, a tour stop and guide step 5 | 92f2b0d |
 | Oct 19 | Show me around: a guided tour over the sample job, now the welcome card's first button, also in the bulb menu and at `?tour=1` | 59022cd |

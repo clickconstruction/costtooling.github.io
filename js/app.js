@@ -10,9 +10,18 @@ const App = (() => {
   const P = () => S.projects.find(p => p.id === S.cur) || S.projects[0];
   let cur = 'projects', mode = 'items', logFilter = 'all', form = null, tpl = 'remodel', editProj = null, editItem = null, photoCtx = { entryId: null, idx: 0 }, shareKind = 'report';
   let importing = 0, flash = null; // flash: the entry to outline once, on the line item screen it was just saved to
+  // ---------- where a detail screen goes back to: the screen that opened it ----------
+  // The photo, line item and entry form screens push the screen they were opened from; Back, Cancel and Delete pop it.
+  // Landing on a tab root clears it, so Back from a root still follows PARENT.
+  let trail = [];
+  const ROOTS = ['projects', 'home', 'log', 'cover', 'sov', 'report'];
+  const trailPush = () => { if (trail[trail.length - 1] !== cur) trail.push(cur); if (trail.length > 10) trail.shift(); };
+  const trailPop = fallback => { while (trail.length) { const s = trail.pop(); if (s !== cur && s !== 'entryform' && PARENT.hasOwnProperty(s)) return s; } return fallback; };
   // ---------- session (draft + screen) persistence: iOS reloads the tab after the camera ----------
-  const persistSession = () => DB.set('ct-session', { cur, form, editProj, editItem, photoCtx, mode, logFilter, at: Date.now() });
-  window.addEventListener('pagehide', persistSession); document.addEventListener('visibilitychange', () => { if (document.hidden) persistSession(); });
+  const persistSession = () => DB.set('ct-session', { cur, form, editProj, editItem, photoCtx, mode, logFilter, trail, at: Date.now() });
+  // Read the entry form's fields first, or a note typed since the last tap is lost when iOS reloads the tab.
+  const stash = () => { captureForm(); persistSession(); };
+  window.addEventListener('pagehide', stash); document.addEventListener('visibilitychange', () => { if (document.hidden) stash(); });
 
   // ---------- navigation ----------
   const PARENT = { projects: null, projform: 'projects', home: 'projects', log: 'home', entryform: 'log', photo: 'log', cover: 'home', sov: 'home', item: 'sov', itemform: 'sov', report: 'home', signin: 'projects', join: 'signin', forgot: 'signin', setpass: 'projects', company: 'projects', account: 'projects', team: 'account' };
@@ -43,6 +52,8 @@ const App = (() => {
   }
   function go(s) {
     if (s !== 'projects' && !P()) s = 'projects';
+    if (ROOTS.includes(s)) trail = [];
+    if (s !== 'itemform') editItem = null; if (s !== 'projform') editProj = null; // a finished edit must not reopen its form after a reload
     cur = s; render(s);
     document.querySelectorAll('.screen').forEach(e => e.classList.toggle('on', e.dataset.s === s));
     document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === TABOF[s]));
@@ -56,7 +67,7 @@ const App = (() => {
     document.querySelector('.screen.on').scrollTop = 0; closeSheet(); persistSession();
   }
   const refresh = () => render(cur);
-  $('back').onclick = () => { if (cur === 'entryform') return cancelEntry(); go(PARENT[cur] || 'projects'); };
+  $('back').onclick = () => { if (cur === 'entryform') return cancelEntry(); go(cur === 'photo' || cur === 'item' || cur === 'itemform' ? trailPop(PARENT[cur]) : PARENT[cur] || 'projects'); };
 
   // ---------- projects ----------
   function openProject(id) { S.cur = id; save(); go('home'); }
@@ -75,8 +86,8 @@ const App = (() => {
 
   // ---------- log entries ----------
   /** A line item id tags the new entry up front, and a date puts it on that day (Add to this day in a line item's folder). With no id, the line item filtered in the log is the default, but only when starting from the log. */
-  function newEntry(itemId, date) { const has = id => !!id && (P().items || []).some(i => i.id === id); const pick = has(itemId) ? itemId : cur === 'log' && has(logFilter) ? logFilter : ''; form = { id: null, d: date || Data.iso(Data.today()), time: Data.nowTime(), itemId: pick, wx: 'sun', temp: '', crew: '', note: '', photos: [], added: [] }; go('entryform'); }
-  function editEntry(id) { const e = P().entries.find(x => x.id === id); if (!e) return; form = Object.assign({ added: [] }, JSON.parse(JSON.stringify(e))); go('entryform'); }
+  function newEntry(itemId, date) { const has = id => !!id && (P().items || []).some(i => i.id === id); const pick = has(itemId) ? itemId : cur === 'log' && has(logFilter) ? logFilter : ''; form = { id: null, d: date || Data.iso(Data.today()), time: Data.nowTime(), itemId: pick, wx: 'sun', temp: '', crew: '', note: '', photos: [], added: [] }; trailPush(); go('entryform'); }
+  function editEntry(id) { const e = P().entries.find(x => x.id === id); if (!e) return; form = Object.assign({ added: [] }, JSON.parse(JSON.stringify(e))); trailPush(); go('entryform'); }
   function cam() { captureForm(); persistSession(); $('pendHint').textContent = 'Preparing…'; $('fileCam').click(); } function gal() { captureForm(); persistSession(); $('pendHint').textContent = 'Preparing…'; $('fileGal').click(); }
   async function filesPicked(input) {
     const files = [...input.files]; input.value = ''; const hint = $('pendHint');
@@ -107,11 +118,11 @@ const App = (() => {
     // Land where it went: the line item's folder, with the entry outlined. Untagged entries land in the log.
     const it = rec.itemId && p.items.find(x => x.id === rec.itemId);
     if (it) { photoCtx.itemId = it.id; flash = rec.id; go('item'); toast(`Saved under ${it.n} · Day ${Data.itemDay(p, it.id, rec.d)}`); }
-    else { toast(wasNew ? 'Saved to the log' : 'Entry updated'); go('log'); }
+    else { toast(wasNew ? 'Saved to the log · no line item' : 'Entry updated'); go('log'); }
   }
-  async function cancelEntry() { if (importing) return toast('Still importing photos…'); if (form) for (const id of form.added) await Photos.remove(id); form = null; persistSession(); go(photoCtx.entryId && P().entries.some(e => e.id === photoCtx.entryId) ? 'photo' : 'log'); }
-  function deleteEntry(id) { const p = P(), e = p.entries.find(x => x.id === id); if (!e) return; confirm('Delete this entry?', 'The photo' + (e.photos.length > 1 ? 's' : '') + ' and note will be removed from this phone.', async () => { for (const ph of e.photos) if (ph.id) await Photos.remove(ph.id); p.entries = p.entries.filter(x => x.id !== id); p.cover.picked = p.cover.picked.filter(k => !e.photos.some(ph => Data.photoKey(ph) === k)); save(); toast('Entry deleted'); go('log'); }); }
-  function openPhoto(entryId, key) { const e = P().entries.find(x => x.id === entryId); if (!e) return; photoCtx.entryId = entryId; photoCtx.idx = Math.max(0, e.photos.findIndex(ph => Data.photoKey(ph) === key)); go('photo'); }
+  async function cancelEntry() { if (importing) return toast('Still importing photos…'); if (form) for (const id of form.added) await Photos.remove(id); form = null; persistSession(); go(trailPop('log')); }
+  function deleteEntry(id) { const p = P(), e = p.entries.find(x => x.id === id); if (!e) return; confirm('Delete this entry?', 'The photo' + (e.photos.length > 1 ? 's' : '') + ' and note will be removed from this phone.', async () => { for (const ph of e.photos) if (ph.id) await Photos.remove(ph.id); p.entries = p.entries.filter(x => x.id !== id); p.cover.picked = p.cover.picked.filter(k => !e.photos.some(ph => Data.photoKey(ph) === k)); save(); toast('Entry deleted'); go(trailPop('log')); }); }
+  function openPhoto(entryId, key) { const e = P().entries.find(x => x.id === entryId); if (!e) return; photoCtx.entryId = entryId; photoCtx.idx = Math.max(0, e.photos.findIndex(ph => Data.photoKey(ph) === key)); trailPush(); go('photo'); }
   function photoIdx(i) { photoCtx.idx = i; const e = P().entries.find(x => x.id === photoCtx.entryId); if (e) UI.photoSwap(P(), e, i); }
   function usePhotoOnCover() { const p = P(), e = p.entries.find(x => x.id === photoCtx.entryId); const key = Data.photoKey(e.photos[photoCtx.idx]); if (!p.cover.picked.includes(key)) p.cover.picked = [key, ...p.cover.picked].slice(0, 4); save(); go('cover'); toast('Added to the cover page'); }
   function filterLog(f) { logFilter = f; UI.applyLogFilter(f); }
@@ -151,11 +162,11 @@ const App = (() => {
   function quickPct(id, v) { setPct(id, v, true); }
   function setMode(m) { mode = m; const mi = $('modeItems'), mg = $('modeGantt'); if (mi && mg) { mi.style.display = m === 'items' ? '' : 'none'; mg.style.display = m === 'gantt' ? '' : 'none'; document.querySelectorAll('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.m === m)); } }
   function openGantt() { mode = 'gantt'; go('sov'); }
-  function openItem(id) { photoCtx.itemId = id; go('item'); }
-  function newItem() { editItem = {}; go('itemform'); }
-  function editItemForm() { editItem = Object.assign({}, P().items.find(x => x.id === photoCtx.itemId)); go('itemform'); }
-  function saveItem() { const v = id => ($(id) || {}).value || ''; const n = v('ifName').trim(); if (!n) { $('ifName').focus(); return toast('Give the line item a name'); } const p = P(); if (editItem.id) { Object.assign(p.items.find(x => x.id === editItem.id), { n, b: +v('ifBudget') || 0, s: v('ifStart'), e: v('ifEnd') }); save(); toast('Saved'); return go('item'); } const i = { id: Data.uid('i'), n, b: +v('ifBudget') || 0, pct: 0, s: v('ifStart'), e: v('ifEnd'), costs: [] }; p.items.push(i); save(); toast('Line item added'); go('sov'); }
-  function deleteItem(id) { const p = P(), i = p.items.find(x => x.id === id); confirm('Delete this line item?', `"${i.n}" and its logged costs will be removed. Photos tagged to it stay in the log.`, () => { p.items = p.items.filter(x => x.id !== id); p.entries.forEach(e => { if (e.itemId === id) e.itemId = ''; }); save(); toast('Line item deleted'); go('sov'); }); }
+  function openItem(id) { photoCtx.itemId = id; trailPush(); go('item'); }
+  function newItem() { editItem = {}; trailPush(); go('itemform'); }
+  function editItemForm() { editItem = Object.assign({}, P().items.find(x => x.id === photoCtx.itemId)); trailPush(); go('itemform'); }
+  function saveItem() { const v = id => ($(id) || {}).value || ''; const n = v('ifName').trim(); if (!n) { $('ifName').focus(); return toast('Give the line item a name'); } const p = P(); if (editItem.id) { Object.assign(p.items.find(x => x.id === editItem.id), { n, b: +v('ifBudget') || 0, s: v('ifStart'), e: v('ifEnd') }); save(); toast('Saved'); return go(trailPop('item')); } const i = { id: Data.uid('i'), n, b: +v('ifBudget') || 0, pct: 0, s: v('ifStart'), e: v('ifEnd'), costs: [] }; p.items.push(i); save(); toast('Line item added'); go(trailPop('sov')); }
+  function deleteItem(id) { const p = P(), i = p.items.find(x => x.id === id); confirm('Delete this line item?', `"${i.n}" and its logged costs will be removed. Photos tagged to it stay in the log.`, () => { p.items = p.items.filter(x => x.id !== id); p.entries.forEach(e => { if (e.itemId === id) e.itemId = ''; }); save(); toast('Line item deleted'); go(trailPop('sov')); }); }
   function addCost(itemId) { const i = P().items.find(x => x.id === itemId); const desc = $('cfDesc').value.trim(), amt = +$('cfAmt').value; if (!desc || !amt) return toast('Add what it was and how much'); i.costs.push({ id: Data.uid('c'), desc, amt, date: $('cfDate').value }); save(); toast('Cost added'); UI.itemCosts(i); UI.itemKpis(i); UI.itemSlider(i); }
   function deleteCost(itemId, costId) { const i = P().items.find(x => x.id === itemId); const c = (i.costs || []).find(x => x.id === costId); if (!c) return; confirm('Remove this cost?', `"${c.desc}" for ${Data.fmt$(c.amt)} will be removed.`, () => { i.costs = i.costs.filter(x => x.id !== costId); save(); UI.itemCosts(i); UI.itemKpis(i); UI.itemSlider(i); toast('Cost removed'); }); }
 
@@ -225,7 +236,7 @@ const App = (() => {
   document.querySelectorAll('[data-ic]').forEach(e => { const w = document.createElement('span'); w.innerHTML = UI.ic(e.dataset.ic, +(e.dataset.size || 18)); e.replaceWith(w.firstChild); });
   const sess = Q.get('s') || Q.get('new') || Q.get('welcome') || Q.get('tour') || Q.get('auth') || Q.get('code') ? null : DB.get('ct-session');
   if (sess && sess.at && Date.now() - sess.at < 6 * 3600e3 && P()) {
-    if (sess.photoCtx) photoCtx = Object.assign(photoCtx, sess.photoCtx); if (sess.mode) mode = sess.mode; if (sess.logFilter) logFilter = sess.logFilter;
+    if (sess.photoCtx) photoCtx = Object.assign(photoCtx, sess.photoCtx); if (sess.mode) mode = sess.mode; if (sess.logFilter) logFilter = sess.logFilter; if (Array.isArray(sess.trail)) trail = sess.trail;
     if (sess.form) { form = sess.form; form.added ||= []; form.photos ||= []; go('entryform'); toast('Picked up where you left off'); }
     else if (sess.editItem) { editItem = sess.editItem; go('itemform'); }
     else if (sess.editProj) { editProj = sess.editProj; go('projform'); }

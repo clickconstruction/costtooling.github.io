@@ -17,11 +17,11 @@ Run on the iPhone simulator (or a real phone) in two launch modes: Safari tab, a
 | 11 | Entry form · reload the page mid-entry | Form restored with photos and note | | |
 | 12 | Entry form · remove a photo (×) | Thumbnail gone; 44 pt target | | |
 | 13 | Entry form · Save | Toast; lands in the line item's folder, or the log when untagged; the entry shows a +n badge | | |
-| 14 | Entry form · Cancel | Returns to log; nothing saved; imported photos removed | | |
+| 14 | Entry form · Cancel | Returns to the screen it was opened from (Home, log, folder or photo); nothing saved; imported photos removed | | |
 | 15 | Log · filter chips | Every line item has a chip with its count; entries and day headers filter in place; an empty item offers Add a photo to it | | |
 | 16 | Log · tap entry | Photo detail; strip thumbnails switch the big image in place | | |
 | 17 | Photo · Edit | Form prefilled; Save updates | | |
-| 18 | Photo · Delete entry | Confirm sheet; entry gone from log | | |
+| 18 | Photo · Delete entry | Confirm sheet; entry gone; returns to where the photo was opened from (log or folder) | | |
 | 19 | Photo · Use on cover | Cover opens with that photo first | | |
 | 20 | Cover · pick / unpick photos | Selection toggles; canvas redraws without blanking | | |
 | 21 | Cover · layouts | One big / 2×2 / Big + 2, empty slots filled with latest | | |
@@ -60,3 +60,4 @@ Run on the iPhone simulator (or a real phone) in two launch modes: Safari tab, a
 | 54 | Photo · Move to… | Sheet lists every line item with its photo count, the current one marked here now; tapping one moves the entry, toast, photo screen shows the new line item | | |
 | 55 | Photo · Move to… · Just this photo | On an entry with 2+ photos: that photo becomes its own entry under the new line item; the note and other photos stay | | |
 | 56 | Entry form · Save with a line item | Lands in that line item's folder with the entry outlined; toast "Saved under X · Day N" | | |
+| 57 | Back from a folder or a photo | Returns to the screen that opened it: Home, Progress, the log or the folder; after Save, Back from the folder returns to where Add photo was tapped; a tab tap resets this | | |

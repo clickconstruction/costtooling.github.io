@@ -87,7 +87,8 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:30px; h
 input[type=range]::-moz-range-track { height:8px; border-radius:99px; background:#ecebe6; } input[type=range]::-moz-range-progress { height:8px; border-radius:99px; background:var(--ink); } input[type=range]::-moz-range-thumb { width:30px; height:30px; border-radius:50%; background:var(--ink); border:3px solid #fff; }
 .quick { display:flex; gap:6px; margin:4px 0 6px; } .quick button { flex:1; border:1px solid var(--line); background:#fff; border-radius:8px; padding:7px 0; font:inherit; font-size:12.5px; color:var(--muted); cursor:pointer; } .quick button.on { background:var(--ink); color:var(--yellow); border-color:var(--ink); font-weight:700; } .quick button:active { background:#f0eee8; }
 .day { margin:14px 0 6px; font-size:12px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); display:flex; justify-content:space-between; align-items:center; font-weight:600; }
-.day .lnk { text-transform:none; letter-spacing:0; font-weight:600; padding:4px 0; }
+button.lnk { background:none; border:0; font:inherit; color:var(--blue); cursor:pointer; padding:0; }
+.day .lnk { text-transform:none; letter-spacing:0; font-weight:600; font-size:12px; white-space:nowrap; flex:none; padding:10px 0 10px 14px; margin:-10px 0; }
 .entry.new { outline:3px solid var(--yellow); outline-offset:-1px; }
 .entry { display:grid; grid-template-columns:78px 1fr; gap:10px; margin-bottom:10px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:8px; cursor:pointer; } .entry .ph { width:78px; border-radius:8px; } .entry.nophoto { grid-template-columns:1fr; }
 .entry p { margin:3px 0 4px; font-size:13.5px; line-height:1.35; }

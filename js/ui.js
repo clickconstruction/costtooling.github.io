@@ -229,7 +229,7 @@ const UI = (() => {
     const items = p.items || [];
     let html = `<div class="seg big" id="modeSeg"><button class="${mode === 'items' ? 'on' : ''}" data-m="items" onclick="App.setMode('items')">Line items</button><button class="${mode === 'gantt' ? 'on' : ''}" data-m="gantt" onclick="App.setMode('gantt')">Schedule</button></div>`;
     html += `<div id="modeItems" style="display:${mode === 'items' ? '' : 'none'}"><div class="card" id="sovSummary">${sovSummaryHtml(p, k)}</div>`;
-    html += items.length ? `<p class="hint" style="margin:0 0 10px">Drag a slider or tap a percent. Every number on every screen follows. Tap a name for costs and photos.</p>` : `<div class="empty">${ic('percent', 36)}No line items yet.<br><button class="btn sm" style="margin-top:12px" onclick="App.newItem()">${ic('plus')}Add a line item</button></div>`;
+    html += items.length ? `<p class="hint" style="margin:0 0 10px">Drag a slider or tap a percent. Every number on every screen follows. Tap a name for its photos by day and its costs.</p>` : `<div class="empty">${ic('percent', 36)}No line items yet.<br><button class="btn sm" style="margin-top:12px" onclick="App.newItem()">${ic('plus')}Add a line item</button></div>`;
     html += items.map(i => `<div class="card" style="padding:12px 14px 10px" data-item="${i.id}">
         <div class="row tap" style="border:0;padding:0" onclick="App.openItem('${i.id}')"><div class="l"><b>${esc(i.n)}</b><small>${i.s ? md(i.s) + ' – ' + md(i.e) + ' · ' : ''}budget ${fmt$(i.b)}</small></div><div class="r"><b class="pctLbl">${i.pct || 0}%</b><small>${fmt$(Data.itemCost(i))} spent</small></div><span class="chev">${ic('chevr', 16)}</span></div>
         ${slider(i)}
@@ -272,12 +272,12 @@ const UI = (() => {
     const es = sortedEntries(p).filter(e => e.itemId === i.id), days = Data.itemDays(p, i.id), nPhotos = es.reduce((a, e) => a + e.photos.length, 0);
     let diary = '', lastDay = '';
     es.forEach(e => {
-      if (e.d !== lastDay) { lastDay = e.d; diary += `<div class="day"><span>Day ${days.indexOf(e.d) + 1} · ${wd(e.d)}</span><a class="lnk" onclick="App.newEntry('${i.id}', '${e.d}')">+ Add to this day</a></div>`; }
+      if (e.d !== lastDay) { lastDay = e.d; diary += `<div class="day"><span>Day ${days.indexOf(e.d) + 1} · ${wd(e.d)}</span><button class="lnk" onclick="App.newEntry('${i.id}', '${e.d}')">+ Add to this day</button></div>`; }
       const ph = e.photos[0];
       diary += `<div class="entry ${ph ? '' : 'nophoto'}${e.id === flashId ? ' new' : ''}" onclick="App.openPhoto('${e.id}')">${ph ? photoPh(ph, Data.photoKey(ph), '', e.photos.length > 1 ? `data-n="${e.photos.length}"` : '') : ''}<div><span class="chip" style="border:0;padding-left:2px">${esc(e.time || '')}</span><p>${esc(e.note) || '<i style="color:var(--muted)">No note</i>'}</p>${condChips(e)}</div></div>`;
     });
     itemBody.innerHTML = `<div class="kpis" id="itemKpis">${itemKpisHtml(i)}</div>
-      <div class="card"><h3>Photos and notes <small>${days.length ? `${days.length} day${days.length > 1 ? 's' : ''} · ${nPhotos} photo${nPhotos === 1 ? '' : 's'}` : 'none yet'}</small></h3>
+      <div class="card"><h3>Photos and notes <small>${days.length ? `${days.length} day${days.length > 1 ? 's' : ''} · ${nPhotos ? nPhotos + ' photo' + (nPhotos === 1 ? '' : 's') : 'notes only'}` : 'none yet'}</small></h3>
         <button class="btn" onclick="App.newEntry('${i.id}')">${ic('camera')}Add a photo to ${esc(i.n)}</button>
         ${es.length ? diary : `<p class="hint" style="margin:10px 0 0">No photos for ${esc(i.n)} yet. The first one starts Day 1.</p>`}</div>
       <div class="card" data-item="${i.id}"><div class="row" style="border:0;padding:0 0 4px"><div class="l"><b>Progress</b><small>budget ${fmt$(i.b)} · earned <span class="earnedLbl">${fmt$(earned)}</span></small></div><div class="r"><b class="pctLbl">${i.pct || 0}%</b></div></div>${slider(i)}<div class="status">${statusChips(i)}</div></div>

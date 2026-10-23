@@ -4,7 +4,7 @@ Written Oct 20, 2026, for whoever takes over CostTooling next. When a fact here 
 
 CostTooling is a phone-first web app for tracking a construction job from the site: photos, progress, costs and a one-page report. It is plain HTML, CSS and JavaScript with no build step, hosted on GitHub Pages at costtooling.com. It works on one phone with no account, and signing in syncs jobs to a Supabase project shared with CharityTooling.
 
-It is a working prototype, built between Oct 12 and Oct 20, 2026. The last change put every line item in the site log, after a tester could not find the line items they had added there.
+It is a working prototype, built between Oct 12 and Oct 22, 2026. The last change made each line item a folder of its photos and notes by day, with Move to… on a photo, after a tester asked to see Day 1, Day 2 under a line item and to move photos between line items.
 
 ## Where everything lives
 
@@ -122,10 +122,10 @@ The Edge Functions and the sign-up triggers are shared with CharityTooling. Depl
 
 A push to `main` is live in about a minute. There are no pull requests, no automated tests and no branch protection, so check your change before you push.
 
-1. **Bump the version when you change any file that is not a page:** a stylesheet, a script, an icon or a guide photo. The service worker serves those from its cache first, so phones keep the old ones until the version moves. Three places, all one number up (today 14):
-   - every `?v=14` in `index.html`
-   - every `?v=14` in the `SHELL` list in `sw.js`
-   - `VERSION = 'ct-v14'` in `sw.js`
+1. **Bump the version when you change any file that is not a page:** a stylesheet, a script, an icon or a guide photo. The service worker serves those from its cache first, so phones keep the old ones until the version moves. Three places, all one number up (today 15):
+   - every `?v=15` in `index.html`
+   - every `?v=15` in the `SHELL` list in `sw.js`
+   - `VERSION = 'ct-v15'` in `sw.js`
 2. **A new script or stylesheet** goes in both `index.html` and the `SHELL` list in `sw.js`.
 3. **Commit and push to `main`.** The workflow `.github/workflows/pages.yml` uploads the whole repo and deploys it. The last deploy took 54 seconds.
 4. **Check it is live.** `gh run list` shows the deploy. Then load the live page and look for the new version number. Phones that had the old version see an **Update ready. Reload** message the next time they open the app.
@@ -155,7 +155,7 @@ Leave out the URL and `walkthrough.js`, `offline.js` and `guide-shots.js` run ag
 
 `cloud-e2e.js` writes to the live Supabase project. Use a test user whose address is not on example.com, which Resend refuses. Afterwards delete the test company with SQL, and its photos through the Storage API, since direct deletes on storage are blocked.
 
-For anything the browser cannot fake, use `qa/ios-checklist.md`: 52 steps to run in a Safari tab and again as a home-screen app. Its pass and fail columns are still blank. `qa/ios-findings.md` logs what the iPhone simulator turned up, wave by wave.
+For anything the browser cannot fake, use `qa/ios-checklist.md`: 56 steps to run in a Safari tab and again as a home-screen app. Its pass and fail columns are still blank. `qa/ios-findings.md` logs what the iPhone simulator turned up, wave by wave.
 
 `mockups/` holds a storyboard of 15 screens from Oct 12. It predates accounts, the guide and the tour.
 
@@ -165,6 +165,7 @@ The whole history is one week, newest first. `git log` has every commit.
 
 | Date | Change | Commit |
 | --- | --- | --- |
+| Oct 22 | Line item as a folder: its photos and notes grouped as Day 1, Day 2… (its own first day is Day 1), Add a photo to it and Add to this day; Move to… on the photo screen moves an entry, or one photo as its own entry, to another line item; Save entry lands in the line item's folder with the entry outlined; log day headers carry the job day | 7c5ad38 |
 | Oct 20 | Every line item in the site log: a chip with its photo count for each, an untagged chip when entries have no line item, Add a photo to an empty item already tagged, the line item picker above the note on New entry, a tour stop and guide step 5 | 92f2b0d |
 | Oct 19 | Show me around: a guided tour over the sample job, now the welcome card's first button, also in the bulb menu and at `?tour=1` | 59022cd |
 | Oct 16 | "Your first day" guide in nine photo steps; the welcome card rewritten in plain English | 69c9ffa |
@@ -182,6 +183,7 @@ Nothing here is broken for one person on one phone. The first three items matter
 - [ ] **Merge edits instead of overwriting.** Sync swaps whole jobs, so when two phones edit one job before syncing, the second push erases the first one's changes.
 - [ ] **Clean up cloud photos.** Deleting a photo, an entry or a job never removes its files from the `ct-photos` bucket.
 - [ ] **Verify costtooling.com in Resend.** Its DNS has no Resend records, so sign-in emails most likely come from the charitytooling.com fallback sender.
+- [ ] **Ask the tester two things about line item folders.** Whether Day 1 should sit at the top or the bottom of a line item's folder (today the newest day is first, like the log), and what a sub folder would hold: days, rooms and areas, or stages of the work. Two meanings of Day now coexist, the job day in the log and the line item's own day in its folder. An alternative that groups the log itself by line item, with one meaning of Day, was mocked up and not chosen; it is the fallback if the tester finds the folders hard to reach from the Progress tab.
 - [ ] **Try the tour on a real iPhone,** in Safari and as a home-screen app. So far it was only checked in a desktop browser at phone size.
 - [ ] **Retake the guide's step 1, 4 and 5 photos.** Step 1 still shows the old Show me how button; steps 4 and 5 show the entry form from before the line item picker moved above the note. Run `qa/guide-shots.js` against a local server and commit the new `guide/fd-01-*`, `fd-04-*` and `fd-05-*` images. Bump the version too, or installed phones keep showing the old photos.
 - [ ] **Put photos in the backup.** Back up my data exports jobs as JSON without photos, and tells the user so.

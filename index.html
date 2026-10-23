@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="CostTooling">
 <script>if (new URLSearchParams(location.search).get("shot")) document.documentElement.classList.add("shot");</script>
 <link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="css/app.css?v=14">
+<link rel="stylesheet" href="css/app.css?v=15">
 </head>
 <body>
 <div class="shell">
@@ -86,21 +86,29 @@
       <p id="confirmText"></p>
       <div style="display:flex;gap:8px"><button class="btn danger solid" id="confirmBtn">Delete</button><button class="btn q" onclick="App.closeSheet()">Cancel</button></div>
     </div>
+    <div class="sheet" id="moveSheet">
+      <div class="grab"></div>
+      <h4>Move to another line item</h4>
+      <p id="moveHint" style="font-size:13px;color:var(--muted)"></p>
+      <div class="seg" id="moveMode" style="margin-bottom:6px"><button data-m="entry" onclick="App.setMoveMode('entry')">This whole entry</button><button data-m="photo" onclick="App.setMoveMode('photo')">Just this photo</button></div>
+      <div id="moveList"></div>
+      <button class="btn q" style="margin-top:12px" onclick="App.closeSheet()">Cancel</button>
+    </div>
     <input type="file" id="fileCam" accept="image/*" capture="environment" hidden>
     <input type="file" id="fileGal" accept="image/*" multiple hidden>
     <canvas id="reportCanvas" hidden></canvas>
   </div></div>
 </div>
 <div id="printArea" hidden></div>
-<script src="js/db.js?v=14"></script>
-<script src="js/photos.js?v=14"></script>
-<script src="js/data.js?v=14"></script>
-<script src="js/cover.js?v=14"></script>
-<script src="js/ui.js?v=14"></script>
+<script src="js/db.js?v=15"></script>
+<script src="js/photos.js?v=15"></script>
+<script src="js/data.js?v=15"></script>
+<script src="js/cover.js?v=15"></script>
+<script src="js/ui.js?v=15"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
-<script src="js/cloud.js?v=14"></script>
-<script src="js/tour.js?v=14"></script>
-<script src="js/app.js?v=14"></script>
+<script src="js/cloud.js?v=15"></script>
+<script src="js/tour.js?v=15"></script>
+<script src="js/app.js?v=15"></script>
 <script>
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
   navigator.serviceWorker.register('sw.js').then(reg => {

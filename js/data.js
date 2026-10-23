@@ -74,6 +74,11 @@ const Data = (() => {
   const itemEarned = i => (+i.b || 0) * (i.pct || 0) / 100;
   const allPhotos = p => (p.entries || []).flatMap(e => (e.photos || []).map(ph => ({ ph, e })));
   const photoKey = ph => ph.id || ('s' + ph.seed);
+  /** The distinct dates a line item has entries on, earliest first: the first of them is its Day 1. */
+  const itemDays = (p, itemId) => [...new Set((p.entries || []).filter(e => e.itemId === itemId).map(e => e.d))].sort();
+  const itemDay = (p, itemId, d) => itemDays(p, itemId).indexOf(d) + 1;
+  /** Which day of the job a date is, the start date being Day 1; 0 when the job has no start or the date is before it. */
+  const jobDay = (p, d) => { if (!p.start || !d) return 0; const n = Math.round((parse(d) - parse(p.start)) / DAY) + 1; return n >= 1 ? n : 0; };
 
-  return { DAY, uid, iso, parse, today, addDays, md, mdy, wd, fmt$, fmtK, nowTime, TEMPLATES, itemsFromTemplate, sampleProject, calc, itemCost, itemEarned, allPhotos, photoKey };
+  return { DAY, uid, iso, parse, today, addDays, md, mdy, wd, fmt$, fmtK, nowTime, TEMPLATES, itemsFromTemplate, sampleProject, calc, itemCost, itemEarned, allPhotos, photoKey, itemDays, itemDay, jobDay };
 })();

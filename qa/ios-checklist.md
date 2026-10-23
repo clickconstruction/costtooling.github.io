@@ -16,7 +16,7 @@ Run on the iPhone simulator (or a real phone) in two launch modes: Safari tab, a
 | 10 | Entry form · type note · tap weather · temp · crew · date | No focus loss; keyboard stays; header stays put | | |
 | 11 | Entry form · reload the page mid-entry | Form restored with photos and note | | |
 | 12 | Entry form · remove a photo (×) | Thumbnail gone; 44 pt target | | |
-| 13 | Entry form · Save | Toast, log shows the entry with +n badge | | |
+| 13 | Entry form · Save | Toast; lands in the line item's folder, or the log when untagged; the entry shows a +n badge | | |
 | 14 | Entry form · Cancel | Returns to log; nothing saved; imported photos removed | | |
 | 15 | Log · filter chips | Every line item has a chip with its count; entries and day headers filter in place; an empty item offers Add a photo to it | | |
 | 16 | Log · tap entry | Photo detail; strip thumbnails switch the big image in place | | |
@@ -56,3 +56,7 @@ Run on the iPhone simulator (or a real phone) in two launch modes: Safari tab, a
 | 50 | Background the app 2 minutes, return | Photos still load (IndexedDB reconnect) | | |
 | 51 | Airplane mode, reopen | (Wave 4) app opens from cache | | |
 | 52 | Home-screen install | Icon, standalone, status bar OK, safe areas respected | | |
+| 53 | Line item · Photos and notes | Entries grouped Day 1, Day 2… newest day first, each with note and conditions; Add a photo to <item> opens New entry already tagged; + Add to this day keeps that date | | |
+| 54 | Photo · Move to… | Sheet lists every line item with its photo count, the current one marked here now; tapping one moves the entry, toast, photo screen shows the new line item | | |
+| 55 | Photo · Move to… · Just this photo | On an entry with 2+ photos: that photo becomes its own entry under the new line item; the note and other photos stay | | |
+| 56 | Entry form · Save with a line item | Lands in that line item's folder with the entry outlined; toast "Saved under X · Day N" | | |

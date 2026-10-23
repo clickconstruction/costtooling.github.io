@@ -40,9 +40,12 @@ let n = 0;
   await page.selectOption('#efItem', { label: 'Roofing' });
   await tap('#efWx button', 2); await page.fill('#efTemp', '64'); await page.fill('#efCrew', '3');
   await scrollBottom(); await shot('entry-filled');
-  await tap(byText('Save entry')); await shot('log-after-save');
+  await tap(byText('Save entry')); await shot('folder-after-save');
   await tap('.entry'); await shot('photo-detail', { wait: 1200 }); await tap('.strip .ph', 1); await shot('photo-detail-2nd', { wait: 1000 });
   await tap(byText('Edit')); await shot('entry-edit-prefilled'); await tap(byText('Cancel'));
+  // move the entry to another line item from the photo screen: the first tappable row is Demolition
+  await page.waitForTimeout(400); await tap(byText('Move to…')); await shot('move-sheet'); await tap('#moveList .row.tap', 0); await page.waitForTimeout(400);
+  const movedTo = await page.evaluate(() => { const p = App.state().projects.find(x => x.id === 'sample'); const e = p.entries[p.entries.length - 1]; return (p.items.find(i => i.id === e.itemId) || {}).n; }); if (movedTo !== 'Demolition') issues.push('move went to ' + movedTo); await shot('photo-after-move');
   await page.waitForTimeout(400); await tap(byText('Use on cover')); await shot('cover-after-use', { wait: 1500 });
   await scrollBottom(); await shot('cover-controls');
   await tap(byText('2 × 2')); await scrollTop(); await shot('cover-grid', { wait: 1500 });
@@ -83,10 +86,10 @@ let n = 0;
   await tap('#logChips .chip:not(.z)', 1); await shot('log-filter-one'); const shown = await page.evaluate(() => [...document.querySelectorAll('#logBody .entry')].filter(e => e.style.display !== 'none').length); if (!shown) issues.push('log filter hid everything'); await tap('#logChips .chip', 0);
   // edit an entry and save
   await page.locator('#logBody .entry').filter({ visible: true }).first().click(); await page.waitForTimeout(400); await tap(byText('Edit')); await page.fill('#efNote', 'Edited note after save'); await tap(byText('Save entry')); await page.waitForTimeout(400);
-  const edited = await page.evaluate(() => App.state().projects.find(p => p.id === 'sample').entries.some(e => e.note === 'Edited note after save')); if (!edited) issues.push('edit entry did not save'); await shot('log-after-edit');
+  const edited = await page.evaluate(() => App.state().projects.find(p => p.id === 'sample').entries.some(e => e.note === 'Edited note after save')); if (!edited) issues.push('edit entry did not save'); await shot('folder-after-edit');
   // new entry: add two photos, remove one, cancel -> nothing saved, photo records cleaned
   const before = await page.evaluate(() => App.state().projects.find(p => p.id === 'sample').entries.length);
-  await tap('#topAct'); await page.locator('#fileGal').setInputFiles([{ name: 'x.jpg', mimeType: 'image/jpeg', buffer: await jpeg('X') }, { name: 'y.jpg', mimeType: 'image/jpeg', buffer: await jpeg('Y') }]); await page.waitForTimeout(1500);
+  await page.evaluate(() => App.go('log')); await page.waitForTimeout(300); await tap('#topAct'); await page.locator('#fileGal').setInputFiles([{ name: 'x.jpg', mimeType: 'image/jpeg', buffer: await jpeg('X') }, { name: 'y.jpg', mimeType: 'image/jpeg', buffer: await jpeg('Y') }]); await page.waitForTimeout(1500);
   await page.locator('#pendGrid .x').first().click(); await page.waitForTimeout(300); await shot('entry-removed-one'); const left = await page.locator('#pendGrid .ph[data-ph]').count(); if (left !== 1) issues.push('remove photo left ' + left);
   await tap(byText('Cancel')); await page.waitForTimeout(500); const after = await page.evaluate(() => App.state().projects.find(p => p.id === 'sample').entries.length); if (after !== before) issues.push('cancel saved an entry');
   // draft restore after a reload mid-entry (iOS reloads the tab after the camera)

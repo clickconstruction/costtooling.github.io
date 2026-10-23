@@ -9,7 +9,7 @@ const App = (() => {
   const save = () => { const ok = DB.save(S); if (!ok) toast('Could not save: storage is full'); if (window.Cloud) Cloud.schedulePush(); return ok; };
   const P = () => S.projects.find(p => p.id === S.cur) || S.projects[0];
   let cur = 'projects', mode = 'items', logFilter = 'all', form = null, tpl = 'remodel', editProj = null, editItem = null, photoCtx = { entryId: null, idx: 0 }, shareKind = 'report';
-  let importing = 0;
+  let importing = 0, flash = null; // flash: the entry to outline once, on the line item screen it was just saved to
   // ---------- session (draft + screen) persistence: iOS reloads the tab after the camera ----------
   const persistSession = () => DB.set('ct-session', { cur, form, editProj, editItem, photoCtx, mode, logFilter, at: Date.now() });
   window.addEventListener('pagehide', persistSession); document.addEventListener('visibilitychange', () => { if (document.hidden) persistSession(); });
@@ -36,7 +36,7 @@ const App = (() => {
     else if (s === 'photo') { const e = p.entries.find(x => x.id === photoCtx.entryId); if (!e) return go('log'); UI.photo(p, e, Math.min(photoCtx.idx, Math.max(0, e.photos.length - 1))); }
     else if (s === 'cover') { const sel = UI.cover(p, k); Render.cover($('cover'), p, k, sel); }
     else if (s === 'sov') UI.sov(p, k, mode);
-    else if (s === 'item') { const i = p.items.find(x => x.id === photoCtx.itemId); if (!i) return go('sov'); UI.item(p, i); }
+    else if (s === 'item') { const i = p.items.find(x => x.id === photoCtx.itemId); if (!i) return go('sov'); UI.item(p, i, flash); flash = null; }
     else if (s === 'itemform') UI.itemform(p, editItem || {});
     else if (s === 'report') { UI.report(p, k); buildReport(); }
     else if (window.Cloud && Cloud.SCREENS.includes(s)) Cloud.render(s);
@@ -74,8 +74,8 @@ const App = (() => {
   function restoreSample() { S.projects.push(Data.sampleProject()); save(); toast('Sample job is back'); refresh(); }
 
   // ---------- log entries ----------
-  /** A line item id tags the new entry up front. With none given, the line item filtered in the log is the default, but only when starting from the log. */
-  function newEntry(itemId) { const has = id => !!id && (P().items || []).some(i => i.id === id); const pick = has(itemId) ? itemId : cur === 'log' && has(logFilter) ? logFilter : ''; form = { id: null, d: Data.iso(Data.today()), time: Data.nowTime(), itemId: pick, wx: 'sun', temp: '', crew: '', note: '', photos: [], added: [] }; go('entryform'); }
+  /** A line item id tags the new entry up front, and a date puts it on that day (Add to this day in a line item's folder). With no id, the line item filtered in the log is the default, but only when starting from the log. */
+  function newEntry(itemId, date) { const has = id => !!id && (P().items || []).some(i => i.id === id); const pick = has(itemId) ? itemId : cur === 'log' && has(logFilter) ? logFilter : ''; form = { id: null, d: date || Data.iso(Data.today()), time: Data.nowTime(), itemId: pick, wx: 'sun', temp: '', crew: '', note: '', photos: [], added: [] }; go('entryform'); }
   function editEntry(id) { const e = P().entries.find(x => x.id === id); if (!e) return; form = Object.assign({ added: [] }, JSON.parse(JSON.stringify(e))); go('entryform'); }
   function cam() { captureForm(); persistSession(); $('pendHint').textContent = 'Preparing…'; $('fileCam').click(); } function gal() { captureForm(); persistSession(); $('pendHint').textContent = 'Preparing…'; $('fileGal').click(); }
   async function filesPicked(input) {
@@ -103,7 +103,11 @@ const App = (() => {
     if (!form.photos.length && !form.note.trim()) return toast('Add a photo or a note first');
     const rec = { id: form.id || Data.uid('e'), d: form.d, time: form.time || Data.nowTime(), ts: form.ts || Date.now(), itemId: form.itemId, wx: form.wx, temp: form.temp, crew: form.crew, note: form.note.trim(), photos: form.photos };
     const idx = p.entries.findIndex(x => x.id === rec.id); if (idx >= 0) p.entries[idx] = rec; else p.entries.push(rec);
-    save(); const wasNew = !form.id; form = null; persistSession(); toast(wasNew ? 'Saved to the log' : 'Entry updated'); go('log');
+    save(); const wasNew = !form.id; form = null; persistSession();
+    // Land where it went: the line item's folder, with the entry outlined. Untagged entries land in the log.
+    const it = rec.itemId && p.items.find(x => x.id === rec.itemId);
+    if (it) { photoCtx.itemId = it.id; flash = rec.id; go('item'); toast(`Saved under ${it.n} · Day ${Data.itemDay(p, it.id, rec.d)}`); }
+    else { toast(wasNew ? 'Saved to the log' : 'Entry updated'); go('log'); }
   }
   async function cancelEntry() { if (importing) return toast('Still importing photos…'); if (form) for (const id of form.added) await Photos.remove(id); form = null; persistSession(); go(photoCtx.entryId && P().entries.some(e => e.id === photoCtx.entryId) ? 'photo' : 'log'); }
   function deleteEntry(id) { const p = P(), e = p.entries.find(x => x.id === id); if (!e) return; confirm('Delete this entry?', 'The photo' + (e.photos.length > 1 ? 's' : '') + ' and note will be removed from this phone.', async () => { for (const ph of e.photos) if (ph.id) await Photos.remove(ph.id); p.entries = p.entries.filter(x => x.id !== id); p.cover.picked = p.cover.picked.filter(k => !e.photos.some(ph => Data.photoKey(ph) === k)); save(); toast('Entry deleted'); go('log'); }); }
@@ -111,6 +115,23 @@ const App = (() => {
   function photoIdx(i) { photoCtx.idx = i; const e = P().entries.find(x => x.id === photoCtx.entryId); if (e) UI.photoSwap(P(), e, i); }
   function usePhotoOnCover() { const p = P(), e = p.entries.find(x => x.id === photoCtx.entryId); const key = Data.photoKey(e.photos[photoCtx.idx]); if (!p.cover.picked.includes(key)) p.cover.picked = [key, ...p.cover.picked].slice(0, 4); save(); go('cover'); toast('Added to the cover page'); }
   function filterLog(f) { logFilter = f; UI.applyLogFilter(f); }
+
+  // ---------- move an entry, or one photo of it, to another line item ----------
+  let moveMode = 'entry';
+  function openMove() { const e = P().entries.find(x => x.id === photoCtx.entryId); if (!e) return; moveMode = 'entry'; UI.moveSheet(P(), e, moveMode); showSheet('moveSheet'); }
+  function setMoveMode(m) { moveMode = m; const e = P().entries.find(x => x.id === photoCtx.entryId); if (e) UI.moveSheet(P(), e, m); }
+  function moveEntry(itemId) {
+    const p = P(), e = p.entries.find(x => x.id === photoCtx.entryId); if (!e) return;
+    const name = itemId ? (p.items.find(i => i.id === itemId) || {}).n : 'No line item';
+    if (moveMode === 'photo' && e.photos.length > 1) {
+      // One photo leaves as its own entry on the same day, keeping the conditions; the note and the other photos stay.
+      const ph = e.photos.splice(photoCtx.idx, 1)[0];
+      const copy = { id: Data.uid('e'), d: e.d, time: e.time, ts: Date.now(), itemId, wx: e.wx, temp: e.temp, crew: e.crew, note: '', photos: [ph] };
+      p.entries.push(copy); photoCtx.entryId = copy.id; photoCtx.idx = 0;
+      save(); closeSheet(); toast('Photo moved to ' + name); return refresh();
+    }
+    e.itemId = itemId; save(); closeSheet(); toast('Moved to ' + name); refresh();
+  }
 
   // ---------- cover ----------
   const drawCover = () => { const p = P(); return Render.cover($('cover'), p, Data.calc(p), UI.coverSelection(p)); };
@@ -220,6 +241,6 @@ const App = (() => {
 
   }
   function refreshAfterSync() { if (cur === 'projects' || cur === 'home') render(cur); }
-  return { boot, go, current: () => cur, toast, confirm, refreshAfterSync, openGantt, quickPct, openProject, newProject, editProject, pickTemplate, saveProject, deleteProject, restoreSample, newEntry, editEntry, cam, gal, setWx, removeFormPhoto, saveEntry, cancelEntry, deleteEntry, openPhoto, photoIdx, usePhotoOnCover, filterLog, coverPick, coverLayout, coverNum, coverField, coverManual, saveCover, setPct, setMode, openItem, newItem, saveItem, deleteItem, addCost, deleteCost, openShare, shareDo, closeSheet, openIdeas, saveIdea, sendIdeas, openWelcome, exportData, resetAll, state: () => S, filesPicked };
+  return { boot, go, current: () => cur, toast, confirm, refreshAfterSync, openGantt, quickPct, openProject, newProject, editProject, pickTemplate, saveProject, deleteProject, restoreSample, newEntry, editEntry, cam, gal, setWx, removeFormPhoto, saveEntry, cancelEntry, deleteEntry, openPhoto, photoIdx, usePhotoOnCover, openMove, setMoveMode, moveEntry, filterLog, coverPick, coverLayout, coverNum, coverField, coverManual, saveCover, setPct, setMode, openItem, newItem, saveItem, deleteItem, addCost, deleteCost, openShare, shareDo, closeSheet, openIdeas, saveIdea, sendIdeas, openWelcome, exportData, resetAll, state: () => S, filesPicked };
 })();
 App.boot();

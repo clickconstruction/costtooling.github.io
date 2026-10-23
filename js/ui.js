@@ -32,6 +32,7 @@ const UI = (() => {
     user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
     key:'<circle cx="8" cy="14" r="4"/><path d="M11 11l9-9"/><path d="M16 6l3 3"/><path d="M13 9l2 2"/>',
     logout:'<path d="M10 4H5v16h5"/><path d="M14 8l4 4-4 4"/><path d="M18 12H9"/>',
+    move:'<path d="M3 6h6l2 2h10v12H3z"/><path d="M9 13h7"/><path d="M13 10l3 3-3 3"/>',
     hardhat:'<path d="M4 16a8 8 0 0 1 16 0"/><path d="M2 16h20v3H2z"/><path d="M10 7.5V13M14 7.5V13"/>',
   };
   const ic = (n, s = 18) => `<svg class="ic" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n] || ''}</svg>`;
@@ -117,6 +118,8 @@ const UI = (() => {
     hydrate(homeBody, p);
   }
 
+  /** A log day header: the job day when the date is on or after the start, then the date. */
+  const dayLabel = (p, d) => { const n = Data.jobDay(p, d); return (n ? 'Day ' + n + ' · ' : '') + wd(d); };
   /** Is an entry under a log filter? 'all' takes every entry, 'none' the untagged ones, anything else is a line item id. */
   const inFilter = (itemId, filter) => filter === 'all' || (filter === 'none' ? !itemId : itemId === filter);
   function log(p, filter) {
@@ -130,7 +133,7 @@ const UI = (() => {
     const all = sortedEntries(p); let lastDay = '';
     all.forEach(e => {
       const show = inFilter(e.itemId, filter);
-      if (e.d !== lastDay) { lastDay = e.d; const n = all.filter(x => x.d === e.d).length; html += `<div class="day" data-day="${e.d}"><span>${wd(e.d)}</span><span class="dayN">${n} entr${n > 1 ? 'ies' : 'y'}</span></div>`; }
+      if (e.d !== lastDay) { lastDay = e.d; const n = all.filter(x => x.d === e.d).length; html += `<div class="day" data-day="${e.d}"><span>${dayLabel(p, e.d)}</span><span class="dayN">${n} entr${n > 1 ? 'ies' : 'y'}</span></div>`; }
       const ph = e.photos[0];
       html += `<div class="entry ${ph ? '' : 'nophoto'}" data-day="${e.d}" data-item="${esc(e.itemId || '')}" style="display:${show ? '' : 'none'}" onclick="App.openPhoto('${e.id}')">${ph ? photoPh(ph, Data.photoKey(ph), '', e.photos.length > 1 ? `data-n="${e.photos.length}"` : '') : ''}<div>${e.itemId ? `<span class="chip k">${esc(itemName(p, e.itemId))}</span>` : '<span class="chip z">No line item</span>'}<span class="chip" style="border:0;padding-left:2px">${esc(e.time || '')}</span><p>${esc(e.note) || '<i style="color:var(--muted)">No note</i>'}</p>${condChips(e)}</div></div>`;
     });
@@ -183,7 +186,8 @@ const UI = (() => {
         ${it ? `<div class="row tap" onclick="App.openItem('${it.id}')"><div class="l"><b>${esc(it.n)}</b><small>line item · ${it.pct || 0}% complete</small></div><span class="chev">${ic('chevr', 16)}</span></div>` : ''}
         ${e.wx || e.crew ? `<div class="row" style="border:0"><div class="l"><small>Conditions</small><div>${condChips(e)}</div></div></div>` : ''}
         ${p.addr ? `<div class="row" style="border:0;padding-top:0"><div class="l"><small>Location</small><div><span class="chip">${ic('pin', 13)}${esc(p.addr)}</span></div></div></div>` : ''}</div>
-      <div class="actions">${ph ? `<button class="btn" onclick="App.usePhotoOnCover()">${ic('image')}Use on cover</button>` : '<span></span>'}<button class="btn q" onclick="App.editEntry('${e.id}')">${ic('edit')}Edit</button></div>
+      <div class="actions"><button class="btn" onclick="App.openMove()">${ic('move')}Move to…</button><button class="btn q" onclick="App.editEntry('${e.id}')">${ic('edit')}Edit</button></div>
+      ${ph ? `<button class="btn q" style="margin-bottom:12px" onclick="App.usePhotoOnCover()">${ic('image')}Use on cover</button>` : ''}
       <button class="btn danger" onclick="App.deleteEntry('${e.id}')">${ic('trash')}Delete entry</button>`;
     hydrate(photoBody, p);
   }
@@ -250,15 +254,37 @@ const UI = (() => {
         <div id="costRows">${(i.costs || []).map(c => `<div class="row"><div class="l"><b>${esc(c.desc)}</b><small>${c.date ? md(c.date) : ''}</small></div><div class="r">${fmt$(c.amt)}</div><button class="del" aria-label="Remove cost" onclick="App.deleteCost('${i.id}','${c.id}')">${ic('x', 16)}</button></div>`).join('') || '<p class="hint" style="margin:0 0 8px">No costs logged yet.</p>'}
         ${(i.costs || []).length ? `<div class="row" style="border:0"><div class="l"><b>Total</b></div><div class="r"><b>${fmt$(cost)}</b></div></div>` : ''}</div>
         <div style="border-top:1px solid var(--line);padding-top:10px;margin-top:6px"><div class="in2"><div><label>What</label><input class="in" id="cfDesc" placeholder="e.g. Lumber"></div><div><label>Amount</label><input class="in" type="number" inputmode="decimal" id="cfAmt" placeholder="$"></div></div><label>Date</label><input class="in" type="date" id="cfDate" value="${Data.iso(Data.today())}"><button class="btn q sm" style="margin-top:10px" onclick="App.addCost('${i.id}')">${ic('plus')}Add cost</button></div>`; };
-  function item(p, i) {
+  /** The Move to… sheet: every line item with its photo count and status; the entry's own line item is marked, not tappable. */
+  function moveSheet(p, e, mode) {
+    const items = p.items || [], n = e.photos.length, one = mode === 'photo' && n > 1;
+    const count = id => (p.entries || []).filter(x => x.itemId === id).reduce((a, x) => a + x.photos.length, 0);
+    const status = i => i.pct === 100 ? 'complete' : i.pct > 0 ? i.pct + '%' : 'not started';
+    const what = n > 1 ? n + ' photos' : n ? 'The photo' : 'The note', andNote = n && e.note ? ' and the note' : '';
+    document.getElementById('moveHint').textContent = one ? `Just this photo moves, as its own entry on ${wd(e.d)}. The note and the other photo${n > 2 ? 's' : ''} stay here.` : `${what}${andNote} from ${wd(e.d)} ${n > 1 || andNote ? 'go' : 'goes'} with it.`;
+    const seg = document.getElementById('moveMode'); seg.style.display = n > 1 ? '' : 'none'; seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.m === mode));
+    const row = (id, name, sub) => id === (e.itemId || '') ? `<div class="row"><div class="l"><b>${esc(name)}</b><small>${sub}</small></div><span class="chip k">${ic('check', 13)}here now</span></div>` : `<div class="row tap" onclick="App.moveEntry('${id}')"><div class="l"><b>${esc(name)}</b><small>${sub}</small></div><span class="chev">${ic('chevr', 16)}</span></div>`;
+    document.getElementById('moveList').innerHTML = items.map(i => { const c = count(i.id); return row(i.id, i.n, (c ? c + ' photo' + (c > 1 ? 's' : '') : 'no photos') + ' · ' + status(i)); }).join('') + row('', 'No line item', 'untagged, in the log only');
+  }
+
+  /** A line item as a folder: its entries grouped by day, Day 1 being its first, newest day first like the log. flashId outlines an entry once. */
+  function item(p, i, flashId) {
     const earned = Data.itemEarned(i);
-    const pics = (p.entries || []).filter(e => e.itemId === i.id).flatMap(e => e.photos.map(ph => ({ ph, e })));
+    const es = sortedEntries(p).filter(e => e.itemId === i.id), days = Data.itemDays(p, i.id), nPhotos = es.reduce((a, e) => a + e.photos.length, 0);
+    let diary = '', lastDay = '';
+    es.forEach(e => {
+      if (e.d !== lastDay) { lastDay = e.d; diary += `<div class="day"><span>Day ${days.indexOf(e.d) + 1} · ${wd(e.d)}</span><a class="lnk" onclick="App.newEntry('${i.id}', '${e.d}')">+ Add to this day</a></div>`; }
+      const ph = e.photos[0];
+      diary += `<div class="entry ${ph ? '' : 'nophoto'}${e.id === flashId ? ' new' : ''}" onclick="App.openPhoto('${e.id}')">${ph ? photoPh(ph, Data.photoKey(ph), '', e.photos.length > 1 ? `data-n="${e.photos.length}"` : '') : ''}<div><span class="chip" style="border:0;padding-left:2px">${esc(e.time || '')}</span><p>${esc(e.note) || '<i style="color:var(--muted)">No note</i>'}</p>${condChips(e)}</div></div>`;
+    });
     itemBody.innerHTML = `<div class="kpis" id="itemKpis">${itemKpisHtml(i)}</div>
+      <div class="card"><h3>Photos and notes <small>${days.length ? `${days.length} day${days.length > 1 ? 's' : ''} · ${nPhotos} photo${nPhotos === 1 ? '' : 's'}` : 'none yet'}</small></h3>
+        <button class="btn" onclick="App.newEntry('${i.id}')">${ic('camera')}Add a photo to ${esc(i.n)}</button>
+        ${es.length ? diary : `<p class="hint" style="margin:10px 0 0">No photos for ${esc(i.n)} yet. The first one starts Day 1.</p>`}</div>
       <div class="card" data-item="${i.id}"><div class="row" style="border:0;padding:0 0 4px"><div class="l"><b>Progress</b><small>budget ${fmt$(i.b)} · earned <span class="earnedLbl">${fmt$(earned)}</span></small></div><div class="r"><b class="pctLbl">${i.pct || 0}%</b></div></div>${slider(i)}<div class="status">${statusChips(i)}</div></div>
       <div class="card" id="itemCosts">${itemCostsHtml(i)}</div>
-      <div class="card"><h3>Photos <small>${pics.length} tagged</small></h3>${pics.length ? `<div class="grid3">${pics.map(({ ph, e }) => photoPh(ph, Data.photoKey(ph), '', `onclick="App.openPhoto('${e.id}','${Data.photoKey(ph)}')"`)).join('')}</div>` : '<p class="hint" style="margin:0">No photos yet. Tag one from the log.</p>'}</div>
       <button class="btn danger" onclick="App.deleteItem('${i.id}')">${ic('trash')}Delete line item</button>`;
     hydrate(itemBody, p);
+    itemBody.querySelectorAll('.ph[data-n]').forEach(el => { const b = document.createElement('span'); b.className = 'n'; b.textContent = '+' + (el.dataset.n - 1); el.appendChild(b); });
   }
   function itemKpis(i) { const k = document.getElementById('itemKpis'); if (k) k.innerHTML = itemKpisHtml(i); const e = document.querySelector('[data-item] .earnedLbl'); if (e) e.textContent = fmt$(Data.itemEarned(i)); }
   function itemCosts(i) { const c = document.getElementById('itemCosts'); if (c) c.innerHTML = itemCostsHtml(i); }
@@ -284,5 +310,5 @@ const UI = (() => {
     reportBody.innerHTML = html; hydrate(reportBody, p); return pics;
   }
 
-  return { ic, esc, hydrate, coverSelection, projects, projform, home, log, applyLogFilter, entryform, entryPhotos, photo, photoSwap, cover, coverCtl, sov, sovSummary, itemSlider, item, itemKpis, itemCosts, itemform, report, sortedEntries, itemName };
+  return { ic, esc, hydrate, coverSelection, projects, projform, home, log, applyLogFilter, entryform, entryPhotos, photo, photoSwap, moveSheet, cover, coverCtl, sov, sovSummary, itemSlider, item, itemKpis, itemCosts, itemform, report, sortedEntries, itemName };
 })();

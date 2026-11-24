@@ -4,7 +4,7 @@ Written Oct 20, 2026, for whoever takes over CostTooling next. When a fact here 
 
 CostTooling is a phone-first web app for tracking a construction job from the site: photos, progress, costs and a one-page report. It is plain HTML, CSS and JavaScript with no build step, hosted on GitHub Pages at costtooling.com. It works on one phone with no account, and signing in syncs jobs to a Supabase project shared with CharityTooling.
 
-It is a working prototype, built between Oct 12 and Oct 22, 2026. The last change made each line item a folder of its photos and notes by day, with Move to… on a photo, after a tester asked to see Day 1, Day 2 under a line item and to move photos between line items.
+It is a working prototype, built between Oct 12 and Oct 22, 2026. The last two changes made each line item a folder of its photos and notes by day, with Move to… on a photo, after a tester asked to see Day 1, Day 2 under a line item and to move photos between line items, and made Back return to the screen you came from. Nothing has shipped since; the open work below was last reviewed Nov 24, 2026.
 
 ## Where everything lives
 
@@ -161,7 +161,7 @@ For anything the browser cannot fake, use `qa/ios-checklist.md`: 57 steps to run
 
 ## Recent changes
 
-The whole history is one week, newest first. `git log` has every commit.
+The whole history runs from Oct 12 to Oct 22, 2026, newest first. `git log` has every commit.
 
 | Date | Change | Commit |
 | --- | --- | --- |
@@ -186,6 +186,7 @@ Nothing here is broken for one person on one phone. The first three items matter
 - [ ] **Verify costtooling.com in Resend.** Its DNS has no Resend records, so sign-in emails most likely come from the charitytooling.com fallback sender.
 - [ ] **Ask the tester two things about line item folders.** Whether Day 1 should sit at the top or the bottom of a line item's folder (today the newest day is first, like the log), and what a sub folder would hold: days, rooms and areas, or stages of the work. Two meanings of Day now coexist, the job day in the log and the line item's own day in its folder. An alternative that groups the log itself by line item, with one meaning of Day, was mocked up and not chosen; it is the fallback if the tester finds the folders hard to reach from the Progress tab.
 - [ ] **Try the tour on a real iPhone,** in Safari and as a home-screen app. So far it was only checked in a desktop browser at phone size.
+- [ ] **Put line item folders in the guide and the tour.** Neither mentions them: a line item's photos and notes by day, Add a photo to a line item, Move to… on a photo, or Save entry landing in the folder. The guide needs steps with photos, which `qa/guide-shots.js` can take, and the tour needs a stop after Update progress. The guide also says Temp password where the Team screen's button reads Temporary password.
 - [ ] **Retake the guide's step 1, 4 and 5 photos.** Step 1 still shows the old Show me how button; steps 4 and 5 show the entry form from before the line item picker moved above the note. Run `qa/guide-shots.js` against a local server and commit the new `guide/fd-01-*`, `fd-04-*` and `fd-05-*` images. Bump the version too, or installed phones keep showing the old photos.
 - [ ] **Put photos in the backup.** Back up my data exports jobs as JSON without photos, and tells the user so.
 - [ ] **Line up the local ports.** Add `http://127.0.0.1:8765` to the CORS list in the CharityTooling repo, or move `.claude/launch.json` to 8766.
@@ -198,7 +199,7 @@ Nothing here is broken for one person on one phone. The first three items matter
 The repo cannot answer these. Settle them in the first conversation.
 
 1. **Access:** which of these do you get? Collaborator on both GitHub repos, the Supabase project, Cloudflare, and Resend.
-2. **Users:** are real companies syncing jobs yet? That decides how careful any change to `ct_projects` has to be.
+2. **Users:** one real company is syncing: the tester's, with one job, last synced Oct 20, 2026 (checked Nov 19). Treat `ct_projects` as real data from here on, and ask whether more companies are coming. The only other company is the one `cloud-e2e.js` left behind on Oct 13, with no jobs; delete it as Test it describes.
 3. **Ideas inbox:** should the bulb keep emailing the owner, or you?
 4. **What next:** there is no roadmap in the repo, and the README still calls the app a functional mock-up.
 5. **The shared project:** will CostTooling stay on the CharityTooling Supabase project, or move to its own?

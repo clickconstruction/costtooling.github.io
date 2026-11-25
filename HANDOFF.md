@@ -131,7 +131,7 @@ A push to `main` is live in about a minute. There are no pull requests, no autom
    - every `?v=17` in the `SHELL` list in `sw.js`
    - `VERSION = 'ct-v17'` in `sw.js`
 2. **A new script or stylesheet** goes in both `app/index.html` and the `SHELL` list in `sw.js`. The landing page needs neither: it is one file, and the service worker fetches it fresh whenever the phone is online.
-3. **Commit and push to `main`.** The workflow `.github/workflows/pages.yml` uploads the whole repo and deploys it. The last deploy took 54 seconds.
+3. **Commit and push to `main`.** The workflow `.github/workflows/pages.yml` uploads the whole repo and deploys it. The last deploy took 54 seconds. If the deploy step fails with "No artifacts named github-pages were found", as it did once on Nov 25, do not re-run the failed job, which then finds two artifacts and fails again. Start a fresh run with `gh workflow run pages.yml --ref main`.
 4. **Check it is live.** `gh run list` shows the deploy. Then load the live app and look for the new version number. Phones that had the old version see an **Update ready. Reload** message the next time they open the app.
 
 The repo is public and every file in it is served, including `qa/`, `mockups/` and this file. Never commit keys other than the publishable one already in `js/cloud.js`, and never commit customer data.
@@ -150,8 +150,8 @@ mkdir -p ~/pw && cd ~/pw && npm i playwright && npx playwright install chromium 
 
 | Script in `qa/` | What it checks | Run it with |
 | --- | --- | --- |
-| `walkthrough.js` | Every screen of the app at iPhone size, as a fresh user, screenshots into `qa/shots/`. Last run Nov 25, 2026 against a local copy of version 17 in Chromium: 61 screens, no issues | `NODE_PATH=~/pw/node_modules node qa/walkthrough.js <url>`; add `ENGINE=webkit` for Safari's engine |
-| `offline.js` | The app, at `/app/`, opens from the service worker with the network off | `node qa/offline.js <url>` |
+| `walkthrough.js` | Every screen of the app at iPhone size, as a fresh user, screenshots into `qa/shots/`. Last run Nov 25, 2026 against the live site on version 17, in Chromium: 61 screens, no issues | `NODE_PATH=~/pw/node_modules node qa/walkthrough.js <url>`; add `ENGINE=webkit` for Safari's engine |
+| `offline.js` | The app, at `/app/`, opens from the service worker with the network off. Passed against the live site on Nov 25, 2026 | `node qa/offline.js <url>` |
 | `cloud-e2e.js` | Sign in, create a company, sync a job with a photo, mint codes, then see it all arrive in a second browser | `E2E_EMAIL=… E2E_PASSWORD=… node qa/cloud-e2e.js <url>` |
 | `guide-shots.js` | Retakes the nine "Your first day" photos in `guide/` | `ENGINE=webkit node qa/guide-shots.js http://127.0.0.1:8766` |
 

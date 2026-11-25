@@ -1,4 +1,4 @@
-// Captures the "Your first day" photos for /guide/: a full phone screenshot per step plus a zoom crop of the button the step names.
+// Captures the ten "Your first day" photos for /guide/: a full phone screenshot per step plus a zoom crop of the button the step names.
 // Run against a local server: NODE_PATH=<node_modules with playwright> ENGINE=webkit node qa/guide-shots.js http://127.0.0.1:8765
 const pw = require('playwright'); const ENGINE = process.env.ENGINE || 'webkit';
 const path = require('path');
@@ -35,6 +35,8 @@ const W = 390, H = 844, PAD = 12;
   await shot('fd-05-save', 'button[onclick="App.saveEntry()"]');
   // 6. progress: the first slider card
   await open('s=sov'); await shot('fd-06-progress', '#modeItems .card[data-item]');
+  // 6b. progress, Bill: the first line item's billed percent (the guide's step 7)
+  await open('s=sov&m=bill'); await shot('fd-06b-bill', '#modeSeg');
   // 7. report: the share button in the top bar
   await open('s=report'); await shot('fd-07-report', '#topAct');
   // 8. the share sheet

@@ -61,3 +61,6 @@ Run on the iPhone simulator (or a real phone) in two launch modes: Safari tab, a
 | 55 | Photo · Move to… · Just this photo | On an entry with 2+ photos: that photo becomes its own entry under the new line item; the note and other photos stay | | |
 | 56 | Entry form · Save with a line item | Lands in that line item's folder with the entry outlined; toast "Saved under X · Day N" | | |
 | 57 | Back from a folder or a photo | Returns to the screen that opened it: Home, Progress, the log or the folder; after Save, Back from the folder returns to where Add photo was tapped; a tab tap resets this | | |
+| 58 | Progress · Bill · type a percent for a line item · tap away | Decimal keyboard; the figure stays with a % sign; a line billed past its slider turns amber with the dollars ahead; the total row follows | | |
+| 59 | Line item · Billed to date · type an amount · tap away | The percent fills in; a tick sits on the slider at the billed percent; the second tile at the top reads billed, amber when ahead; clearing the box reads not billed yet | | |
+| 60 | Home, Report and Cover of a job with a bill | In place, billed, billed ahead, days left; Check before you pay lists each line billed ahead and opens it; the report names them. A job with no bill shows cost so far and to finish as before | | |

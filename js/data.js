@@ -27,6 +27,9 @@ const Data = (() => {
     return t.items.map(([n, w, s, e]) => ({ id: uid('i'), n, b: contract ? Math.round(contract * w / wsum / 100) * 100 : 0, pct: 0, s: iso(addDays(parse(start), Math.round(s / last * span))), e: iso(addDays(parse(start), Math.round(e / last * span))), costs: [] }));
   }
 
+  /** What the sample job's contractor has billed, by line item name. Framing is billed at 100% with 85% in place; the rest match the work. */
+  const SAMPLE_BILL = { 'Demolition': 100, 'Foundation repair': 100, 'Framing': 100, 'Roofing': 60, 'Plumbing rough-in': 40, 'Electrical rough-in': 30, 'HVAC': 10 };
+
   function sampleProject() {
     const T = today(), start = addDays(T, -34), finish = addDays(T, 68);
     const d = n => iso(addDays(start, n));
@@ -42,10 +45,11 @@ const Data = (() => {
       ['Interior finishes', 31200, 0, 70, 98, []],
       ['Exterior & site', 19000, 0, 77, 102, []],
     ].map(([n, b, pct, s, e, costs]) => ({ id: uid('i'), n, b, pct, s: d(s), e: d(e), costs: costs.map(([desc, day, amt]) => ({ id: uid('c'), desc, date: d(day), amt })) }));
+    items.forEach(i => { if (SAMPLE_BILL[i.n] != null) { i.billed = SAMPLE_BILL[i.n]; i.billedAt = d(30); } });
     const byName = n => items.find(i => i.n === n).id;
     const entries = [
       [0, '2:41 PM', 'Roofing', 'roof', 'sun', 71, 4, 'North slope decked, underlayment on. Shingles Tue.', 3],
-      [0, '9:05 AM', 'Framing', 'walls', 'sun', 71, 4, 'Last interior walls plumbed and braced.', 7],
+      [0, '9:05 AM', 'Framing', 'walls', 'sun', 71, 4, 'Last interior walls plumbed and braced. Blocking for the kitchen uppers still open.', 7],
       [-2, '11:30 AM', 'Roofing', 'roof', 'cloud', 66, 5, 'Trusses set, all 14. Crane out by noon.', 2],
       [-3, '4:10 PM', 'Framing', 'walls', 'sun', 69, 3, 'Second-floor subfloor glued and screwed.', 5],
       [-5, '1:15 PM', 'Framing', 'frame', 'rain', 58, 3, 'Exterior walls stood, sheathing started. Rain pushed start to 10am.', 9],
@@ -68,8 +72,32 @@ const Data = (() => {
     const daysLeft = Math.round((finish - T) / DAY);
     const pace = pct > 0 ? elapsed / pct : span;
     const paceFinish = addDays(start, pace);
-    return { total, earned, cost, toGo, pct, span, elapsed, daysLeft, paceFinish, schedPct: elapsed / span, ahead: pct >= elapsed / span };
+    // What the contractor billed, against what is in place. Billed ahead adds up only the lines billed past the work:
+    // a line billed under the work does not cancel one billed ahead.
+    const billed = items.reduce((a, i) => a + itemBilled(i), 0), billedAhead = items.reduce((a, i) => a + itemAhead(i), 0);
+    const st = items.map(billState), count = s => st.filter(x => x === s).length;
+    return { total, earned, cost, toGo, pct, span, elapsed, daysLeft, paceFinish, schedPct: elapsed / span, ahead: pct >= elapsed / span,
+      hasBill: items.some(hasBill), billed, billedPct: total ? billed / total : 0, billedAhead, aheadItems: items.filter(i => billState(i) === 'ahead'), matchN: count('match'), underN: count('under'), unbilledN: count('none') };
   }
+  // ---------- billed against in place ----------
+  // A line item's `billed` is the percent the contractor's latest bill shows as complete, 0 to 100. Missing means not billed yet:
+  // jobs saved before bills existed have no `billed` anywhere and every screen draws them as it always did.
+  const hasBill = i => i.billed != null && i.billed !== '' && isFinite(+i.billed);
+  const itemBilledPct = i => hasBill(i) ? Math.min(100, Math.max(0, +i.billed)) : 0;
+  const itemBilled = i => (+i.b || 0) * itemBilledPct(i) / 100;
+  /** 'none' not billed yet, 'ahead' billed past what is in place, 'match', or 'under'. */
+  const billState = i => { if (!hasBill(i)) return 'none'; const d = itemBilledPct(i) - (i.pct || 0); return d > 0.005 ? 'ahead' : d < -0.005 ? 'under' : 'match'; };
+  const aheadPts = i => billState(i) === 'ahead' ? itemBilledPct(i) - (i.pct || 0) : 0;
+  const itemAhead = i => (+i.b || 0) * aheadPts(i) / 100;
+  const fmtPct = n => (Math.round((+n || 0) * 10) / 10) + '%';
+  /** "$3,420 ahead", or "15 points ahead" when the line has no budget to turn the gap into dollars. */
+  const aheadLabel = i => (+i.b || 0) ? fmt$(itemAhead(i)) + ' ahead' : fmtPct(aheadPts(i)).replace('%', '') + ' points ahead';
+  /** One sentence for the page the owner reads: "Framing is billed at 100%. On site it is 85%." */
+  const aheadLine = i => `${i.n} is billed at ${fmtPct(itemBilledPct(i))}. On site it is ${i.pct || 0}%.`;
+  /** The report's sentence about the bill as a whole. */
+  const billSentence = k => { const n = k.aheadItems.length; return (k.total ? `The contractor has billed ${fmt$(k.billed)}, ${Math.round(k.billedPct * 100)}% of the contract. ` : '') + (!n ? 'Nothing is billed ahead of the work in place.' : k.billedAhead > 0 ? `${fmt$(k.billedAhead)} of that is ahead of the work in place.` : `${n} line item${n === 1 ? ' is' : 's are'} billed ahead of the work in place.`); };
+  /** The four numbers a job with a bill leads with, on the home screen, the report and the cover. */
+  const billNums = k => [[Math.round(k.pct * 100) + '%', 'in place'], [k.total ? Math.round(k.billedPct * 100) + '%' : '—', 'billed'], [k.total || !k.aheadItems.length ? fmt$(k.billedAhead) : k.aheadItems.length, k.total || !k.aheadItems.length ? 'billed ahead' : 'lines billed ahead'], [k.daysLeft, 'days left']];
   const itemCost = i => (i.costs || []).reduce((a, c) => a + (+c.amt || 0), 0);
   const itemEarned = i => (+i.b || 0) * (i.pct || 0) / 100;
   const allPhotos = p => (p.entries || []).flatMap(e => (e.photos || []).map(ph => ({ ph, e })));
@@ -80,5 +108,5 @@ const Data = (() => {
   /** Which day of the job a date is, the start date being Day 1; 0 when the job has no start or the date is before it. */
   const jobDay = (p, d) => { if (!p.start || !d) return 0; const n = Math.round((parse(d) - parse(p.start)) / DAY) + 1; return n >= 1 ? n : 0; };
 
-  return { DAY, uid, iso, parse, today, addDays, md, mdy, wd, fmt$, fmtK, nowTime, TEMPLATES, itemsFromTemplate, sampleProject, calc, itemCost, itemEarned, allPhotos, photoKey, itemDays, itemDay, jobDay };
+  return { DAY, uid, iso, parse, today, addDays, md, mdy, wd, fmt$, fmtK, nowTime, TEMPLATES, itemsFromTemplate, sampleProject, SAMPLE_BILL, calc, hasBill, itemBilledPct, itemBilled, billState, aheadPts, itemAhead, fmtPct, aheadLabel, aheadLine, billSentence, billNums, itemCost, itemEarned, allPhotos, photoKey, itemDays, itemDay, jobDay };
 })();

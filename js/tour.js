@@ -9,22 +9,28 @@ const Tour = (() => {
   const sampleOrFirst = () => { const S = App.state(); const s = S.projects.find(p => p.sample); return (s || S.projects[0] || {}).id || null; };
   function build() {
     const cloud = window.Cloud && Cloud.enabled() && !Cloud.signedIn();
+    // The sample job has a bill, so the tour shows billed against in place. A first job without one keeps the older words.
+    const job = App.state().projects.find(p => p.id === pid), bill = !!job && (job.items || []).some(Data.hasBill);
     const list = [
       { title: 'Your jobs', text: 'Each card is one job. This one is a sample to practise on. Tap a card to open it.',
         go: () => App.go('projects'), target: () => document.querySelector('#projectsBody .card.sample') || document.querySelector('#projectsBody .card.tap') },
-      { title: 'Four numbers', text: 'How far along, days left, cost so far and what is left to spend. The line items feed them.',
+      { title: 'Four numbers', text: bill ? 'How much is in place, how much the contractor has billed, how far the bill runs ahead of the work, and the days left.' : 'How far along, days left, cost so far and what is left to spend. The line items feed them.',
         go: () => App.openProject(pid), target: () => document.querySelector('#homeBody .kpis') },
+      bill && { title: 'Check before you pay', text: 'Any line item billed past what you saw on site shows up here. In the sample, Framing is billed at 100% with 85% in place.',
+        go: () => App.go('home'), target: () => document.getElementById('checkCard') },
       { title: 'Add a photo', text: 'Tap Add photo while you are on the site. Take a picture or pick one you were texted.',
         go: () => App.go('home'), target: () => document.querySelector('#homeBody .actions .btn') },
       { title: 'The site log', text: 'Every photo lands here by day. Each one keeps its note, the weather and who was on site.',
         go: () => { App.filterLog('all'); App.go('log'); }, target: () => $('logBody'), block: 'start', cap: 0.5 },
       { title: 'By line item', text: 'Every line item is here with its photo count, even before its first photo. Tap one to see only its photos. Add a photo from there and it is tagged for you.',
         go: () => { App.filterLog('all'); App.go('log'); }, target: () => $('logChips'), block: 'start' },
-      { title: 'Update progress', text: 'Drag a slider when work gets done, or tap a percent. Every number on every screen follows.',
+      { title: 'Update progress', text: 'Drag a slider to what you saw on site, or tap a percent. Every number on every screen follows.',
         go: () => { App.setMode('items'); App.go('sov'); }, target: () => document.querySelector('#sovBody [data-item]') || document.querySelector('#sovBody .empty') },
+      { title: 'Enter the bill', text: 'When the contractor sends a bill, tap Bill and type the percent it shows for each line item. The app sets it beside what you saw.',
+        go: () => { App.setMode('bill'); App.go('sov'); }, target: () => document.querySelector('#modeBill .card') || document.querySelector('#modeBill .empty'), block: 'start', cap: 0.5 },
       { title: 'The cover page', text: 'A picture to text the owner. Pick up to four photos and a headline, then save or share it.',
         go: () => App.go('cover'), target: () => document.querySelector('[data-s=cover] .cover-wrap'), cap: 0.5 },
-      { title: 'The report', text: 'The same numbers on one page. Hand it to an owner, a lender or an inspector.',
+      { title: 'The report', text: bill ? 'The same numbers on one page, with each line item billed ahead named at the top. Hand it to an owner, a lender or an inspector.' : 'The same numbers on one page. Hand it to an owner, a lender or an inspector.',
         go: () => App.go('report'), target: () => $('reportPreview'), block: 'start', cap: 0.5 },
       { title: 'Send it', text: 'Tap the share button. Text it, save it, print it or email it.',
         go: () => { if (App.current() !== 'report') App.go('report'); }, target: () => $('topAct'), pad: 8 },

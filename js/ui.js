@@ -34,6 +34,8 @@ const UI = (() => {
     logout:'<path d="M10 4H5v16h5"/><path d="M14 8l4 4-4 4"/><path d="M18 12H9"/>',
     move:'<path d="M3 6h6l2 2h10v12H3z"/><path d="M9 13h7"/><path d="M13 10l3 3-3 3"/>',
     hardhat:'<path d="M4 16a8 8 0 0 1 16 0"/><path d="M2 16h20v3H2z"/><path d="M10 7.5V13M14 7.5V13"/>',
+    alert:'<path d="M12 3.5l9.5 17h-19z"/><path d="M12 10v5M12 17.8v.4"/>',
+    bill:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
   };
   const ic = (n, s = 18) => `<svg class="ic" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n] || ''}</svg>`;
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -44,8 +46,13 @@ const UI = (() => {
   const condChips = e => { const out = []; if (e.wx) out.push(`<span class="chip">${ic(e.wx, 13)}${e.temp !== '' && e.temp != null ? esc(e.temp) + '°' : WX[e.wx]}</span>`); if (e.crew) out.push(`<span class="chip">${ic('users', 13)}${esc(e.crew)} on site</span>`); return out.join(''); };
   const sortedEntries = p => (p.entries || []).slice().sort((a, b) => (b.d + (b.ts || 0)).localeCompare(a.d + (a.ts || 0)) || (b.ts || 0) - (a.ts || 0));
   const photoPh = (ph, key, extra, attrs) => `<div class="ph ${extra || ''}" data-ph="${esc(key)}" ${attrs || ''}></div>`;
-  const statusChips = i => { const over = i.pct > 0 && Data.itemCost(i) > Data.itemEarned(i); return (i.pct === 100 ? '<span class="chip g">' + ic('check', 13) + 'complete</span>' : i.pct > 0 ? '<span class="chip a">in progress</span>' : '<span class="chip">not started</span>') + (over ? '<span class="chip r">' + ic('trend', 13) + 'running over</span>' : ''); };
-  const slider = i => `<input type="range" min="0" max="100" step="5" value="${i.pct || 0}" style="--v:${i.pct || 0}%" oninput="App.setPct('${i.id}', this.value, false)" onchange="App.setPct('${i.id}', this.value, true)"><div class="quick">${[0, 25, 50, 75, 100].map(v => `<button class="${(i.pct || 0) === v ? 'on' : ''}" data-v="${v}" onclick="App.quickPct('${i.id}', ${v})">${v}%</button>`).join('')}</div>`;
+  // Has the job on screen a bill on any line item? Set whenever Progress or a line item is drawn. In such a job the
+  // line items speak of what was billed, and the cost figures (spent, running over) stay inside the folded Costs card.
+  let jobBill = false;
+  const statusChips = i => { const over = !jobBill && i.pct > 0 && Data.itemCost(i) > Data.itemEarned(i); return (i.pct === 100 ? '<span class="chip g">' + ic('check', 13) + 'complete</span>' : i.pct > 0 ? '<span class="chip a">in progress</span>' : '<span class="chip">not started</span>') + (over ? '<span class="chip r">' + ic('trend', 13) + 'running over</span>' : '') + (Data.billState(i) === 'ahead' ? '<span class="chip w">' + ic('alert', 13) + 'billed ' + Data.aheadLabel(i) + '</span>' : ''); };
+  /** A tick on the slider's track at the percent the contractor billed. It sits behind the slider, so the thumb covers it when the two agree. */
+  const tick = i => Data.hasBill(i) ? `<i class="tick" style="--b:${Data.itemBilledPct(i)}"></i>` : '';
+  const slider = i => `<div class="rng">${tick(i)}<input type="range" min="0" max="100" step="5" value="${i.pct || 0}" style="--v:${i.pct || 0}%" oninput="App.setPct('${i.id}', this.value, false)" onchange="App.setPct('${i.id}', this.value, true)"></div><div class="quick">${[0, 25, 50, 75, 100].map(v => `<button class="${(i.pct || 0) === v ? 'on' : ''}" data-v="${v}" onclick="App.quickPct('${i.id}', ${v})">${v}%</button>`).join('')}</div>`;
 
   /** Fill photo placeholders with real elements. */
   function hydrate(root, p, extra) {
@@ -79,7 +86,7 @@ const UI = (() => {
         <h3>${esc(p.name || 'Untitled project')} <small>${p.sample ? 'Sample job' : esc(p.client || '')}</small></h3>
         <div class="row" style="border:0;padding:0 0 8px"><div class="l"><small>${p.start ? 'Started ' + md(p.start) : ''}${p.finish ? ' · due ' + md(p.finish) : ''}</small></div><div class="r"><b>${Math.round(k.pct * 100)}%</b></div></div>
         <div class="bar"><i style="width:${Math.round(k.pct * 100)}%"></i></div>
-        <div class="hint">${k.total ? fmt$(k.toGo) + ' to finish · ' + k.daysLeft + ' days' : 'No line items yet'}</div></div>`).join('')
+        <div class="hint">${!k.total ? 'No line items yet' : k.hasBill ? Math.round(k.pct * 100) + '% in place · ' + Math.round(k.billedPct * 100) + '% billed · ' + k.daysLeft + ' days' : fmt$(k.toGo) + ' to finish · ' + k.daysLeft + ' days'}</div></div>`).join('')
       : `<div class="empty">${ic('folder', 36)}No projects yet.</div>`) +
       `<button class="btn q" onclick="App.newProject()">${ic('plus')}New project</button>` +
       (S.projects.some(p => p.sample) ? '' : `<p class="hint" style="text-align:center"><a class="lnk" onclick="App.restoreSample()">Bring back the sample job</a></p>`);
@@ -100,21 +107,35 @@ const UI = (() => {
   }
 
   function home(p, k) {
-    const inProg = (p.items || []).filter(i => i.pct > 0 && i.pct < 100);
+    const items = p.items || [], inProg = items.filter(i => i.pct > 0 && i.pct < 100);
     const latest = sortedEntries(p).flatMap(e => e.photos.map(ph => ({ ph, e }))).slice(0, 8);
-    homeBody.innerHTML = `<div class="kpis">
-      <div class="kpi">${ic('trend')}<b>${Math.round(k.pct * 100)}%</b><span>complete (earned value)</span><em>${Math.round(k.schedPct * 100)}% of schedule used · ${k.total ? (k.ahead ? 'ahead' : 'behind') : 'no budget yet'}</em></div>
+    const sched = `${Math.round(k.schedPct * 100)}% of schedule used · ${k.total ? (k.ahead ? 'ahead' : 'behind') : 'no budget yet'}`;
+    // A job with a bill leads with billed against in place. A job without one keeps the four numbers it always had.
+    const n = k.aheadItems.length, lines = n + ' line item' + (n === 1 ? '' : 's');
+    const kpis = k.hasBill ? `
+      <div class="kpi">${ic('trend')}<b>${Math.round(k.pct * 100)}%</b><span>in place</span><em>${sched}</em></div>
+      <div class="kpi light">${ic('bill')}<b>${k.total ? Math.round(k.billedPct * 100) + '%' : '—'}</b><span>billed</span><em>${k.total ? fmt$(k.billed) + ' of ' + fmt$(k.total) : 'no budgets yet'}</em></div>
+      <div class="kpi ${n ? 'warn' : 'light'}">${ic(n ? 'alert' : 'check')}<b>${k.total || !n ? fmt$(k.billedAhead) : n}</b><span>${k.total || !n ? 'billed ahead of the work' : 'line item' + (n === 1 ? '' : 's') + ' billed ahead'}</span><em>${n ? lines + ' to check' : 'nothing to check'}</em></div>
+      <div class="kpi light">${ic('clock')}<b>${k.daysLeft}</b><span>days to finish</span><em>planned finish ${p.finish ? md(p.finish) : '—'}</em></div>` : `
+      <div class="kpi">${ic('trend')}<b>${Math.round(k.pct * 100)}%</b><span>complete (earned value)</span><em>${sched}</em></div>
       <div class="kpi">${ic('clock')}<b>${k.daysLeft}</b><span>days to finish</span><em>planned finish ${p.finish ? md(p.finish) : '—'}</em></div>
       <div class="kpi light">${ic('dollar')}<b>${fmt$(k.cost)}</b><span>cost so far</span><em>${fmt$(k.earned)} earned · ${k.cost > k.earned ? fmt$(k.cost - k.earned) + ' over' : fmt$(k.earned - k.cost) + ' under'}</em></div>
-      <div class="kpi light">${ic('flag')}<b>${fmt$(k.toGo)}</b><span>to finish (forecast)</span><em>of ${fmt$(k.total)} contract</em></div></div>
+      <div class="kpi light">${ic('flag')}<b>${fmt$(k.toGo)}</b><span>to finish (forecast)</span><em>of ${fmt$(k.total)} contract</em></div>`;
+    const counts = [k.matchN && k.matchN + (k.matchN === 1 ? ' matches' : ' match') + ' the bill', k.underN && k.underN + ' billed under the work', k.unbilledN && k.unbilledN + ' not billed yet'].filter(Boolean).join(' · ');
+    const check = !k.hasBill ? '' : `<div class="card" id="checkCard"><h3>Check before you pay <small>${n ? n + ' of ' + items.length + ' line items' : 'nothing billed ahead'}</small></h3>
+      ${n ? k.aheadItems.map(i => `<div class="row tap" onclick="App.openItem('${i.id}')"><div class="l"><b>${esc(i.n)}</b><small>billed ${Data.fmtPct(Data.itemBilledPct(i))} · in place ${i.pct || 0}%</small></div><span class="chip w">${Data.aheadLabel(i)}</span><span class="chev">${ic('chevr', 16)}</span></div>`).join('') : `<p class="hint" style="margin:0">No line item is billed past what is in place.</p>`}
+      <p class="hint between"><span>${counts}</span><a class="lnk" onclick="App.openBill()">Enter a new bill ›</a></p></div>`;
+    const rowSub = i => (k.hasBill ? (Data.hasBill(i) ? 'billed ' + Data.fmtPct(Data.itemBilledPct(i)) : 'not billed yet') : `${fmt$(Data.itemCost(i))} of ${fmt$(i.b)}`) + (i.e ? ' · due ' + md(i.e) : '');
+    homeBody.innerHTML = `<div class="kpis">${kpis}</div>
       <div class="actions">
         <button class="btn" onclick="App.newEntry()">${ic('camera')}Add photo</button>
         <button class="btn" onclick="App.go('cover')">${ic('image')}Cover page</button>
         <button class="btn q" onclick="App.go('sov')">${ic('percent')}Update progress</button>
         <button class="btn q" onclick="App.openShare('report')">${ic('share')}Share report</button></div>
+      ${check}
       <div class="card"><h3>Latest photos <small class="lnk" onclick="App.go('log')">see log ›</small></h3>${latest.length ? `<div class="strip">${latest.map(({ ph, e }) => photoPh(ph, Data.photoKey(ph), '', `onclick="App.openPhoto('${e.id}','${Data.photoKey(ph)}')"`)).join('')}</div>` : `<p class="hint" style="margin:0">No photos yet. Tap Add photo to start the log.</p>`}</div>
-      <div class="card"><h3>In progress now <small class="lnk" onclick="App.go('sov')">all items ›</small></h3>${inProg.length ? inProg.map(i => `<div class="row tap" onclick="App.openItem('${i.id}')"><div class="l"><b>${esc(i.n)}</b><small>${fmt$(Data.itemCost(i))} of ${fmt$(i.b)}${i.e ? ' · due ' + md(i.e) : ''}</small><div class="mini"><i style="width:${i.pct}%"></i></div></div><div class="r"><b>${i.pct}%</b></div><span class="chev">${ic('chevr', 16)}</span></div>`).join('') : `<p class="hint" style="margin:0">${(p.items || []).length ? 'Nothing started yet. Drag a slider on Progress.' : 'No line items yet. Add some on Progress.'}</p>`}</div>
-      ${(p.items || []).length ? `<div class="card tap" onclick="App.openGantt()"><h3>Schedule <small>${k.total && k.pct > 0 ? 'finishes ' + md(Data.iso(k.paceFinish)) + ' at this pace' : ''}</small></h3>${gantt(p, true)}</div>` : ''}`;
+      <div class="card"><h3>In progress now <small class="lnk" onclick="App.go('sov')">all items ›</small></h3>${inProg.length ? inProg.map(i => `<div class="row tap" onclick="App.openItem('${i.id}')"><div class="l"><b>${esc(i.n)}</b><small>${rowSub(i)}</small><div class="mini"><i style="width:${i.pct}%"></i></div></div><div class="r"><b>${i.pct}%</b></div><span class="chev">${ic('chevr', 16)}</span></div>`).join('') : `<p class="hint" style="margin:0">${items.length ? 'Nothing started yet. Drag a slider on Progress.' : 'No line items yet. Add some on Progress.'}</p>`}</div>
+      ${items.length ? `<div class="card tap" onclick="App.openGantt()"><h3>Schedule <small>${k.total && k.pct > 0 ? 'finishes ' + md(Data.iso(k.paceFinish)) + ' at this pace' : ''}</small></h3>${gantt(p, true)}</div>` : ''}`;
     hydrate(homeBody, p);
   }
 
@@ -222,22 +243,40 @@ const UI = (() => {
         <label>Note at the bottom</label><input class="in" value="${esc(cv.note)}" oninput="App.coverField('note', this.value)">`;
   function coverCtl(cv) { const c = document.getElementById('coverCtl'); if (c) c.innerHTML = coverCtlHtml(cv); }
 
-  const sovSummaryHtml = (p, k) => { const n = (p.items || []).length; return `<div class="row" style="border:0;padding:0"><div class="l"><b>Contract</b><small>${n} line item${n === 1 ? '' : 's'}</small></div><div class="r"><b>${fmt$(k.total)}</b></div></div><div class="row" style="border:0;padding:4px 0 0"><div class="l"><small>Earned to date</small></div><div class="r">${fmt$(k.earned)} (${Math.round(k.pct * 100)}%)</div></div><div class="row" style="border:0;padding:4px 0 0"><div class="l"><small>Cost to date</small></div><div class="r">${fmt$(k.cost)}</div></div>`; };
+  const sumRow = (label, val, cls) => `<div class="row" style="border:0;padding:4px 0 0"><div class="l"><small${cls ? ` class="${cls}"` : ''}>${label}</small></div><div class="r${cls ? ' ' + cls : ''}">${val}</div></div>`;
+  const sovSummaryHtml = (p, k) => { const n = (p.items || []).length; return `<div class="row" style="border:0;padding:0"><div class="l"><b>Contract</b><small>${n} line item${n === 1 ? '' : 's'}</small></div><div class="r"><b>${fmt$(k.total)}</b></div></div>` + (k.hasBill
+    ? sumRow('In place', `${fmt$(k.earned)} (${Math.round(k.pct * 100)}%)`) + sumRow('Billed to date', `${fmt$(k.billed)} (${Math.round(k.billedPct * 100)}%)`) + (k.aheadItems.length ? sumRow('Billed ahead of the work', k.total ? fmt$(k.billedAhead) : k.aheadItems.length + ' line item' + (k.aheadItems.length === 1 ? '' : 's'), 'aheadTxt') : '')
+    : sumRow('Earned to date', `${fmt$(k.earned)} (${Math.round(k.pct * 100)}%)`) + sumRow('Cost to date', fmt$(k.cost))); };
+  /** The small figure beside a line item's percent: what was spent, or, in a job with a bill, what was billed. */
+  const sideLbl = (i, bill) => !bill ? `${fmt$(Data.itemCost(i))} spent` : !Data.hasBill(i) ? 'not billed' : `<span class="${Data.billState(i) === 'ahead' ? 'aheadTxt' : ''}">billed ${Data.fmtPct(Data.itemBilledPct(i))}</span>`;
+  // ---------- the bill: one percent per line item, typed from the contractor's latest bill ----------
+  const billVal = i => Data.hasBill(i) ? Data.fmtPct(Data.itemBilledPct(i)) : '';
+  const billAmt = i => Data.hasBill(i) && (+i.b || 0) ? fmt$(Data.itemBilled(i)) : '';
+  const billSubHtml = i => `in place ${i.pct || 0}%` + (Data.billState(i) === 'ahead' ? ` · <span class="aheadTxt">${Data.aheadLabel(i)}</span>` : (+i.b || 0) ? ' · budget ' + fmt$(i.b) : '');
+  const billTotalHtml = k => `<div class="l"><b>Billed to date</b><small>${Math.round(k.pct * 100)}% in place${k.aheadItems.length ? ` · <span class="aheadTxt">${k.total ? fmt$(k.billedAhead) : k.aheadItems.length + ' line item' + (k.aheadItems.length === 1 ? '' : 's')} ahead of the work</span>` : ''}</small></div><div class="r"><b>${k.total ? Math.round(k.billedPct * 100) + '%' : '—'}</b><small>${fmt$(k.billed)} of ${fmt$(k.total)}</small></div>`;
+  const sovBillHtml = (p, k) => { const items = p.items || []; return items.length ? `<div class="card" id="billCard"><h3>What the contractor billed <small>to date</small></h3>
+        <p class="hint" style="margin:0 0 4px">Type the percent complete the latest bill shows for each line item. Leave a line empty until it is billed.</p>
+        ${items.map(i => `<div class="row billline" data-bill="${i.id}"><div class="l"><b>${esc(i.n)}</b><small class="billSub">${billSubHtml(i)}</small></div><input class="in" type="text" inputmode="decimal" autocomplete="off" aria-label="Percent billed for ${esc(i.n)}" placeholder="%" value="${billVal(i)}" onchange="App.setBilled('${i.id}', 'pct', this.value)"></div>`).join('')}
+        <div class="row billtot" id="billTotal">${billTotalHtml(k)}</div></div>
+        <p class="hint">Each new bill replaces the last: these are the totals billed so far, not this month's amount.</p>`
+      : `<div class="empty">${ic('bill', 36)}No line items yet.<br>Add them under Line items, then type the bill here.</div>`; };
   const ganttHtml = (p, k) => { const items = p.items || []; const diff = Math.round((k.paceFinish - Data.parse(p.finish)) / Data.DAY); return `<div class="card"><h3>Schedule <small>${p.start ? md(p.start) + ' → ' + md(p.finish) : ''}</small></h3>${items.length ? gantt(p, false) : '<p class="hint" style="margin:0">Add line items with dates to see a schedule.</p>'}<div class="legend"><span><i style="background:#d9d6cc"></i>planned</span><span><i style="background:var(--green)"></i>done</span><span><i style="background:var(--yellow)"></i>in progress</span><span><i style="background:var(--red)"></i>behind</span></div></div>
         <div class="card"><h3>Finish forecast</h3><div class="row"><div class="l"><b>Planned finish</b></div><div class="r">${p.finish ? md(p.finish) : '—'}</div></div><div class="row"><div class="l"><b>At current pace</b><small>${k.pct > 0 ? (diff > 0 ? diff + ' days late' : diff < 0 ? Math.abs(diff) + ' days early' : 'on time') : 'no progress logged yet'}</small></div><div class="r">${k.pct > 0 ? md(Data.iso(k.paceFinish)) : '—'}</div></div><div class="row"><div class="l"><b>Schedule used</b><small>calendar days elapsed</small></div><div class="r">${Math.round(k.schedPct * 100)}% · ${Math.round(k.elapsed)} of ${Math.round(k.span)} days</div></div></div>`; };
-  function sov(p, k, mode) {
-    const items = p.items || [];
-    let html = `<div class="seg big" id="modeSeg"><button class="${mode === 'items' ? 'on' : ''}" data-m="items" onclick="App.setMode('items')">Line items</button><button class="${mode === 'gantt' ? 'on' : ''}" data-m="gantt" onclick="App.setMode('gantt')">Schedule</button></div>`;
-    html += `<div id="modeItems" style="display:${mode === 'items' ? '' : 'none'}"><div class="card" id="sovSummary">${sovSummaryHtml(p, k)}</div>`;
-    html += items.length ? `<p class="hint" style="margin:0 0 10px">Drag a slider or tap a percent. Every number on every screen follows. Tap a name for its photos by day and its costs.</p>` : `<div class="empty">${ic('percent', 36)}No line items yet.<br><button class="btn sm" style="margin-top:12px" onclick="App.newItem()">${ic('plus')}Add a line item</button></div>`;
-    html += items.map(i => `<div class="card" style="padding:12px 14px 10px" data-item="${i.id}">
-        <div class="row tap" style="border:0;padding:0" onclick="App.openItem('${i.id}')"><div class="l"><b>${esc(i.n)}</b><small>${i.s ? md(i.s) + ' – ' + md(i.e) + ' · ' : ''}budget ${fmt$(i.b)}</small></div><div class="r"><b class="pctLbl">${i.pct || 0}%</b><small>${fmt$(Data.itemCost(i))} spent</small></div><span class="chev">${ic('chevr', 16)}</span></div>
+  const sovItemsHtml = (p, k) => { const items = p.items || []; return `<div class="card" id="sovSummary">${sovSummaryHtml(p, k)}</div>` +
+      (items.length ? `<p class="hint" style="margin:0 0 10px">Drag a slider or tap a percent. Every number on every screen follows. Tap a name for its photos by day, its bill and its costs.</p>` : `<div class="empty">${ic('percent', 36)}No line items yet.<br><button class="btn sm" style="margin-top:12px" onclick="App.newItem()">${ic('plus')}Add a line item</button></div>`) +
+      items.map(i => `<div class="card" style="padding:12px 14px 10px" data-item="${i.id}">
+        <div class="row tap" style="border:0;padding:0" onclick="App.openItem('${i.id}')"><div class="l"><b>${esc(i.n)}</b><small>${i.s ? md(i.s) + ' – ' + md(i.e) + ' · ' : ''}budget ${fmt$(i.b)}</small></div><div class="r"><b class="pctLbl">${i.pct || 0}%</b><small class="sideLbl">${sideLbl(i, k.hasBill)}</small></div><span class="chev">${ic('chevr', 16)}</span></div>
         ${slider(i)}
-        <div class="status">${statusChips(i)}</div></div>`).join('');
-    if (items.length) html += `<button class="btn q" onclick="App.newItem()">${ic('plus')}Add a line item</button>`;
-    html += `</div><div id="modeGantt" style="display:${mode === 'gantt' ? '' : 'none'}">${ganttHtml(p, k)}</div>`;
-    sovBody.innerHTML = html;
+        <div class="status">${statusChips(i)}</div></div>`).join('') +
+      (items.length ? `<button class="btn q" onclick="App.newItem()">${ic('plus')}Add a line item</button>` : ''); };
+  function sov(p, k, mode) {
+    jobBill = k.hasBill;
+    const show = m => `style="display:${mode === m ? '' : 'none'}"`;
+    sovBody.innerHTML = `<div class="seg big" id="modeSeg">${[['items', 'Line items'], ['bill', 'Bill'], ['gantt', 'Schedule']].map(([m, n]) => `<button class="${mode === m ? 'on' : ''}" data-m="${m}" onclick="App.setMode('${m}')">${n}</button>`).join('')}</div>
+      <div id="modeItems" ${show('items')}>${sovItemsHtml(p, k)}</div><div id="modeBill" ${show('bill')}>${sovBillHtml(p, k)}</div><div id="modeGantt" ${show('gantt')}>${ganttHtml(p, k)}</div>`;
   }
+  /** Redraw the parts of Progress that are not on screen, after a figure changed in the part that is. */
+  function sovPart(p, k, part) { jobBill = k.hasBill; const el = document.getElementById(part === 'bill' ? 'modeBill' : 'modeItems'); if (el) el.innerHTML = part === 'bill' ? sovBillHtml(p, k) : sovItemsHtml(p, k); }
   function sovSummary(p, k) { const c = document.getElementById('sovSummary'); if (c) c.innerHTML = sovSummaryHtml(p, k); const g = document.getElementById('modeGantt'); if (g) g.innerHTML = ganttHtml(p, k); }
   /** Update one item's slider card (on Progress or Line item screen) in place. */
   function itemSlider(i) {
@@ -247,13 +286,35 @@ const UI = (() => {
       card.querySelectorAll('.quick button').forEach(b => b.classList.toggle('on', +b.dataset.v === (i.pct || 0)));
       const st = card.querySelector('.status'); if (st) st.innerHTML = statusChips(i);
     });
+    itemBill(i);
+  }
+  /** Update every place one line item's billed figure shows, in place: no field is redrawn, so the one being typed in keeps its focus. */
+  function itemBill(i, k) {
+    if (k) jobBill = k.hasBill;
+    document.querySelectorAll(`[data-item="${i.id}"]`).forEach(card => {
+      const rng = card.querySelector('.rng'); if (rng) { const old = rng.querySelector('.tick'); if (old) old.remove(); if (Data.hasBill(i)) rng.insertAdjacentHTML('afterbegin', tick(i)); }
+      const side = card.querySelector('.sideLbl'); if (side) side.innerHTML = sideLbl(i, jobBill);
+      const st = card.querySelector('.status'); if (st) st.innerHTML = statusChips(i);
+    });
+    document.querySelectorAll(`[data-billrow="${i.id}"]`).forEach(row => { row.querySelector('[data-k=pct]').value = billVal(i); row.querySelector('[data-k=amt]').value = billAmt(i); row.querySelector('.billNote').innerHTML = billNoteHtml(i); });
+    document.querySelectorAll(`[data-bill="${i.id}"]`).forEach(row => { row.querySelector('input').value = billVal(i); row.querySelector('.billSub').innerHTML = billSubHtml(i); });
+    const tot = document.getElementById('billTotal'); if (tot && k) tot.innerHTML = billTotalHtml(k);
   }
 
-  const itemKpisHtml = i => { const earned = Data.itemEarned(i), cost = Data.itemCost(i), over = i.pct > 0 && cost > earned; return `<div class="kpi">${ic('percent')}<b>${i.pct || 0}%</b><span>complete</span><em>${i.s ? md(i.s) + ' – ' + md(i.e) : 'no dates'}</em></div><div class="kpi light">${ic('dollar')}<b>${fmt$(cost)}</b><span>cost so far</span><em>${over ? fmt$(cost - earned) + ' over earned' : fmt$(earned - cost) + ' under earned'}</em></div>`; };
-  const itemCostsHtml = i => { const cost = Data.itemCost(i); return `<h3>Costs <small>${fmt$(cost)} total</small></h3>
-        <div id="costRows">${(i.costs || []).map(c => `<div class="row"><div class="l"><b>${esc(c.desc)}</b><small>${c.date ? md(c.date) : ''}</small></div><div class="r">${fmt$(c.amt)}</div><button class="del" aria-label="Remove cost" onclick="App.deleteCost('${i.id}','${c.id}')">${ic('x', 16)}</button></div>`).join('') || '<p class="hint" style="margin:0 0 8px">No costs logged yet.</p>'}
+  const itemKpisHtml = (i, bill) => { const earned = Data.itemEarned(i), cost = Data.itemCost(i), over = i.pct > 0 && cost > earned, st = Data.billState(i), gap = Math.abs(Data.itemBilled(i) - earned);
+    const first = `<div class="kpi">${ic('percent')}<b>${i.pct || 0}%</b><span>${bill ? 'in place' : 'complete'}</span><em>${i.s ? md(i.s) + ' – ' + md(i.e) : 'no dates'}</em></div>`;
+    if (!bill) return first + `<div class="kpi light">${ic('dollar')}<b>${fmt$(cost)}</b><span>cost so far</span><em>${over ? fmt$(cost - earned) + ' over earned' : fmt$(earned - cost) + ' under earned'}</em></div>`;
+    return first + `<div class="kpi ${st === 'ahead' ? 'warn' : 'light'}">${ic(st === 'ahead' ? 'alert' : 'bill')}<b>${st === 'none' ? '—' : Data.fmtPct(Data.itemBilledPct(i))}</b><span>billed</span><em>${st === 'none' ? 'not billed yet' : st === 'ahead' ? Data.aheadLabel(i) + ' of the work' : st === 'match' ? 'matches what is in place' : (+i.b || 0) ? fmt$(gap) + ' under what is in place' : 'under what is in place'}</em></div>`; };
+  const billNoteHtml = i => { const st = Data.billState(i); return (st === 'none' ? 'from the contractor’s latest bill' : st === 'ahead' ? `<span class="aheadTxt">${Data.aheadLabel(i)} of what is in place</span>` : st === 'match' ? 'matches what is in place' : 'under what is in place') + (st !== 'none' && i.billedAt ? ' · entered ' + md(i.billedAt) : ''); };
+  /** The billed figure beside the slider: a percent or an amount, whichever the bill shows. Each fills in the other. */
+  const billRowHtml = i => { const b = +i.b || 0; return `<div class="billrow" data-billrow="${i.id}"><div class="l"><b>Billed to date</b><small class="billNote">${billNoteHtml(i)}</small></div>
+        <input class="in" type="text" inputmode="decimal" autocomplete="off" data-k="pct" aria-label="Percent billed" placeholder="%" value="${billVal(i)}" onchange="App.setBilled('${i.id}', 'pct', this.value)">
+        <input class="in amt" type="text" inputmode="decimal" autocomplete="off" data-k="amt" aria-label="Amount billed" placeholder="${b ? '$' : 'no budget'}" value="${billAmt(i)}" ${b ? '' : 'disabled'} onchange="App.setBilled('${i.id}', 'amt', this.value)"></div>`; };
+  const itemCostsHtml = i => { const cost = Data.itemCost(i); return `<div id="costRows">${(i.costs || []).map(c => `<div class="row"><div class="l"><b>${esc(c.desc)}</b><small>${c.date ? md(c.date) : ''}</small></div><div class="r">${fmt$(c.amt)}</div><button class="del" aria-label="Remove cost" onclick="App.deleteCost('${i.id}','${c.id}')">${ic('x', 16)}</button></div>`).join('') || '<p class="hint" style="margin:0 0 8px">No costs logged yet.</p>'}
         ${(i.costs || []).length ? `<div class="row" style="border:0"><div class="l"><b>Total</b></div><div class="r"><b>${fmt$(cost)}</b></div></div>` : ''}</div>
         <div style="border-top:1px solid var(--line);padding-top:10px;margin-top:6px"><div class="in2"><div><label>What</label><input class="in" id="cfDesc" placeholder="e.g. Lumber"></div><div><label>Amount</label><input class="in" type="number" inputmode="decimal" id="cfAmt" placeholder="$"></div></div><label>Date</label><input class="in" type="date" id="cfDate" value="${Data.iso(Data.today())}"><button class="btn q sm" style="margin-top:10px" onclick="App.addCost('${i.id}')">${ic('plus')}Add cost</button></div>`; };
+  /** Costs are what a builder spent. In a job with a bill they fold to one row at the bottom; in any other job the card is open, as it always was. */
+  const costsCardHtml = (i, fold) => { const head = `Costs <small id="costTotal">${fmt$(Data.itemCost(i))} total</small>`; return fold ? `<details class="card fold" id="costFold"><summary><h3>${head}</h3>${ic('chevr', 16)}</summary><div id="itemCosts">${itemCostsHtml(i)}</div></details>` : `<div class="card"><h3>${head}</h3><div id="itemCosts">${itemCostsHtml(i)}</div></div>`; };
   /** The Move to… sheet: every line item with its photo count and status; the entry's own line item is marked, not tappable. */
   function moveSheet(p, e, mode) {
     const items = p.items || [], n = e.photos.length, one = mode === 'photo' && n > 1;
@@ -268,7 +329,7 @@ const UI = (() => {
 
   /** A line item as a folder: its entries grouped by day, Day 1 being its first, newest day first like the log. flashId outlines an entry once. */
   function item(p, i, flashId) {
-    const earned = Data.itemEarned(i);
+    const earned = Data.itemEarned(i), bill = jobBill = (p.items || []).some(Data.hasBill);
     const es = sortedEntries(p).filter(e => e.itemId === i.id), days = Data.itemDays(p, i.id), nPhotos = es.reduce((a, e) => a + e.photos.length, 0);
     let diary = '', lastDay = '';
     es.forEach(e => {
@@ -276,18 +337,18 @@ const UI = (() => {
       const ph = e.photos[0];
       diary += `<div class="entry ${ph ? '' : 'nophoto'}${e.id === flashId ? ' new' : ''}" onclick="App.openPhoto('${e.id}')">${ph ? photoPh(ph, Data.photoKey(ph), '', e.photos.length > 1 ? `data-n="${e.photos.length}"` : '') : ''}<div><span class="chip" style="border:0;padding-left:2px">${esc(e.time || '')}</span><p>${esc(e.note) || '<i style="color:var(--muted)">No note</i>'}</p>${condChips(e)}</div></div>`;
     });
-    itemBody.innerHTML = `<div class="kpis" id="itemKpis">${itemKpisHtml(i)}</div>
+    itemBody.innerHTML = `<div class="kpis" id="itemKpis">${itemKpisHtml(i, bill)}</div>
       <div class="card"><h3>Photos and notes <small>${days.length ? `${days.length} day${days.length > 1 ? 's' : ''} · ${nPhotos ? nPhotos + ' photo' + (nPhotos === 1 ? '' : 's') : 'notes only'}` : 'none yet'}</small></h3>
         <button class="btn" onclick="App.newEntry('${i.id}')">${ic('camera')}Add a photo to ${esc(i.n)}</button>
         ${es.length ? diary : `<p class="hint" style="margin:10px 0 0">No photos for ${esc(i.n)} yet. The first one starts Day 1.</p>`}</div>
-      <div class="card" data-item="${i.id}"><div class="row" style="border:0;padding:0 0 4px"><div class="l"><b>Progress</b><small>budget ${fmt$(i.b)} · earned <span class="earnedLbl">${fmt$(earned)}</span></small></div><div class="r"><b class="pctLbl">${i.pct || 0}%</b></div></div>${slider(i)}<div class="status">${statusChips(i)}</div></div>
-      <div class="card" id="itemCosts">${itemCostsHtml(i)}</div>
+      <div class="card" data-item="${i.id}"><div class="row" style="border:0;padding:0 0 4px"><div class="l"><b>Progress</b><small>budget ${fmt$(i.b)} · ${bill ? 'in place' : 'earned'} <span class="earnedLbl">${fmt$(earned)}</span></small></div><div class="r"><b class="pctLbl">${i.pct || 0}%</b></div></div>${slider(i)}<div class="status">${statusChips(i)}</div>${billRowHtml(i)}</div>
+      ${costsCardHtml(i, bill)}
       <button class="btn danger" onclick="App.deleteItem('${i.id}')">${ic('trash')}Delete line item</button>`;
     hydrate(itemBody, p);
     itemBody.querySelectorAll('.ph[data-n]').forEach(el => { const b = document.createElement('span'); b.className = 'n'; b.textContent = '+' + (el.dataset.n - 1); el.appendChild(b); });
   }
-  function itemKpis(i) { const k = document.getElementById('itemKpis'); if (k) k.innerHTML = itemKpisHtml(i); const e = document.querySelector('[data-item] .earnedLbl'); if (e) e.textContent = fmt$(Data.itemEarned(i)); }
-  function itemCosts(i) { const c = document.getElementById('itemCosts'); if (c) c.innerHTML = itemCostsHtml(i); }
+  function itemKpis(i, bill) { const k = document.getElementById('itemKpis'); if (k) k.innerHTML = itemKpisHtml(i, bill); const e = document.querySelector('[data-item] .earnedLbl'); if (e) e.textContent = fmt$(Data.itemEarned(i)); }
+  function itemCosts(i) { const c = document.getElementById('itemCosts'); if (c) c.innerHTML = itemCostsHtml(i); const t = document.getElementById('costTotal'); if (t) t.textContent = fmt$(Data.itemCost(i)) + ' total'; }
 
   function itemform(p, i) {
     itemformBody.innerHTML = `<div class="card">
@@ -299,10 +360,23 @@ const UI = (() => {
 
   function report(p, k) {
     const items = p.items || [], pics = sortedEntries(p).flatMap(e => e.photos.map(ph => ({ ph, e }))).slice(0, 3);
+    const bill = k.hasBill, calendar = `${k.ahead ? 'Work is ahead of the calendar' : 'Work is behind the calendar'} (${Math.round(k.pct * 100)}% ${bill ? 'in place' : 'done'} with ${Math.round(k.schedPct * 100)}% of the schedule used).`;
+    const pace = k.pct > 0 ? ' At the current pace the job finishes ' + md(Data.iso(k.paceFinish)) + '.' : '';
+    // With a bill, the page leads with billed against in place and names each line billed ahead. Without one it is the report it always was.
+    const nums = bill ? Data.billNums(k).map(([v, l], x) => `<div${x === 2 && k.aheadItems.length ? ' class="warn"' : ''}><b>${v}</b><span>${l}</span></div>`).join('')
+      : `<div><b>${Math.round(k.pct * 100)}%</b><span>complete</span></div><div><b>${Data.fmtK(k.cost)}</b><span>cost so far</span></div><div><b>${Data.fmtK(k.toGo)}</b><span>to finish</span></div><div><b>${k.daysLeft}</b><span>days left</span></div>`;
+    const summary = !k.total && !bill ? 'No line items yet. Add budgets on the Progress screen and this report fills itself in.'
+      : bill ? `${k.total ? calendar + ' ' : ''}${esc(Data.billSentence(k))}${pace}`
+      : `${calendar} Costs are ${k.cost > k.earned ? 'running ' + fmt$(k.cost - k.earned) + ' over earned value' : 'tracking ' + fmt$(k.earned - k.cost) + ' under earned value'}.${pace}`;
+    const flags = bill ? k.aheadItems.slice(0, 4).map(i => `<div class="flagline">${ic('alert', 16)}<b>${esc(Data.aheadLine(i))}</b></div>`).join('') + (k.aheadItems.length > 4 ? `<p class="aheadTxt">And ${k.aheadItems.length - 4} more billed ahead, marked below.</p>` : '') : '';
+    const table = bill
+      ? `<tr><td><b>Line item</b></td><td class="n"><b>Budget</b></td><td class="n"><b>In place</b></td><td class="n"><b>Billed</b></td></tr>${items.map(i => `<tr><td>${esc(i.n)}</td><td class="n">${fmt$(i.b)}</td><td class="n">${i.pct || 0}%</td><td class="n${Data.billState(i) === 'ahead' ? ' aheadTxt' : ''}">${Data.hasBill(i) ? Data.fmtPct(Data.itemBilledPct(i)) : '—'}</td></tr>`).join('')}<tr class="tot"><td>Total</td><td class="n">${fmt$(k.total)}</td><td class="n">${Math.round(k.pct * 100)}%</td><td class="n">${k.total ? Math.round(k.billedPct * 100) + '%' : '—'}</td></tr>`
+      : `<tr><td><b>Line item</b></td><td class="n"><b>Budget</b></td><td class="n"><b>%</b></td><td class="n"><b>Cost</b></td></tr>${items.map(i => `<tr><td>${esc(i.n)}</td><td class="n">${fmt$(i.b)}</td><td class="n">${i.pct || 0}%</td><td class="n">${fmt$(Data.itemCost(i))}</td></tr>`).join('')}<tr class="tot"><td>Total</td><td class="n">${fmt$(k.total)}</td><td class="n">${Math.round(k.pct * 100)}%</td><td class="n">${fmt$(k.cost)}</td></tr>`;
     const html = `<div class="report" id="reportPreview"><div class="hd"><div class="mark">CT</div><div><h4>${esc(p.name || 'Untitled project')}</h4><div class="meta">Progress report · ${Data.mdy(Data.iso(Data.today()))}${p.client ? ' · for ' + esc(p.client) : ''}</div></div></div>
-      <div class="num4"><div><b>${Math.round(k.pct * 100)}%</b><span>complete</span></div><div><b>${Data.fmtK(k.cost)}</b><span>cost so far</span></div><div><b>${Data.fmtK(k.toGo)}</b><span>to finish</span></div><div><b>${k.daysLeft}</b><span>days left</span></div></div>
-      <p><b>Summary.</b> ${p.cover.head ? esc(p.cover.head) + '. ' : ''}${!k.total ? 'No line items yet. Add budgets on the Progress screen and this report fills itself in.' : `${k.ahead ? 'Work is ahead of the calendar' : 'Work is behind the calendar'} (${Math.round(k.pct * 100)}% done with ${Math.round(k.schedPct * 100)}% of the schedule used). Costs are ${k.cost > k.earned ? 'running ' + fmt$(k.cost - k.earned) + ' over earned value' : 'tracking ' + fmt$(k.earned - k.cost) + ' under earned value'}.${k.pct > 0 ? ' At the current pace the job finishes ' + md(Data.iso(k.paceFinish)) + '.' : ''}`}</p>
-      <table class="sov"><tr><td><b>Line item</b></td><td class="n"><b>Budget</b></td><td class="n"><b>%</b></td><td class="n"><b>Cost</b></td></tr>${items.map(i => `<tr><td>${esc(i.n)}</td><td class="n">${fmt$(i.b)}</td><td class="n">${i.pct || 0}%</td><td class="n">${fmt$(Data.itemCost(i))}</td></tr>`).join('')}<tr class="tot"><td>Total</td><td class="n">${fmt$(k.total)}</td><td class="n">${Math.round(k.pct * 100)}%</td><td class="n">${fmt$(k.cost)}</td></tr></table>
+      <div class="num4">${nums}</div>
+      ${flags}
+      <p><b>Summary.</b> ${p.cover.head ? esc(p.cover.head) + '. ' : ''}${summary}</p>
+      <table class="sov">${table}</table>
       ${pics.length ? `<p style="margin-top:12px"><b>Recent photos</b></p><div class="grid3">${pics.map(({ ph }) => photoPh(ph, Data.photoKey(ph))).join('')}</div>` : ''}
       ${p.cover.note ? `<p>${esc(p.cover.note)}</p>` : ''}</div>
       <div class="actions" style="margin-top:12px"><button class="btn" onclick="App.openShare('report')">${ic('share')}Share</button><button class="btn q" onclick="App.shareDo('print','report')">${ic('file')}Print / PDF</button></div>
@@ -310,5 +384,5 @@ const UI = (() => {
     reportBody.innerHTML = html; hydrate(reportBody, p); return pics;
   }
 
-  return { ic, esc, hydrate, coverSelection, projects, projform, home, log, applyLogFilter, entryform, entryPhotos, photo, photoSwap, moveSheet, cover, coverCtl, sov, sovSummary, itemSlider, item, itemKpis, itemCosts, itemform, report, sortedEntries, itemName };
+  return { ic, esc, hydrate, coverSelection, projects, projform, home, log, applyLogFilter, entryform, entryPhotos, photo, photoSwap, moveSheet, cover, coverCtl, sov, sovSummary, sovPart, itemSlider, itemBill, item, itemKpis, itemCosts, itemform, report, sortedEntries, itemName };
 })();

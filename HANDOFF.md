@@ -4,7 +4,7 @@ Written Oct 20, 2026, for whoever takes over CostTooling next. When a fact here 
 
 CostTooling is a phone-first web app for tracking a construction job from the site: photos, progress, costs and a one-page report. It is plain HTML, CSS and JavaScript with no build step, hosted on GitHub Pages at costtooling.com. It works on one phone with no account, and signing in syncs jobs to a Supabase project shared with CharityTooling.
 
-It is a working prototype, built between Oct 12 and Oct 22, 2026. The last two changes made each line item a folder of its photos and notes by day, with Move to… on a photo, after a tester asked to see Day 1, Day 2 under a line item and to move photos between line items, and made Back return to the screen you came from. Nothing has shipped since; the open work below was last reviewed Nov 24, 2026.
+It is a working prototype, built between Oct 12 and Oct 22, 2026. The last two changes made each line item a folder of its photos and notes by day, with Move to… on a photo, after a tester asked to see Day 1, Day 2 under a line item and to move photos between line items, and made Back return to the screen you came from. Nothing has shipped since; the open work below was last reviewed Nov 24, 2026. A direction for what comes next was chosen on Nov 25 and is drawn but not built: see Where it is going.
 
 ## Where everything lives
 
@@ -157,7 +157,7 @@ Leave out the URL and `walkthrough.js`, `offline.js` and `guide-shots.js` run ag
 
 For anything the browser cannot fake, use `qa/ios-checklist.md`: 57 steps to run in a Safari tab and again as a home-screen app. Its pass and fail columns are still blank. `qa/ios-findings.md` logs what the iPhone simulator turned up, wave by wave.
 
-`mockups/` holds a storyboard of 15 screens from Oct 12. It predates accounts, the guide and the tour.
+`mockups/` holds a storyboard of 15 screens from Oct 12. It predates accounts, the guide and the tour. `mockups/owner-side/` is newer and separate: the Nov 25 mockups of the next direction, as plain HTML pages.
 
 ## Recent changes
 
@@ -176,6 +176,17 @@ The whole history runs from Oct 12 to Oct 22, 2026, newest first. `git log` has 
 | Oct 13 | Four waves of iPhone fixes: in-place updates, keyboard layout, photo import, draft restore, WebKit storage, offline start, home-screen install | a63f981 to 96238ad |
 | Oct 12 | Working prototype: real jobs, photos, costs and reports stored on the phone; deploys moved to GitHub Actions | dde3511, b884fc3 |
 | Oct 12 | First hosted click-through with idea capture; domain set up | d38a720 to ba47eed |
+
+## Where it is going
+
+Chosen Nov 25, 2026. Drawn, not built: the live app has none of it.
+
+The app is being aimed at the person who walks the job for an owner: an owner's rep, or an owner's assistant doing the same job. The promise is "see what's really done before you pay for it". That needs one thing the app cannot do today, which is compare what the contractor billed with what is in place, per line item.
+
+- **The plan, every idea that was weighed, and what is not settled:** [mockups/owner-side/README.md](mockups/owner-side/README.md).
+- **The screens:** open `mockups/owner-side/index.html`, or [costtooling.com/mockups/owner-side](https://costtooling.com/mockups/owner-side/). Four phone screens of the first release and a first draft of a landing page.
+- **Before building any of it,** ask the tester: when you finish a site visit, who do you send your report to, and what do they decide with it? The direction rests on one tester and on reasoning, not on market research.
+- **The order:** that question; then a first release that adds billed against in place, a sample job that shows it, pasting a job's lines from the contractor's bill, a rewritten welcome card and owner's side wording; then a second release for the owner update, issues, and time and place on photos; then the landing page.
 
 ## Open work
 
@@ -201,5 +212,5 @@ The repo cannot answer these. Settle them in the first conversation.
 1. **Access:** which of these do you get? Collaborator on both GitHub repos, the Supabase project, Cloudflare, and Resend.
 2. **Users:** one real company is syncing: the tester's, with one job, last synced Oct 20, 2026 (checked Nov 19). Treat `ct_projects` as real data from here on, and ask whether more companies are coming. The only other company is the one `cloud-e2e.js` left behind on Oct 13, with no jobs; delete it as Test it describes.
 3. **Ideas inbox:** should the bulb keep emailing the owner, or you?
-4. **What next:** there is no roadmap in the repo, and the README still calls the app a functional mock-up.
+4. **What next:** a direction is written down in Where it is going, waiting on the tester's answer. Confirm it, and settle the open points in `mockups/owner-side/README.md`. The README still calls the app a functional mock-up.
 5. **The shared project:** will CostTooling stay on the CharityTooling Supabase project, or move to its own?

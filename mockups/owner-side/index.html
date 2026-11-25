@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>CostTooling · owner's side mockups</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f6f5f1;color:#161617;font:16px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+a{color:#003366}
+.wrap{max-width:1760px;margin:0 auto;padding:28px 20px 60px}
+.status{display:inline-block;background:#fbf4e4;border:1px solid #ead9b2;color:#7a4f0d;border-radius:99px;padding:4px 12px;font-size:13px;font-weight:700;margin-bottom:12px}
+h1{font-size:clamp(28px,4vw,44px);line-height:1.1;letter-spacing:-.8px;margin:0 0 10px}
+h2{font-size:22px;letter-spacing:-.3px;margin:44px 0 6px}
+.lead{font-size:18px;max-width:46em;margin:0 0 8px;color:#3a3936}
+.sub{max-width:46em;margin:0 0 16px;color:#6b6a66}
+.gate{background:#fff;border:1px solid #e2dfd6;border-left:4px solid #161617;border-radius:10px;padding:14px 16px;max-width:46em;margin:16px 0}
+.gate b{display:block;margin-bottom:4px}
+.row{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+figure{margin:0;width:390px;max-width:100%}
+figure iframe{width:390px;max-width:100%;height:844px;border:1px solid #d9d6cc;border-radius:28px;background:#fff;display:block}
+figcaption{font-size:14.5px;color:#3a3936;margin-top:10px}
+figcaption b{display:block;color:#161617;font-size:16px}
+figcaption a{font-size:13px}
+.wide iframe{width:100%;height:760px;border:1px solid #d9d6cc;border-radius:14px;background:#fff;display:block}
+.wide p{font-size:14.5px;color:#3a3936;max-width:46em}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="status">Drawn Nov 25, 2026 · not built</span>
+  <h1>CostTooling for the person who walks the job for an owner</h1>
+  <p class="lead">The promise: <b>see what's really done before you pay for it.</b> These screens show the first release that would make that promise true, and a draft of the landing page that would say it.</p>
+  <p class="sub">The plan, every idea that was weighed, and what is still undecided are in <a href="https://github.com/clickconstruction/costtooling.github.io/blob/main/mockups/owner-side/README.md">README.md</a> in this folder. The app itself has none of this yet.</p>
+  <div class="gate"><b>Ask the tester before building any of it</b>When you finish a site visit, who do you send your report to, and what do they decide with it?</div>
+
+  <h2>First release: the promise made true</h2>
+  <p class="sub">Four phone screens. Sample numbers come from the app's sample job.</p>
+  <div class="row">
+    <figure><iframe src="welcome.html" title="Welcome card mockup" loading="lazy"></iframe><figcaption><b>1 · Welcome card</b>The promise, the tagline under the name, three lines of what you do, and a line for someone who is not a builder. It is the whole first impression today, because the site opens straight into the app. <a href="welcome.html">Open alone</a></figcaption></figure>
+    <figure><iframe src="home.html" title="Job home mockup" loading="lazy"></iframe><figcaption><b>2 · Job home</b>Four numbers: in place, billed, billed ahead and days left. Check before you pay lists only the parts where the bill runs ahead. The sample contractor bills Framing at 100% while the photos show 85%. <a href="home.html">Open alone</a></figcaption></figure>
+    <figure><iframe src="item.html" title="One part of the job mockup" loading="lazy"></iframe><figcaption><b>3 · One part of the job</b>What you saw is today's slider. What the contractor billed is new: a percent or an amount from each bill. The Costs card, which tracked what a builder spent, is gone from this screen. <a href="item.html">Open alone</a></figcaption></figure>
+    <figure><iframe src="paste.html" title="New job mockup" loading="lazy"></iframe><figcaption><b>4 · New job</b>Paste or type the lines from the contractor's bill. The app reads a name and an amount from each line and shows what it found before anything is created. <a href="paste.html">Open alone</a></figcaption></figure>
+  </div>
+
+  <h2>Landing page, first draft</h2>
+  <div class="wide">
+    <p>The owner update is the hero, because the owner is who the user wants to impress. It shows no prices, customer quotes or statistics, because none exist. It comes last, when everything it claims is built. <a href="landing.html">Open the full page</a></p>
+    <iframe src="landing.html" title="Landing page mockup" loading="lazy"></iframe>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>New job: paste the bill's lines · CostTooling mockup</title>
+<script>if (window.self !== window.top) document.documentElement.classList.add('embed');</script>
+<style>
+body{margin:0}
+a{color:#003366}a:hover{color:#161617}
+.app{width:390px;height:844px;background:#f6f5f1;color:#161617;font:15px/1.45 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.app *{box-sizing:border-box}
+.top{background:#161617;color:#fff;padding:56px 14px 12px;display:flex;align-items:center;gap:10px;flex:none}
+.ibtn{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#fff;display:inline-flex;align-items:center;justify-content:center;flex:none;padding:0}
+.top .sp{flex:1;min-width:0}.top b{font-size:17px;display:block}.top span{color:#b9b7af;font-size:12px;display:block}
+.screen{flex:1;overflow:hidden;padding:14px}
+.card{background:#fff;border:1px solid #e2dfd6;border-radius:14px;padding:14px;margin-bottom:12px}
+.card h3{margin:0 0 10px;font-size:15px;display:flex;align-items:baseline;justify-content:space-between;gap:8px}.card h3 small{font-weight:500;color:#6b6a66;font-size:12px}
+label{display:block;font-size:12px;color:#6b6a66;margin:0 0 4px;font-weight:500}
+.in{width:100%;min-height:46px;border:1px solid #e2dfd6;border-radius:10px;padding:10px 12px;background:#fff;font:inherit;font-size:16px;color:#161617}
+textarea.in{min-height:132px;resize:none;line-height:1.5;font-size:14.5px;font-family:ui-monospace,Menlo,monospace;border-color:#e8c547;box-shadow:0 0 0 3px #fbf3cf}
+.seg{display:flex;border:1px solid #e2dfd6;border-radius:10px;overflow:hidden;background:#fff;margin-bottom:10px}
+.seg button{flex:1;background:#fff;border:0;padding:10px 4px;font:inherit;font-size:13px;color:#6b6a66;font-weight:500;min-height:44px}
+.seg button.on{background:#161617;color:#e8c547;font-weight:700}
+.hint{font-size:12.5px;color:#6b6a66;margin:8px 0 0;line-height:1.4}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid #e2dfd6;font-size:14px}
+.row:first-of-type{border-top:0}
+.row b{font-weight:600}.row span{font-variant-numeric:tabular-nums;color:#3a3936}
+.row.tot{border-top:2px solid #161617;font-weight:700}.row.tot span{color:#161617}
+.ok{display:inline-flex;align-items:center;gap:6px;color:#27693f;font-weight:600;font-size:12px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;background:#161617;color:#e8c547;border-radius:12px;padding:14px;font-weight:700;font-size:15px;border:0;font-family:inherit;width:100%;min-height:50px}
+.ic{width:18px;height:18px;flex:none}
+
+.mock-bar{background:#161617;color:#fff;font:13px/1.4 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:8px 14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.mock-bar b{color:#e8c547}
+.mock-bar a{color:#fff;margin-left:auto}
+.mock-stage{display:flex;justify-content:center;padding:24px 0 40px;background:#e9e6de;min-height:100vh}
+.mock-stage .app{flex:none;border-radius:36px;box-shadow:0 18px 40px rgba(22,22,23,.18)}
+.embed .mock-bar{display:none}
+.embed .mock-stage{padding:0;min-height:0;background:none}
+.embed .mock-stage .app{border-radius:0;box-shadow:none}
+</style>
+</head>
+<body>
+<div class="mock-bar"><b>Mockup</b><span>New job: paste the bill's lines. Drawn Nov 25, 2026. Not built.</span><a href="./">All screens and the plan</a></div>
+<div class="mock-stage">
+<div class="app">
+  <div class="top">
+    <button class="ibtn" aria-label="Back"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <div class="sp"><b>New job</b><span>CostTooling</span></div>
+  </div>
+  <div class="screen">
+    <div class="card">
+      <label for="jn">Job name</label>
+      <input class="in" id="jn" type="text" value="Oak Ave addition">
+    </div>
+
+    <div class="card">
+      <h3>Parts of the job</h3>
+      <div class="seg"><button class="on">From the bill</button><button>A template</button><button>Add later</button></div>
+      <label for="pl">Paste or type the lines from the contractor's bill</label>
+      <textarea class="in" id="pl">1  Demolition            8,500
+2  Foundation repair    14,200
+3  Framing              22,800
+4  Roofing              16,500
+5  Plumbing rough-in    12,400
+6  Electrical rough-in  11,900</textarea>
+      <p class="hint">One line each. A name, then its amount. Line numbers are ignored.</p>
+    </div>
+
+    <div class="card">
+      <h3>Found 6 parts <span class="ok"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>every line read</span></h3>
+      <div class="row"><b>Demolition</b><span>$8,500</span></div>
+      <div class="row"><b>Foundation repair</b><span>$14,200</span></div>
+      <div class="row"><b>Framing</b><span>$22,800</span></div>
+      <div class="row"><b>Roofing</b><span>$16,500</span></div>
+      <div class="row"><b>Plumbing rough-in</b><span>$12,400</span></div>
+      <div class="row"><b>Electrical rough-in</b><span>$11,900</span></div>
+      <div class="row tot"><b>Contract</b><span>$86,300</span></div>
+    </div>
+
+    <button class="btn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg>Create job with 6 parts</button>
+  </div>
+</div>
+</div>
+</body>
+</html>

@@ -4,7 +4,7 @@ Written Oct 20, 2026, for whoever takes over CostTooling next. When a fact here 
 
 CostTooling is a phone-first web app for tracking a construction job from the site: photos, progress, costs and a one-page report. It is plain HTML, CSS and JavaScript with no build step, hosted on GitHub Pages at costtooling.com. It works on one phone with no account, and signing in syncs jobs to a Supabase project shared with CharityTooling.
 
-It is a working prototype, built between Oct 12 and Oct 22, 2026. The last two changes made each line item a folder of its photos and notes by day, with Move to… on a photo, after a tester asked to see Day 1, Day 2 under a line item and to move photos between line items, and made Back return to the screen you came from. Nothing has shipped since; the open work below was last reviewed Nov 24, 2026. A direction for what comes next was chosen on Nov 25 and is drawn but not built: see Where it is going.
+It is a working prototype, built between Oct 12 and Oct 22, 2026. The last two changes made each line item a folder of its photos and notes by day, with Move to… on a photo, after a tester asked to see Day 1, Day 2 under a line item and to move photos between line items, and made Back return to the screen you came from. The app itself has gained nothing since; the open work below was last reviewed Nov 24, 2026. A direction for what comes next was chosen on Nov 25: see Where it is going. The same day its landing page went live on the front page of costtooling.com, ahead of the features it describes, and the app moved to costtooling.com/app.
 
 ## Where everything lives
 
@@ -13,7 +13,7 @@ The app is one repo, but its database and account functions live in the CharityT
 | Piece | Where | Access |
 | --- | --- | --- |
 | App code | [clickconstruction/costtooling.github.io](https://github.com/clickconstruction/costtooling.github.io), public, branch `main`, no branch protection | Owner adds you as a collaborator |
-| Live site | [costtooling.com](https://costtooling.com) on GitHub Pages, HTTPS enforced | Deploys itself on every push to `main` |
+| Live site | [costtooling.com](https://costtooling.com) on GitHub Pages, HTTPS enforced. The front page is the landing page; the app is at [costtooling.com/app](https://costtooling.com/app/) | Deploys itself on every push to `main` |
 | Domain and DNS | Cloudflare. The bare domain points at GitHub Pages; `www` is a CNAME to clickconstruction.github.io | Owner's Cloudflare account |
 | Cloud backend | Supabase project `cjwybuhogxyayjnuxpem` ("charity-tooling"), shared with CharityTooling | Owner's Supabase organization |
 | Database migrations and account functions | [charitytooling/charitytooling.github.io](https://github.com/charitytooling/charitytooling.github.io): `supabase/migrations/20261013010000_costtooling_tenancy.sql`, the shared Edge Functions, and `docs/multi-app-tenancy.md` | Owner adds you as a collaborator |
@@ -27,7 +27,7 @@ There is nothing to install: any static file server will do. Use port 8766 if yo
 
 1. Clone the repo.
 2. From the repo folder, start a server.
-3. Open http://127.0.0.1:8766/ and switch the browser to a phone size, such as 390 × 844.
+3. Open http://127.0.0.1:8766/app/ and switch the browser to a phone size, such as 390 × 844. The landing page is at http://127.0.0.1:8766/.
 
 ```bash
 git clone https://github.com/clickconstruction/costtooling.github.io.git
@@ -39,7 +39,7 @@ The repo's `.claude/launch.json` starts the same server on port 8765. There, pas
 
 Your test data lives in that browser only. The yellow bulb's **Start over** wipes it and brings back the sample job. The service worker only registers over HTTPS, so local runs never serve stale files.
 
-These address-bar switches save clicks:
+These address-bar switches save clicks. Add them to the app's address, `/app/`; the front page passes them on, so links from before the move, such as `costtooling.com/?for=Diane`, still work.
 
 | Add to the URL | What it does |
 | --- | --- |
@@ -48,6 +48,7 @@ These address-bar switches save clicks:
 | `?for=Diane` | Greets Diane by name on the welcome card, and signs her emailed ideas |
 | `?s=cover` | Opens a screen directly: `projects`, `home`, `log`, `photo`, `cover`, `sov` (Progress), `item`, `report` |
 | `?s=log&new=1` | Opens a new log entry |
+| `?s=home&job=sample` | Opens the sample job, if it is still on the phone. The landing page's Try the sample job uses it |
 | `?shot=1` | Pins the layout to 390 × 844 for screenshots |
 | `?debug=1` | Overlays viewport sizes, safe areas, the focused field, render time and the last log lines |
 
@@ -60,8 +61,10 @@ GitHub Pages: serves the repo files as they are, no build step
    │
    ▼
 ON THE PHONE, IN THE BROWSER
-   index.html    markup for every screen and sheet; loads the scripts in order
-   sw.js         service worker: keeps the app files in a cache so it opens offline
+   index.html      the landing page, on the front page: one file, styles inline. Its one script
+                   passes anything headed for the app on to /app/
+   app/index.html  the app: markup for every screen and sheet; loads the scripts in order
+   sw.js           service worker: keeps both pages and the app files in a cache so they open offline
    app.js        the controller: app state, navigation, every action a button calls
     ├─ ui.js       draws every screen from the job, plus the icons
     ├─ data.js     the job model, templates, the sample job and the sums
@@ -80,9 +83,10 @@ SUPABASE PROJECT cjwybuhogxyayjnuxpem, SHARED WITH CHARITYTOOLING
                        └─► Resend sends the sign-in and invite emails
 ```
 
-- There is no framework and no bundler. Each script defines one global (`App`, `UI`, `Data`, `Render`, `Photos`, `DB`, `Cloud`, `Tour`), and `index.html` loads them in order.
+- There is no framework and no bundler. Each script defines one global (`App`, `UI`, `Data`, `Render`, `Photos`, `DB`, `Cloud`, `Tour`), and `app/index.html` loads them in order. The scripts, stylesheet, icons, manifest and service worker stay at the repo root; only the app's page moved.
 - Buttons mostly call `App` functions through inline `onclick` handlers. `App.go(screen)` redraws a whole screen; sliders, filters and cover picks update the page in place. Back follows `PARENT` in `app.js`, except the photo, line item and entry form screens, which return to the screen that opened them: a short `trail` kept with the session, cleared whenever a tab root opens.
 - The one outside library is supabase-js 2.49.4, loaded from jsDelivr.
+- **The front page passes people on.** The app lived at the front page until Nov 25, 2026. The script at the top of `index.html` sends on to `/app/`, with the query and hash kept: a home-screen app (one installed before the move still opens the front page), any address with a query other than an ad tag such as `utm_source`, and any address whose hash carries a sign-in token or error. Emailed sign-in, reset and invite links still come back to the front page (`SITE` in `js/cloud.js`, and `redirectBase` in the CharityTooling repo), so nothing in Supabase's redirect list had to change. Remove that script and those links break.
 
 ## Data and cloud sync
 
@@ -122,13 +126,13 @@ The Edge Functions and the sign-up triggers are shared with CharityTooling. Depl
 
 A push to `main` is live in about a minute. There are no pull requests, no automated tests and no branch protection, so check your change before you push.
 
-1. **Bump the version when you change any file that is not a page:** a stylesheet, a script, an icon or a guide photo. The service worker serves those from its cache first, so phones keep the old ones until the version moves. Three places, all one number up (today 16):
-   - every `?v=16` in `index.html`
-   - every `?v=16` in the `SHELL` list in `sw.js`
-   - `VERSION = 'ct-v16'` in `sw.js`
-2. **A new script or stylesheet** goes in both `index.html` and the `SHELL` list in `sw.js`.
+1. **Bump the version when you change any file that is not a page:** a stylesheet, a script, an icon or a guide photo. The service worker serves those from its cache first, so phones keep the old ones until the version moves. Three places, all one number up (today 17):
+   - every `?v=17` in `app/index.html`
+   - every `?v=17` in the `SHELL` list in `sw.js`
+   - `VERSION = 'ct-v17'` in `sw.js`
+2. **A new script or stylesheet** goes in both `app/index.html` and the `SHELL` list in `sw.js`. The landing page needs neither: it is one file, and the service worker fetches it fresh whenever the phone is online.
 3. **Commit and push to `main`.** The workflow `.github/workflows/pages.yml` uploads the whole repo and deploys it. The last deploy took 54 seconds.
-4. **Check it is live.** `gh run list` shows the deploy. Then load the live page and look for the new version number. Phones that had the old version see an **Update ready. Reload** message the next time they open the app.
+4. **Check it is live.** `gh run list` shows the deploy. Then load the live app and look for the new version number. Phones that had the old version see an **Update ready. Reload** message the next time they open the app.
 
 The repo is public and every file in it is served, including `qa/`, `mockups/` and this file. Never commit keys other than the publishable one already in `js/cloud.js`, and never commit customer data.
 
@@ -146,25 +150,26 @@ mkdir -p ~/pw && cd ~/pw && npm i playwright && npx playwright install chromium 
 
 | Script in `qa/` | What it checks | Run it with |
 | --- | --- | --- |
-| `walkthrough.js` | Every screen at iPhone size, as a fresh user, screenshots into `qa/shots/` | `NODE_PATH=~/pw/node_modules node qa/walkthrough.js <url>`; add `ENGINE=webkit` for Safari's engine |
-| `offline.js` | The app opens from the service worker with the network off | `node qa/offline.js <url>` |
+| `walkthrough.js` | Every screen of the app at iPhone size, as a fresh user, screenshots into `qa/shots/`. Last run Nov 25, 2026 against a local copy of version 17 in Chromium: 61 screens, no issues | `NODE_PATH=~/pw/node_modules node qa/walkthrough.js <url>`; add `ENGINE=webkit` for Safari's engine |
+| `offline.js` | The app, at `/app/`, opens from the service worker with the network off | `node qa/offline.js <url>` |
 | `cloud-e2e.js` | Sign in, create a company, sync a job with a photo, mint codes, then see it all arrive in a second browser | `E2E_EMAIL=… E2E_PASSWORD=… node qa/cloud-e2e.js <url>` |
 | `guide-shots.js` | Retakes the nine "Your first day" photos in `guide/` | `ENGINE=webkit node qa/guide-shots.js http://127.0.0.1:8766` |
 
-Leave out the URL and `walkthrough.js`, `offline.js` and `guide-shots.js` run against the live site, while `cloud-e2e.js` runs against http://127.0.0.1:8766. The screenshot folders are git-ignored.
+Give each script the site's address without `/app`; it adds that itself. Leave out the URL and `walkthrough.js`, `offline.js` and `guide-shots.js` run against the live site, while `cloud-e2e.js` runs against http://127.0.0.1:8766. The screenshot folders are git-ignored.
 
 `cloud-e2e.js` writes to the live Supabase project. Use a test user whose address is not on example.com, which Resend refuses. Afterwards delete the test company with SQL, and its photos through the Storage API, since direct deletes on storage are blocked.
 
 For anything the browser cannot fake, use `qa/ios-checklist.md`: 57 steps to run in a Safari tab and again as a home-screen app. Its pass and fail columns are still blank. `qa/ios-findings.md` logs what the iPhone simulator turned up, wave by wave.
 
-`mockups/` holds a storyboard of 15 screens from Oct 12. It predates accounts, the guide and the tour. `mockups/owner-side/` is newer and separate: the Nov 25 mockups of the next direction, as plain HTML pages.
+`mockups/` holds a storyboard of 15 screens from Oct 12. It predates accounts, the guide and the tour. Its links open the app at `/app/`. `mockups/owner-side/` is newer and separate: the Nov 25 mockups of the next direction, as plain HTML pages.
 
 ## Recent changes
 
-The whole history runs from Oct 12 to Oct 22, 2026, newest first. `git log` has every commit.
+The app's history runs from Oct 12 to Oct 22, 2026; the landing page and the move to `/app/` came on Nov 25. Newest first. `git log` has every commit.
 
 | Date | Change | Commit |
 | --- | --- | --- |
+| Nov 25 | The owner's side landing page is the front page of costtooling.com, with its copy as drawn; the app moves to `/app/` and the front page passes on home-screen apps, emailed links and old links; the service worker caches both pages; the manifest starts at `/app/`; `?job=sample`; version 17 | 4941f68 |
 | Oct 22 | Back, Cancel and Delete return to the screen that opened a photo, a line item or the entry form (Home, the log, a folder or a photo) instead of a fixed parent; the untagged save toast says so; a line item with notes only says so; + Add to this day is a button with a wide tap target; a line item or project edit that was saved no longer reopens its form after a reload; a note typed just before the app is backgrounded survives the reload | 9417c98 |
 | Oct 22 | Line item as a folder: its photos and notes grouped as Day 1, Day 2… (its own first day is Day 1), Add a photo to it and Add to this day; Move to… on the photo screen moves an entry, or one photo as its own entry, to another line item; Save entry lands in the line item's folder with the entry outlined; log day headers carry the job day | 7c5ad38 |
 | Oct 20 | Every line item in the site log: a chip with its photo count for each, an untagged chip when entries have no line item, Add a photo to an empty item already tagged, the line item picker above the note on New entry, a tour stop and guide step 5 | 92f2b0d |
@@ -179,19 +184,22 @@ The whole history runs from Oct 12 to Oct 22, 2026, newest first. `git log` has 
 
 ## Where it is going
 
-Chosen Nov 25, 2026. Drawn, not built: the live app has none of it.
+Chosen Nov 25, 2026. The four phone screens are drawn, not built: the live app has none of it. The landing page is the exception. The owner asked for it to go live the same day, with its copy as drawn, so it is the front page of costtooling.com now.
 
 The app is being aimed at the person who walks the job for an owner: an owner's rep, or an owner's assistant doing the same job. The promise is "see what's really done before you pay for it". That needs one thing the app cannot do today, which is compare what the contractor billed with what is in place, per line item.
 
 - **The plan, every idea that was weighed, and what is not settled:** [mockups/owner-side/README.md](mockups/owner-side/README.md).
-- **The screens:** open `mockups/owner-side/index.html`, or [costtooling.com/mockups/owner-side](https://costtooling.com/mockups/owner-side/). Four phone screens of the first release and a first draft of a landing page.
+- **The screens:** open `mockups/owner-side/index.html`, or [costtooling.com/mockups/owner-side](https://costtooling.com/mockups/owner-side/). Four phone screens of the first release and the draft the landing page was built from.
 - **Before building any of it,** ask the tester: when you finish a site visit, who do you send your report to, and what do they decide with it? The direction rests on one tester and on reasoning, not on market research.
-- **The order:** that question; then a first release that adds billed against in place, a sample job that shows it, pasting a job's lines from the contractor's bill, a rewritten welcome card and owner's side wording; then a second release for the owner update, issues, and time and place on photos; then the landing page.
+- **The order:** that question; then a first release that adds billed against in place, a sample job that shows it, pasting a job's lines from the contractor's bill, a rewritten welcome card and owner's side wording; then a second release for the owner update, issues, and time and place on photos. The landing page was to come last and went first instead.
+- **What the landing page says that the app cannot do yet:** it compares what you saw with what was billed, you enter what the contractor billed beside each line item, the page you send is called the owner update, and the sample job has a bill that runs ahead of the work. A visitor who taps Try the sample job finds none of that until the first two releases ship.
 
 ## Open work
 
 Nothing here is broken for one person on one phone. The first three items matter once teams share jobs.
 
+- [ ] **Make the landing page true.** It describes billed against in place and the owner update, which are not built. Build the first two releases in Where it is going, or cut the page back to what the app does.
+- [ ] **Check the move to `/app/` on a real iPhone.** It was tested in Chromium by serving version 16 and then version 17 to the same browser: the job survived, the worker updated, old links and emailed links reached the app, and both pages opened offline. In the iPhone simulator's Safari the landing page, Try the sample job and an old `/?s=report` link were checked by eye. Not yet checked on a phone: a home-screen app installed before the move, and a real emailed sign-in link.
 - [ ] **Merge edits instead of overwriting.** Sync swaps whole jobs, so when two phones edit one job before syncing, the second push erases the first one's changes.
 - [ ] **Clean up cloud photos.** Deleting a photo, an entry or a job never removes its files from the `ct-photos` bucket.
 - [ ] **Verify costtooling.com in Resend.** Its DNS has no Resend records, so sign-in emails most likely come from the charitytooling.com fallback sender.
@@ -212,5 +220,5 @@ The repo cannot answer these. Settle them in the first conversation.
 1. **Access:** which of these do you get? Collaborator on both GitHub repos, the Supabase project, Cloudflare, and Resend.
 2. **Users:** one real company is syncing: the tester's, with one job, last synced Oct 20, 2026 (checked Nov 19). Treat `ct_projects` as real data from here on, and ask whether more companies are coming. The only other company is the one `cloud-e2e.js` left behind on Oct 13, with no jobs; delete it as Test it describes.
 3. **Ideas inbox:** should the bulb keep emailing the owner, or you?
-4. **What next:** a direction is written down in Where it is going, waiting on the tester's answer. Confirm it, and settle the open points in `mockups/owner-side/README.md`. The README still calls the app a functional mock-up.
+4. **What next:** a direction is written down in Where it is going, waiting on the tester's answer; as of Nov 25 the tester had not been asked. Confirm it, and settle the open points in `mockups/owner-side/README.md`. The README still calls the app a functional mock-up.
 5. **The shared project:** will CostTooling stay on the CharityTooling Supabase project, or move to its own?

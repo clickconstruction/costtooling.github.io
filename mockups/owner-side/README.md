@@ -1,6 +1,6 @@
 # The owner's side: plan and mockups
 
-Chosen Nov 25, 2026. **Drawn, not built.** The live app has none of this. Open `index.html` in this folder to see every screen, or https://costtooling.com/mockups/owner-side/ once it is deployed.
+Chosen Nov 25, 2026. **The phone screens are drawn, not built:** the live app has none of them. **The landing page is live:** the owner had it built the same day, with its copy as drawn, as the front page of costtooling.com, and the app moved to costtooling.com/app. Open `index.html` in this folder to see every screen, or https://costtooling.com/mockups/owner-side/.
 
 Read `HANDOFF.md` at the repo root first. It says how the app is put together, shipped and tested.
 
@@ -34,7 +34,7 @@ If the answer is an owner, go ahead. If it is a builder, the billing ideas below
 | `home.html` | Job home: in place, billed, billed ahead, days left, and a "Check before you pay" card | 3, 4, 7 |
 | `item.html` | One part of the job: the slider for what you saw, and a new card for what the contractor billed | 3 |
 | `paste.html` | New job: paste the lines from the contractor's bill and see what was read | 5 |
-| `landing.html` | Landing page, first draft, with the owner update as the hero | 12 |
+| `landing.html` | Landing page, first draft, with the owner update as the hero. Built from this draft as `/index.html` at the repo root | 12 |
 
 The sample numbers are the app's sample job, with one change: the contractor has billed Framing at 100% while 85% is in place. That is $3,420 billed ahead on a $22,800 line, so the job is 36% in place and 38% billed.
 
@@ -55,7 +55,7 @@ The test for each: does it help this person say whether the bill matches the bui
 | 9 | Owner update that leads with the gap | It is the page the owner sees | Medium, needs 3 | Second release |
 | 10 | Issues with open and closed status | The tester had this in an inspection app | Medium | Second release |
 | 11 | Time and place recorded on every photo | The record may settle a dispute | Small to medium | Second release |
-| 12 | Landing page in front of the app | For strangers, once the promise is true | Medium, drafted | After 3 and 9 |
+| 12 | Landing page in front of the app | For strangers, once the promise is true | Medium, drafted | Live Nov 25, ahead of 3 and 9 |
 | 13 | Guide and tour rewritten for this user | Already overdue, see HANDOFF.md | Medium | After the first release |
 | 14 | Payment periods: "since the last request" | How reps work month to month | Large | Later |
 | 15 | Multi-page PDF with photos by line item | A file for the rep's records | Medium | Later |
@@ -68,7 +68,7 @@ The test for each: does it help this person say whether the bill matches the bui
 1. **The gate.** Idea 1, with idea 2 beside it.
 2. **First release: make the promise true and say it.** Ideas 3 to 8.
 3. **Second release: a record worth keeping.** Ideas 9, 10 and 11.
-4. **Then the landing page,** when everything it claims exists.
+4. **The landing page** was to come here, when everything it claims exists. It went live first, on Nov 25, so until steps 2 and 3 ship it describes a comparison of billed against in place, and an owner update, that the app does not have.
 
 Merging edits from two phones, the hardest item in HANDOFF.md's open work, can wait: this user works alone.
 
@@ -78,15 +78,18 @@ Merging edits from two phones, the hardest item in HANDOFF.md's open work, can w
 - **What happens to Costs.** A line item tracks what a builder spent today. The screens replace that card with what was billed. Decide whether costs are removed, hidden or kept below.
 - **How a bill is entered.** The screens take a percent or an amount per part, per bill. Whether bills are numbered and dated as a set, like "Bill 2 · Oct 15", is drawn but not designed.
 - **Sub folders.** The tester has not said whether they mean days, areas or stages.
-- **The landing page's place.** The site opens straight into the app today. The draft does not decide whether the landing page replaces that or sits beside it.
+
+## Settled
+
+- **The landing page's place** (Nov 25). It replaces the front page, and the app lives at `/app/`. The front page passes on home-screen apps, emailed links and old links; HANDOFF.md says how.
 
 ## Notes for whoever builds the first release
 
 - A job is one JSON object, on the phone and in the cloud, so a new field on a line item needs no database change. Keep old jobs working when the field is missing. One real company syncs a job, so `ct_projects` holds real data.
-- The sample job is in `js/data.js` (`sampleProject`). The job home, the line item screen and the new job form are in `js/ui.js`. Their actions are in `js/app.js`.
+- The sample job is in `js/data.js` (`sampleProject`). The app's page is `app/index.html`. The job home, the line item screen and the new job form are in `js/ui.js`. Their actions are in `js/app.js`.
 - The tour (`js/tour.js`) and the guide (`guide/index.html`) still describe the old words. Change them in the same release.
 - Bump the version in the three places HANDOFF.md lists.
-- Nothing from versions 14 to 16 was checked by eye or on a real phone. `qa/walkthrough.js` was edited for those versions and never run.
+- `qa/walkthrough.js` ran clean on Nov 25 against a local copy of version 17 in Chromium, after one stalled step in the script was fixed. Nothing from versions 14 to 17 has been checked on a real phone.
 
 ## Where these pages came from
 
@@ -94,7 +97,7 @@ They were drawn on a Claude design canvas on Nov 25, 2026 and exported here as p
 
 ## Picking this up with Claude Code
 
-Paste this after cloning the repo:
+Paste this after cloning the repo. The gate question had not been put to the tester as of Nov 25:
 
 ```text
 I'm picking up CostTooling, a phone-first web app at costtooling.com. This folder is its repo.

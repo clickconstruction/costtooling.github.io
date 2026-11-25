@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CostTooling</title>
+<meta name="description" content="CostTooling: track a job from the site. Photos, progress, costs, schedule, and the one-page report that comes out of them.">
+<meta name="theme-color" content="#161617">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="CostTooling">
+<script>if (new URLSearchParams(location.search).get("shot")) document.documentElement.classList.add("shot");</script>
+<link rel="manifest" href="../manifest.webmanifest"><link rel="apple-touch-icon" href="../icons/apple-touch-icon.png"><link rel="icon" href="../icons/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../css/app.css?v=17">
+</head>
+<body>
+<div class="shell">
+  <div class="phone"><div class="app">
+    <div class="top">
+      <button class="ibtn back" id="back" aria-label="Back"><i data-ic="chevl"></i></button>
+      <div class="mark" id="mark" onclick="App.openWelcome()">CT</div>
+      <div class="sp"><b id="ttl">Projects</b><span id="sub">CostTooling</span></div>
+      <button class="ibtn" id="cloudBtn" style="display:none;position:relative" onclick="Cloud.onStatusTap()" aria-label="Account"></button>
+      <button class="ibtn y" id="topAct" style="display:none"></button>
+    </div>
+
+    <section class="screen on" data-s="projects"><div id="projectsBody"></div></section>
+    <section class="screen" data-s="projform"><div id="projformBody"></div></section>
+    <section class="screen" data-s="home"><div id="homeBody"></div></section>
+    <section class="screen" data-s="log"><div id="logBody"></div></section>
+    <section class="screen" data-s="entryform"><div id="entryBody"></div></section>
+    <section class="screen" data-s="photo"><div id="photoBody"></div></section>
+    <section class="screen" data-s="cover">
+      <div class="cover-wrap"><canvas id="cover" width="1080" height="1350"></canvas></div>
+      <div id="coverBody"></div>
+    </section>
+    <section class="screen" data-s="sov"><div id="sovBody"></div></section>
+    <section class="screen" data-s="item"><div id="itemBody"></div></section>
+    <section class="screen" data-s="itemform"><div id="itemformBody"></div></section>
+    <section class="screen" data-s="report"><div id="reportBody"></div></section>
+    <section class="screen" data-s="signin"><div id="cloudBody_signin"></div></section>
+    <section class="screen" data-s="join"><div id="cloudBody_join"></div></section>
+    <section class="screen" data-s="forgot"><div id="cloudBody_forgot"></div></section>
+    <section class="screen" data-s="setpass"><div id="cloudBody_setpass"></div></section>
+    <section class="screen" data-s="company"><div id="cloudBody_company"></div></section>
+    <section class="screen" data-s="account"><div id="cloudBody_account"></div></section>
+    <section class="screen" data-s="team"><div id="cloudBody_team"></div></section>
+
+    <div class="tabs" id="tabs">
+      <button data-t="home" onclick="App.go('home')"><span class="pill"><i data-ic="home" data-size="21"></i></span>Home</button>
+      <button data-t="log" onclick="App.go('log')"><span class="pill"><i data-ic="camera" data-size="21"></i></span>Log</button>
+      <button data-t="cover" onclick="App.go('cover')"><span class="pill"><i data-ic="image" data-size="21"></i></span>Cover</button>
+      <button data-t="sov" onclick="App.go('sov')"><span class="pill"><i data-ic="percent" data-size="21"></i></span>Progress</button>
+      <button data-t="report" onclick="App.go('report')"><span class="pill"><i data-ic="file" data-size="21"></i></span>Report</button>
+    </div>
+    <button class="fab" id="fab" onclick="App.openIdeas()" aria-label="Suggest an idea"><i data-ic="bulb" data-size="26"></i><span class="n" id="fabN"></span></button>
+    <div class="toast" id="toast"></div>
+    <div class="sheet-bg" id="sheetBg" onclick="App.closeSheet()"></div>
+
+    <div class="sheet" id="shareSheet">
+      <div class="grab"></div>
+      <h4 id="shareTitle">Share</h4>
+      <div class="opts">
+        <div onclick="App.shareDo('share')"><div class="ib y"><i data-ic="share" data-size="24"></i></div>Share…</div>
+        <div onclick="App.shareDo('save')"><div class="ib"><i data-ic="download" data-size="24"></i></div>Save image</div>
+        <div onclick="App.shareDo('print')"><div class="ib"><i data-ic="file" data-size="24"></i></div>Print / PDF</div>
+        <div onclick="App.shareDo('mail')"><div class="ib"><i data-ic="mail" data-size="24"></i></div>Email</div>
+      </div>
+    </div>
+    <div class="sheet" id="ideaSheet">
+      <div class="grab"></div>
+      <h4>What would you want here?</h4>
+      <p class="hint" style="margin:0 0 8px">You're on <b id="ideaScreen"></b>. Say what's missing, confusing, or would make this worth using.</p>
+      <textarea class="in" id="ideaText" placeholder="e.g. I'd want to text the cover page straight to the owner"></textarea>
+      <div class="imp" id="ideaImp"><button data-i="nice">Nice to have</button><button class="on" data-i="want">I'd use this</button><button data-i="must">Must have</button></div>
+      <div style="display:flex;gap:8px;margin-top:10px"><button class="btn sm" onclick="App.saveIdea()"><i data-ic="check"></i>Save idea</button><button class="btn q sm" onclick="App.sendIdeas()"><i data-ic="send"></i>Email all ideas</button></div>
+      <div class="ideas" id="ideaList"></div>
+      <div class="foot"><a onclick="Tour.start()">Show me around</a><a href="../guide/">How do I…</a><a onclick="App.openWelcome()">About</a><a onclick="App.exportData()">Back up my data</a><a onclick="App.resetAll()">Start over</a></div>
+    </div>
+    <div class="sheet welcome" id="welcomeSheet">
+      <div class="grab"></div>
+      <div class="mark">CT</div>
+      <h4 id="welcomeTitle">Welcome to CostTooling</h4>
+      <p>Take photos on the job.<br>See how far along it is.<br>Send a one-page report.</p>
+      <p id="installTip" style="display:none"><b>On an iPhone?</b> Tap Share <span style="display:inline-block;vertical-align:-3px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 12v8h14v-8"/></svg></span> in Safari, then <b>Add to Home Screen</b>. Do this before you add real jobs.</p>
+      <div class="two" id="welcomeBtns"><button class="btn" id="welcomeTour" onclick="Tour.start()">Show me around</button><button class="btn q" id="welcomeGo" onclick="App.closeSheet()"><i data-ic="check"></i>Let's go</button></div>
+    </div>
+    <div class="sheet" id="confirmSheet">
+      <div class="grab"></div>
+      <h4 id="confirmTitle">Are you sure?</h4>
+      <p id="confirmText"></p>
+      <div style="display:flex;gap:8px"><button class="btn danger solid" id="confirmBtn">Delete</button><button class="btn q" onclick="App.closeSheet()">Cancel</button></div>
+    </div>
+    <div class="sheet" id="moveSheet">
+      <div class="grab"></div>
+      <h4>Move to another line item</h4>
+      <p id="moveHint" style="font-size:13px;color:var(--muted)"></p>
+      <div class="seg" id="moveMode" style="margin-bottom:6px"><button data-m="entry" onclick="App.setMoveMode('entry')">This whole entry</button><button data-m="photo" onclick="App.setMoveMode('photo')">Just this photo</button></div>
+      <div id="moveList"></div>
+      <button class="btn q" style="margin-top:12px" onclick="App.closeSheet()">Cancel</button>
+    </div>
+    <input type="file" id="fileCam" accept="image/*" capture="environment" hidden>
+    <input type="file" id="fileGal" accept="image/*" multiple hidden>
+    <canvas id="reportCanvas" hidden></canvas>
+  </div></div>
+</div>
+<div id="printArea" hidden></div>
+<script src="../js/db.js?v=17"></script>
+<script src="../js/photos.js?v=17"></script>
+<script src="../js/data.js?v=17"></script>
+<script src="../js/cover.js?v=17"></script>
+<script src="../js/ui.js?v=17"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+<script src="../js/cloud.js?v=17"></script>
+<script src="../js/tour.js?v=17"></script>
+<script src="../js/app.js?v=17"></script>
+<script>
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('../sw.js').then(reg => {
+    reg.addEventListener('updatefound', () => { const nw = reg.installing; nw && nw.addEventListener('statechange', () => { if (nw.state === 'installed' && navigator.serviceWorker.controller) { const t = document.getElementById('toast'); if (t) { t.innerHTML = '<span>Update ready. </span><a style="color:var(--yellow);font-weight:700;margin-left:6px" onclick="location.reload()">Reload</a>'; t.style.pointerEvents = 'auto'; t.classList.add('show'); } } }); });
+  }).catch(() => {});
+}
+</script>
+</body></html>

@@ -17,6 +17,9 @@ const Cloud = (() => {
 
   let sb = null, session = null, user = null, profile = null, memberships = [], companyId = DB.get('ct-company') || null;
   let status = 'off', detail = '', authIntent = null, pushTimer = null, pushing = false, pulling = false;
+  // Emailed links come back to the site's front page, as they did before the app moved to /app/.
+  // The front page passes them on to the app with their query and hash (see the script at the top of /index.html).
+  const SITE = location.origin + location.pathname.replace(/app\/(index\.html)?$/, '');
   const sync = Object.assign({ synced: {}, uploaded: {}, deleted: [] }, DB.get('ct-sync') || {});
   const saveSync = () => DB.set('ct-sync', sync);
 
@@ -70,11 +73,11 @@ const Cloud = (() => {
     if (error) throw new Error(/invalid/i.test(error.message) ? 'Wrong email or password.' : error.message);
   }
   async function sendMagicLink(email) {
-    const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: location.origin + location.pathname + '?auth=signin' } });
+    const { error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: SITE + '?auth=signin' } });
     if (error) throw new Error(/rate/i.test(error.message) ? 'Too many requests. Try again in a few minutes.' : error.message);
   }
   async function forgot(email) {
-    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname + '?auth=reset' });
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: SITE + '?auth=reset' });
     if (error && /rate/i.test(error.message)) throw new Error('Too many requests. Try again in a few minutes.');
   }
   async function setPassword(pwd) {

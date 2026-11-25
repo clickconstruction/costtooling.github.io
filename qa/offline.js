@@ -2,7 +2,7 @@
 const { chromium } = require('playwright'); const BASE = process.argv[2] || 'https://costtooling.com';
 (async () => {
   const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 390, height: 844 } }); const page = await ctx.newPage();
-  await page.goto(BASE + '/?s=projects', { waitUntil: 'networkidle' });
+  await page.goto(BASE + '/app/?s=projects', { waitUntil: 'networkidle' });
   const reg = await page.evaluate(async () => { const r = await navigator.serviceWorker.ready; return { scope: r.scope, active: !!r.active }; });
   await page.waitForTimeout(2500);
   const cached = await page.evaluate(async () => { const keys = await caches.keys(); const c = await caches.open(keys[0]); return { keys, n: (await c.keys()).length }; });

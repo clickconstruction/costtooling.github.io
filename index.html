@@ -1,119 +1,226 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>CostTooling</title>
-<meta name="description" content="CostTooling: track a job from the site. Photos, progress, costs, schedule, and the one-page report that comes out of them.">
-<meta name="theme-color" content="#161617">
-<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="CostTooling">
-<script>if (new URLSearchParams(location.search).get("shot")) document.documentElement.classList.add("shot");</script>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script>
+// The app used to live at this address and now lives at /app/. Anything on its way to the app is passed on with
+// its query and hash: a home-screen app installed before the move, an emailed sign-in or invite link (those come
+// back here; see SITE in js/cloud.js), and old links such as /?s=cover or /?for=Name. Everyone else sees this page.
+(function () {
+  var q = location.search, h = location.hash, go = false;
+  try { go = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches; } catch (e) {}
+  if (!go && q.length > 1) {
+    var ads = /^(utm_[a-z]+|fbclid|gclid|msclkid|ref)$/;
+    go = q.slice(1).split('&').some(function (kv) { var k = kv.split('=')[0]; try { k = decodeURIComponent(k); } catch (e) {} return k && !ads.test(k); });
+  }
+  if (!go && /(^#|&)(access_token|error|error_code|type)=/.test(h)) go = true;
+  if (go) { document.documentElement.style.visibility = 'hidden'; location.replace('app/' + q + h); }
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CostTooling: see what's really done before you pay for it</title>
+<meta name="description" content="For owner's reps, and anyone who walks the job for an owner. Walk the site, take photos, and send the owner one page. Works on your phone, with no account and nothing to install.">
+<meta name="theme-color" content="#f6f5f1">
+<meta property="og:type" content="website">
+<meta property="og:title" content="CostTooling: see what's really done before you pay for it">
+<meta property="og:description" content="For owner's reps, and anyone who walks the job for an owner. Walk the site, take photos, and send the owner one page.">
+<meta property="og:url" content="https://costtooling.com/">
+<meta property="og:image" content="https://costtooling.com/icons/icon-512.png">
+<link rel="canonical" href="https://costtooling.com/">
 <link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="css/app.css?v=16">
+<style>
+body{margin:0}
+a{color:#003366}a:hover{color:#161617}
+.lp{background:#f6f5f1;color:#161617;font:17px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+.lp *{box-sizing:border-box}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+.nav{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:20px 0}
+.mark{width:38px;height:38px;border-radius:10px;background:#e8c547;color:#161617;font-weight:900;font-size:15px;display:flex;align-items:center;justify-content:center;letter-spacing:-.5px;flex:none}
+.nav b{font-size:18px;flex:1}
+.nav a{font-size:15px;font-weight:600;text-decoration:none;padding:10px 4px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#161617;color:#e8c547;border-radius:12px;padding:14px 20px;font-weight:700;font-size:16px;text-decoration:none;min-height:48px}
+.btn:hover{color:#fff}
+.btn.q{background:#fff;color:#161617;border:1px solid #e2dfd6;font-weight:600}
+.btn.q:hover{color:#003366}
+.btn.y{background:#e8c547;color:#161617}
+.btn.y:hover{color:#161617;background:#f0d361}
+.hero{display:flex;flex-wrap:wrap;gap:48px;align-items:center;padding:40px 0 72px}
+.hero .txt{flex:1 1 420px;min-width:0}
+.hero .art{flex:1 1 380px;min-width:0}
+.eyebrow{font-size:13px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:#6b6a66;margin:0 0 14px}
+h1{font-size:clamp(36px,5.4vw,62px);line-height:1.04;letter-spacing:-1.5px;margin:0 0 20px;font-weight:800;text-wrap:balance}
+.lead{font-size:20px;line-height:1.45;color:#3a3936;margin:0 0 28px;max-width:34em}
+.cta{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.fine{font-size:14px;color:#6b6a66;margin:16px 0 0}
+.report{background:#fff;border:1px solid #e2dfd6;border-radius:16px;padding:22px 20px;box-shadow:0 18px 40px rgba(22,22,23,.12);font-size:14px}
+.report .hd{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.report .hd .mark{width:32px;height:32px;border-radius:8px;background:#161617;color:#e8c547;font-size:12px}
+.report h2{margin:0;font-size:17px;line-height:1.2}
+.report .meta{color:#6b6a66;font-size:12.5px;margin:2px 0 0}
+.tag{margin-left:auto;font-size:11px;font-weight:700;border:1px dashed #b8b6ad;color:#6b6a66;border-radius:99px;padding:3px 9px;white-space:nowrap}
+.num4{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.num4 div{flex:1 1 90px;background:#f6f5f1;border-radius:8px;padding:10px 6px;text-align:center}
+.num4 b{display:block;font-size:19px;letter-spacing:-.3px}
+.num4 span{font-size:11px;color:#6b6a66}
+.num4 .warn{background:#fbf4e4}
+.num4 .warn b,.num4 .warn span{color:#7a4f0d}
+.flag{display:flex;gap:10px;align-items:flex-start;background:#fbf4e4;border:1px solid #ead9b2;border-radius:10px;padding:10px 12px;color:#7a4f0d;font-size:13.5px;line-height:1.4;margin-bottom:12px}
+.flag b{color:#5e3c08}
+.flag svg{flex:none;margin-top:2px}
+.shots{display:flex;gap:8px;margin-bottom:12px}
+.shot{flex:1;aspect-ratio:1;border-radius:8px;position:relative;overflow:hidden;background:#c9bfa8}
+.shot.b{background:#b9ad96}.shot.c{background:#b5b3ab}
+.shot small{position:absolute;left:6px;bottom:6px;right:6px;background:rgba(22,22,23,.78);color:#fff;font-size:10.5px;padding:3px 6px;border-radius:6px;font-weight:600;line-height:1.25}
+.report p{margin:0;color:#3a3936;line-height:1.45}
+.report .by{margin-top:12px;padding-top:10px;border-top:1px solid #e2dfd6;font-size:12px;color:#6b6a66}
+.band{background:#161617;color:#fff;padding:64px 0}
+.band .q{font-size:clamp(24px,3.4vw,38px);line-height:1.2;letter-spacing:-.6px;font-weight:700;margin:0 0 14px;max-width:22em;text-wrap:balance}
+.band .q em{font-style:normal;color:#e8c547}
+.band p{margin:0;color:#cfcdc6;max-width:38em}
+.sec{padding:72px 0}
+h3.h{font-size:clamp(26px,3.2vw,36px);letter-spacing:-.6px;line-height:1.15;margin:0 0 28px;font-weight:800;max-width:20em;text-wrap:balance}
+.cards{display:flex;flex-wrap:wrap;gap:16px}
+.card{flex:1 1 280px;min-width:0;background:#fff;border:1px solid #e2dfd6;border-radius:16px;padding:22px}
+.card .ib{width:44px;height:44px;border-radius:12px;background:#f6f5f1;border:1px solid #e2dfd6;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+.card h4{margin:0 0 8px;font-size:19px;line-height:1.25;letter-spacing:-.2px}
+.card p{margin:0;color:#3a3936;font-size:16px}
+.asst{background:#e8c547;padding:64px 0}
+.asst h3{font-size:clamp(28px,4vw,46px);line-height:1.08;letter-spacing:-1px;margin:0 0 14px;font-weight:800;max-width:16em;text-wrap:balance}
+.asst p{margin:0;font-size:19px;max-width:34em;color:#2b2a26}
+.steps{display:flex;flex-wrap:wrap;gap:16px;counter-reset:s}
+.step{flex:1 1 240px;min-width:0;border-top:3px solid #161617;padding-top:14px}
+.step .n{font-size:13px;font-weight:800;letter-spacing:.06em;color:#6b6a66}
+.step h4{margin:4px 0 6px;font-size:20px}
+.step p{margin:0;color:#3a3936;font-size:16px}
+.stop{display:flex;flex-wrap:wrap;gap:16px}
+.stop div{flex:1 1 300px;min-width:0;display:flex;gap:12px;align-items:flex-start;font-size:18px;line-height:1.4}
+.stop svg{flex:none;margin-top:3px;color:#6b6a66}
+.stop s{color:#6b6a66}
+.end{background:#161617;color:#fff;padding:72px 0;text-align:center}
+.end h3{font-size:clamp(28px,4vw,44px);letter-spacing:-.8px;line-height:1.1;margin:0 auto 12px;font-weight:800;max-width:18em;text-wrap:balance}
+.end p{margin:0 auto 26px;color:#cfcdc6;max-width:32em}
+.foot{padding:22px 0;font-size:14px;color:#6b6a66;display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between}
+</style>
 </head>
 <body>
-<div class="shell">
-  <div class="phone"><div class="app">
-    <div class="top">
-      <button class="ibtn back" id="back" aria-label="Back"><i data-ic="chevl"></i></button>
-      <div class="mark" id="mark" onclick="App.openWelcome()">CT</div>
-      <div class="sp"><b id="ttl">Projects</b><span id="sub">CostTooling</span></div>
-      <button class="ibtn" id="cloudBtn" style="display:none;position:relative" onclick="Cloud.onStatusTap()" aria-label="Account"></button>
-      <button class="ibtn y" id="topAct" style="display:none"></button>
-    </div>
+<div class="lp">
+  <div class="wrap">
+    <header class="nav">
+      <div class="mark">CT</div>
+      <b>CostTooling</b>
+      <a href="#how">How it works</a>
+      <a class="btn q" href="app/">Open the app</a>
+    </header>
 
-    <section class="screen on" data-s="projects"><div id="projectsBody"></div></section>
-    <section class="screen" data-s="projform"><div id="projformBody"></div></section>
-    <section class="screen" data-s="home"><div id="homeBody"></div></section>
-    <section class="screen" data-s="log"><div id="logBody"></div></section>
-    <section class="screen" data-s="entryform"><div id="entryBody"></div></section>
-    <section class="screen" data-s="photo"><div id="photoBody"></div></section>
-    <section class="screen" data-s="cover">
-      <div class="cover-wrap"><canvas id="cover" width="1080" height="1350"></canvas></div>
-      <div id="coverBody"></div>
+    <section class="hero">
+      <div class="txt">
+        <p class="eyebrow">For owner's reps, and anyone who walks the job for an owner</p>
+        <h1>See what's really done before you pay for it.</h1>
+        <p class="lead">Walk the site and take photos. CostTooling files them under each part of the job, compares what you saw with what was billed, and turns it into one page the owner can read in a minute.</p>
+        <div class="cta">
+          <a class="btn" href="app/?s=home&amp;job=sample">Try the sample job</a>
+          <a class="btn q" href="#how">See how it works</a>
+        </div>
+        <p class="fine">Works on your phone. No account, nothing to install.</p>
+      </div>
+      <div class="art">
+        <div class="report">
+          <div class="hd">
+            <div class="mark">CT</div>
+            <div><h2>Owner update</h2><p class="meta">Maple St Duplex — Unit B · Tue, Oct 20</p></div>
+            <span class="tag">Sample</span>
+          </div>
+          <div class="num4">
+            <div><b>36%</b><span>in place</span></div>
+            <div><b>38%</b><span>billed</span></div>
+            <div class="warn"><b>$3,420</b><span>billed ahead</span></div>
+            <div><b>67</b><span>days left</span></div>
+          </div>
+          <div class="flag">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg>
+            <div><b>Framing is billed at 100%. On site it is 85%.</b> Blocking for the kitchen uppers is still open.</div>
+          </div>
+          <div class="shots">
+            <div class="shot"><small>Framing · Day 4</small></div>
+            <div class="shot b"><small>Roofing · Day 2</small></div>
+            <div class="shot c"><small>Foundation · Day 2</small></div>
+          </div>
+          <p>Roof is decked on the north slope. Roofing crew is back Tuesday. Plumbing rough-in starts Wednesday.</p>
+          <p class="by">Photos and percentages recorded on site by [YOUR NAME]</p>
+        </div>
+      </div>
     </section>
-    <section class="screen" data-s="sov"><div id="sovBody"></div></section>
-    <section class="screen" data-s="item"><div id="itemBody"></div></section>
-    <section class="screen" data-s="itemform"><div id="itemformBody"></div></section>
-    <section class="screen" data-s="report"><div id="reportBody"></div></section>
-    <section class="screen" data-s="signin"><div id="cloudBody_signin"></div></section>
-    <section class="screen" data-s="join"><div id="cloudBody_join"></div></section>
-    <section class="screen" data-s="forgot"><div id="cloudBody_forgot"></div></section>
-    <section class="screen" data-s="setpass"><div id="cloudBody_setpass"></div></section>
-    <section class="screen" data-s="company"><div id="cloudBody_company"></div></section>
-    <section class="screen" data-s="account"><div id="cloudBody_account"></div></section>
-    <section class="screen" data-s="team"><div id="cloudBody_team"></div></section>
+  </div>
 
-    <div class="tabs" id="tabs">
-      <button data-t="home" onclick="App.go('home')"><span class="pill"><i data-ic="home" data-size="21"></i></span>Home</button>
-      <button data-t="log" onclick="App.go('log')"><span class="pill"><i data-ic="camera" data-size="21"></i></span>Log</button>
-      <button data-t="cover" onclick="App.go('cover')"><span class="pill"><i data-ic="image" data-size="21"></i></span>Cover</button>
-      <button data-t="sov" onclick="App.go('sov')"><span class="pill"><i data-ic="percent" data-size="21"></i></span>Progress</button>
-      <button data-t="report" onclick="App.go('report')"><span class="pill"><i data-ic="file" data-size="21"></i></span>Report</button>
+  <section class="band">
+    <div class="wrap">
+      <p class="q">The bill says <em>"Framing, 100% complete."</em> The owner asks if they should pay it.</p>
+      <p>You were there last week. The answer is somewhere in your camera roll. CostTooling keeps it where you can find it: under Framing, by day, with the note you wrote.</p>
     </div>
-    <button class="fab" id="fab" onclick="App.openIdeas()" aria-label="Suggest an idea"><i data-ic="bulb" data-size="26"></i><span class="n" id="fabN"></span></button>
-    <div class="toast" id="toast"></div>
-    <div class="sheet-bg" id="sheetBg" onclick="App.closeSheet()"></div>
+  </section>
 
-    <div class="sheet" id="shareSheet">
-      <div class="grab"></div>
-      <h4 id="shareTitle">Share</h4>
-      <div class="opts">
-        <div onclick="App.shareDo('share')"><div class="ib y"><i data-ic="share" data-size="24"></i></div>Share…</div>
-        <div onclick="App.shareDo('save')"><div class="ib"><i data-ic="download" data-size="24"></i></div>Save image</div>
-        <div onclick="App.shareDo('print')"><div class="ib"><i data-ic="file" data-size="24"></i></div>Print / PDF</div>
-        <div onclick="App.shareDo('mail')"><div class="ib"><i data-ic="mail" data-size="24"></i></div>Email</div>
+  <section class="sec">
+    <div class="wrap">
+      <h3 class="h">What you can do after one site walk</h3>
+      <div class="cards">
+        <div class="card">
+          <div class="ib"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 5L5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></div>
+          <h4>Check the bill against the building</h4>
+          <p>Every line the contractor bills has its own folder of dated photos and your own percent complete. When the two disagree, it shows.</p>
+        </div>
+        <div class="card">
+          <div class="ib"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div>
+          <h4>Answer "when did that happen?" in ten seconds</h4>
+          <p>Day 1, Day 2, Day 3 under each part of the job, with the weather and who was on site that day.</p>
+        </div>
+        <div class="card">
+          <div class="ib"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6v20h12V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h4"/></svg></div>
+          <h4>Show the owner without writing a report</h4>
+          <p>One page with the numbers, the photos and your note. Text it or email it before you leave the site.</p>
+        </div>
       </div>
     </div>
-    <div class="sheet" id="ideaSheet">
-      <div class="grab"></div>
-      <h4>What would you want here?</h4>
-      <p class="hint" style="margin:0 0 8px">You're on <b id="ideaScreen"></b>. Say what's missing, confusing, or would make this worth using.</p>
-      <textarea class="in" id="ideaText" placeholder="e.g. I'd want to text the cover page straight to the owner"></textarea>
-      <div class="imp" id="ideaImp"><button data-i="nice">Nice to have</button><button class="on" data-i="want">I'd use this</button><button data-i="must">Must have</button></div>
-      <div style="display:flex;gap:8px;margin-top:10px"><button class="btn sm" onclick="App.saveIdea()"><i data-ic="check"></i>Save idea</button><button class="btn q sm" onclick="App.sendIdeas()"><i data-ic="send"></i>Email all ideas</button></div>
-      <div class="ideas" id="ideaList"></div>
-      <div class="foot"><a onclick="Tour.start()">Show me around</a><a href="guide/">How do I…</a><a onclick="App.openWelcome()">About</a><a onclick="App.exportData()">Back up my data</a><a onclick="App.resetAll()">Start over</a></div>
+  </section>
+
+  <section class="asst">
+    <div class="wrap">
+      <h3>You don't have to be a builder to report like one.</h3>
+      <p>The list of line items tells you what to look at. Take the photo, drag the slider to what you saw, send the page.</p>
     </div>
-    <div class="sheet welcome" id="welcomeSheet">
-      <div class="grab"></div>
-      <div class="mark">CT</div>
-      <h4 id="welcomeTitle">Welcome to CostTooling</h4>
-      <p>Take photos on the job.<br>See how far along it is.<br>Send a one-page report.</p>
-      <p id="installTip" style="display:none"><b>On an iPhone?</b> Tap Share <span style="display:inline-block;vertical-align:-3px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 12v8h14v-8"/></svg></span> in Safari, then <b>Add to Home Screen</b>. Do this before you add real jobs.</p>
-      <div class="two" id="welcomeBtns"><button class="btn" id="welcomeTour" onclick="Tour.start()">Show me around</button><button class="btn q" id="welcomeGo" onclick="App.closeSheet()"><i data-ic="check"></i>Let's go</button></div>
+  </section>
+
+  <section class="sec" id="how">
+    <div class="wrap">
+      <h3 class="h">How it works</h3>
+      <div class="steps">
+        <div class="step"><div class="n">STEP 1</div><h4>Walk the job</h4><p>Take a photo and pick the part of the job it belongs to. Add a note if you like.</p></div>
+        <div class="step"><div class="n">STEP 2</div><h4>Mark what you saw</h4><p>Drag a slider for each line item. Enter what the contractor billed beside it.</p></div>
+        <div class="step"><div class="n">STEP 3</div><h4>Send one page</h4><p>The owner update builds itself. Share it by text, email or print.</p></div>
+      </div>
     </div>
-    <div class="sheet" id="confirmSheet">
-      <div class="grab"></div>
-      <h4 id="confirmTitle">Are you sure?</h4>
-      <p id="confirmText"></p>
-      <div style="display:flex;gap:8px"><button class="btn danger solid" id="confirmBtn">Delete</button><button class="btn q" onclick="App.closeSheet()">Cancel</button></div>
+  </section>
+
+  <section class="sec" style="padding-top: 0">
+    <div class="wrap">
+      <h3 class="h">What you stop doing</h3>
+      <div class="stop">
+        <div><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg><span><s>Scrolling a camera roll</s> to find the photo that proves it.</span></div>
+        <div><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg><span><s>Taking the contractor's word</s> for how far along the work is.</span></div>
+      </div>
     </div>
-    <div class="sheet" id="moveSheet">
-      <div class="grab"></div>
-      <h4>Move to another line item</h4>
-      <p id="moveHint" style="font-size:13px;color:var(--muted)"></p>
-      <div class="seg" id="moveMode" style="margin-bottom:6px"><button data-m="entry" onclick="App.setMoveMode('entry')">This whole entry</button><button data-m="photo" onclick="App.setMoveMode('photo')">Just this photo</button></div>
-      <div id="moveList"></div>
-      <button class="btn q" style="margin-top:12px" onclick="App.closeSheet()">Cancel</button>
+  </section>
+
+  <section class="end">
+    <div class="wrap">
+      <h3>Try it on a sample job before your next site walk.</h3>
+      <p>The sample has a bill that runs ahead of the work. See how it shows up.</p>
+      <a class="btn y" href="app/?s=home&amp;job=sample">Try the sample job</a>
     </div>
-    <input type="file" id="fileCam" accept="image/*" capture="environment" hidden>
-    <input type="file" id="fileGal" accept="image/*" multiple hidden>
-    <canvas id="reportCanvas" hidden></canvas>
-  </div></div>
+  </section>
+
+  <div class="wrap">
+    <footer class="foot"><span>CostTooling · costtooling.com</span><a href="guide/">How do I…</a></footer>
+  </div>
 </div>
-<div id="printArea" hidden></div>
-<script src="js/db.js?v=16"></script>
-<script src="js/photos.js?v=16"></script>
-<script src="js/data.js?v=16"></script>
-<script src="js/cover.js?v=16"></script>
-<script src="js/ui.js?v=16"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
-<script src="js/cloud.js?v=16"></script>
-<script src="js/tour.js?v=16"></script>
-<script src="js/app.js?v=16"></script>
-<script>
-if ('serviceWorker' in navigator && location.protocol === 'https:') {
-  navigator.serviceWorker.register('sw.js').then(reg => {
-    reg.addEventListener('updatefound', () => { const nw = reg.installing; nw && nw.addEventListener('statechange', () => { if (nw.state === 'installed' && navigator.serviceWorker.controller) { const t = document.getElementById('toast'); if (t) { t.innerHTML = '<span>Update ready. </span><a style="color:var(--yellow);font-weight:700;margin-left:6px" onclick="location.reload()">Reload</a>'; t.style.pointerEvents = 'auto'; t.classList.add('show'); } } }); });
-  }).catch(() => {});
-}
-</script>
-</body></html>
+</body>
+</html>

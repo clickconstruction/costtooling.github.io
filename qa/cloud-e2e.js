@@ -19,9 +19,9 @@ const jpeg = async (page, label) => Buffer.from((await page.evaluate((label) => 
 
   // ---- phone A: sign in, create company, add a project with a photo ----
   const A = await mk();
-  await A.page.goto(BASE + '/?s=projects', { waitUntil: 'networkidle' });
+  await A.page.goto(BASE + '/app/?s=projects', { waitUntil: 'networkidle' });
   await A.page.evaluate(() => { localStorage.setItem('ct-welcomed', '1'); });
-  await A.page.goto(BASE + '/?s=signin', { waitUntil: 'networkidle' });
+  await A.page.goto(BASE + '/app/?s=signin', { waitUntil: 'networkidle' });
   await shot(A.page, 'signin');
   await A.page.fill('#siEmail', EMAIL); await A.page.fill('#siPwd', PASSWORD); await A.page.click('#siBtn');
   await A.page.waitForFunction(() => document.querySelector('.screen.on').dataset.s === 'company' || document.querySelector('.screen.on').dataset.s === 'projects', null, { timeout: 20000 });
@@ -63,14 +63,14 @@ const jpeg = async (page, label) => Buffer.from((await page.evaluate((label) => 
 
   // ---- phone B: fresh browser; check the invite code while signed out, then sign in and pull ----
   const B = await mk();
-  await B.page.goto(BASE + '/?s=join', { waitUntil: 'networkidle' });
+  await B.page.goto(BASE + '/app/?s=join', { waitUntil: 'networkidle' });
   await B.page.evaluate(() => { localStorage.setItem('ct-welcomed', '1'); });
   await B.page.fill('#jnCode', inviteCode || 'ZZZZ-9999');
   await B.page.waitForFunction(() => (document.getElementById('jnCheck')?.textContent || '').includes('E2E Builders') || (document.getElementById('jnErr')?.textContent || '').length > 0, null, { timeout: 15000 });
   const check = await B.page.evaluate(() => ({ ok: document.getElementById('jnCheck').textContent, err: document.getElementById('jnErr').textContent }));
   console.log('phone B code check:', JSON.stringify(check)); if (!check.ok.includes('E2E Builders')) issues.push('invite code check failed: ' + check.err);
   await shot(B.page, 'join-check');
-  await B.page.goto(BASE + '/?s=signin', { waitUntil: 'networkidle' });
+  await B.page.goto(BASE + '/app/?s=signin', { waitUntil: 'networkidle' });
   await B.page.fill('#siEmail', EMAIL); await B.page.fill('#siPwd', PASSWORD); await B.page.click('#siBtn');
   await B.page.waitForFunction(() => document.querySelector('.screen.on').dataset.s === 'projects', null, { timeout: 20000 });
   await B.page.waitForFunction(() => App.state().projects.some(p => p.name === 'E2E Garage'), null, { timeout: 20000 }).catch(() => issues.push('project did not arrive on phone B'));

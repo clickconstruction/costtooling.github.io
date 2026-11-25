@@ -10,7 +10,7 @@ const W = 390, H = 844, PAD = 12;
   const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 2, isMobile: true, hasTouch: true, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' });
   const page = await ctx.newPage();
   const errors = []; page.on('pageerror', e => errors.push('pageerror: ' + e.message)); page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
-  const open = async (q, wait = 1000) => { await page.goto(`${BASE}/?shot=1&${q}`, { waitUntil: 'networkidle' }); await page.waitForTimeout(wait); };
+  const open = async (q, wait = 1000) => { await page.goto(`${BASE}/app/?shot=1&${q}`, { waitUntil: 'networkidle' }); await page.waitForTimeout(wait); };
   const shot = async (name, sel) => {
     const el = sel ? (typeof sel === 'string' ? page.locator(sel).first() : sel) : null;
     if (el) { await el.scrollIntoViewIfNeeded(); await page.waitForTimeout(200); }

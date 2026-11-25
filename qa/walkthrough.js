@@ -1,8 +1,8 @@
-// Drives the live app as an iPhone and screenshots every step into qa/shots.
+// Drives the live app (at /app/) as an iPhone and screenshots every step into qa/shots.
 // Run: NODE_PATH=<path to node_modules with playwright> node qa/walkthrough.js [baseUrl]
 const pw = require('playwright'); const ENGINE = process.env.ENGINE || 'chromium'; const chromium = pw[ENGINE];
 const fs = require('fs'), path = require('path');
-const BASE = process.argv[2] || 'https://costtooling.com';
+const BASE = (process.argv[2] || 'https://costtooling.com').replace(/\/$/, ''), APP = BASE + '/app';
 const OUT = path.join(__dirname, ENGINE === 'chromium' ? 'shots' : 'shots-' + ENGINE); fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(OUT, { recursive: true });
 const issues = [], consoleErrors = [];
 let n = 0;
@@ -23,9 +23,9 @@ let n = 0;
   const jpeg = async (label, w = 1600, h = 1200) => Buffer.from((await page.evaluate(([label, w, h]) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#7fa7c9'); gr.addColorStop(1, '#d9cbb0'); g.fillStyle = gr; g.fillRect(0, 0, w, h); g.fillStyle = '#8d6a40'; for (let i = 0; i < 10; i++) g.fillRect(100 + i * 150, h * 0.35, 30, h * 0.55); g.fillStyle = '#161617'; g.font = 'bold 72px sans-serif'; g.fillText(label, 120, 200); return c.toDataURL('image/jpeg', 0.9); }, [label, w, h])).split(',')[1], 'base64');
 
   // fresh start
-  await page.goto(BASE + '/?for=Diane', { waitUntil: 'networkidle' });
+  await page.goto(APP + '/?for=Diane', { waitUntil: 'networkidle' });
   await page.evaluate(async () => { await DB.clearPhotos(); localStorage.clear(); });
-  await page.goto(BASE + '/?for=Diane', { waitUntil: 'networkidle' });
+  await page.goto(APP + '/?for=Diane', { waitUntil: 'networkidle' });
   await shot('welcome', { wait: 900 });
   await tap(byText("Let's go")); await shot('projects');
   await tap('.card.tap'); await shot('home-top'); await scrollBottom(); await shot('home-bottom');
@@ -67,7 +67,7 @@ let n = 0;
   const dl2 = waitDl(); await tap(byText('Save image')); const d2 = await dl2; if (d2) await d2.saveAs(path.join(OUT, '_report-download.jpg')); else if (ENGINE === 'chromium') issues.push('report download did not happen'); await shot('report-saved');
   // ideas
   await tap('#fab'); await page.fill('#ideaText', 'Let me text the cover page straight to the owner'); await tap(byText('Must have')); await tap(byText('Save idea')); await shot('ideas-saved');
-  await page.locator('#sheetBg').click(); await page.waitForTimeout(400);
+  await page.locator('#sheetBg').click({ position: { x: 12, y: 12 } }); await page.waitForTimeout(400);
   // new project with blank template → empty states
   await page.locator('#back').click(); await page.waitForTimeout(300); await page.locator('#back').click(); await page.waitForTimeout(300);
   await tap(byText('New project')); await shot('project-form-empty');
@@ -82,7 +82,7 @@ let n = 0;
   await tap(byText('New project')); await page.fill('#pfName', 'A very long project name that keeps going to test truncation in the header'); await tap(byText('Blank')); await tap(byText('Create project')); await shot('blank-project-home');
   await tap('.tabs button[data-t=sov]'); await shot('blank-project-progress'); await tap('.tabs button[data-t=report]'); await shot('blank-project-report');
   // ---- Wave 3 coverage ----
-  await page.goto(BASE + '/?s=projects', { waitUntil: 'networkidle' }); await page.evaluate(() => { App.openProject('sample'); App.go('log'); }); await page.waitForTimeout(400);
+  await page.goto(APP + '/?s=projects', { waitUntil: 'networkidle' }); await page.evaluate(() => { App.openProject('sample'); App.go('log'); }); await page.waitForTimeout(400);
   await tap('#logChips .chip:not(.z)', 1); await shot('log-filter-one'); const shown = await page.evaluate(() => [...document.querySelectorAll('#logBody .entry')].filter(e => e.style.display !== 'none').length); if (!shown) issues.push('log filter hid everything'); await tap('#logChips .chip', 0);
   // edit an entry and save
   await page.locator('#logBody .entry').filter({ visible: true }).first().click(); await page.waitForTimeout(400); await tap(byText('Edit')); await page.fill('#efNote', 'Edited note after save'); await tap(byText('Save entry')); await page.waitForTimeout(400);
@@ -95,7 +95,7 @@ let n = 0;
   // draft restore after a reload mid-entry (iOS reloads the tab after the camera)
   await page.evaluate(() => App.go('log')); await page.waitForTimeout(300); await tap('#topAct'); await page.fill('#efNote', 'Draft before reload'); await page.locator('#fileGal').setInputFiles({ name: 'd.jpg', mimeType: 'image/jpeg', buffer: await jpeg('DRAFT') }); await page.waitForTimeout(1500);
   console.log('pre-reload session:', JSON.stringify(await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('ct-session') || 'null'); return s && { cur: s.cur, note: s.form && s.form.note, photos: s.form && s.form.photos, grid: document.querySelectorAll('#pendGrid .ph[data-ph]').length, hint: document.getElementById('pendHint').textContent, importingBtnDisabled: document.querySelector('#entryBody .btn').disabled, log: JSON.parse(localStorage.getItem('ct-log') || '[]').slice(-3) }; })));
-  await page.goto(BASE + '/', { waitUntil: 'networkidle' }); await page.waitForTimeout(800); await shot('draft-restored');
+  await page.goto(APP + '/', { waitUntil: 'networkidle' }); await page.waitForTimeout(800); await shot('draft-restored');
   const restored = await page.evaluate(() => (document.querySelector('[data-s=entryform]').classList.contains('on')) && document.getElementById('efNote').value === 'Draft before reload' && document.querySelectorAll('#pendGrid .ph[data-ph]').length === 1); if (!restored) issues.push('draft not restored after reload');
   await tap(byText('Cancel')); await page.waitForTimeout(400);
   // backup export
@@ -103,12 +103,12 @@ let n = 0;
   // 50 entries performance
   await page.evaluate(() => { const p = App.state().projects.find(x => x.id === 'sample'); for (let i = 0; i < 50; i++) p.entries.push({ id: 'perf' + i, d: Data.iso(Data.addDays(Data.today(), -i % 20)), time: '9:00 AM', ts: Date.now() - i, itemId: p.items[i % p.items.length].id, note: 'Performance entry ' + i, wx: 'sun', temp: 70, crew: 3, photos: [{ seed: i, kind: ['roof', 'walls', 'frame', 'slab'][i % 4], wx: 'sun' }] }); DB.save(App.state()); });
   const tLog = await page.evaluate(() => { const t0 = performance.now(); App.go('log'); return Math.round(performance.now() - t0); }); const tHome = await page.evaluate(() => { const t0 = performance.now(); App.go('home'); return Math.round(performance.now() - t0); }); const tCover = await page.evaluate(() => { const t0 = performance.now(); App.go('cover'); return Math.round(performance.now() - t0); });
-  console.log(`perf with 58 entries: log ${tLog}ms home ${tHome}ms cover ${tCover}ms`); if (tLog > 300) issues.push('log render slow: ' + tLog + 'ms'); await page.goto(BASE + '/?s=log', { waitUntil: 'networkidle' }); await shot('log-58-entries');
+  console.log(`perf with 58 entries: log ${tLog}ms home ${tHome}ms cover ${tCover}ms`); if (tLog > 300) issues.push('log render slow: ' + tLog + 'ms'); await page.goto(APP + '/?s=log', { waitUntil: 'networkidle' }); await shot('log-58-entries');
   // start over
   await tap('#fab'); await tap(byText('Start over')); await shot('start-over-confirm'); await tap('#confirmBtn'); await page.waitForLoadState('networkidle'); await page.waitForTimeout(800); await shot('after-start-over');
   const fresh = await page.evaluate(() => App.state().projects.length === 1 && App.state().projects[0].id === 'sample' && App.state().projects[0].entries.length === 8); if (!fresh) issues.push('start over did not reset');
   // desktop + storyboard
-  await page.setViewportSize({ width: 1280, height: 900 }); await page.goto(BASE + '/?s=home', { waitUntil: 'networkidle' }); await shot('desktop-shell', { wait: 1200 });
+  await page.setViewportSize({ width: 1280, height: 900 }); await page.goto(APP + '/?s=home', { waitUntil: 'networkidle' }); await shot('desktop-shell', { wait: 1200 });
   await page.goto(BASE + '/mockups/', { waitUntil: 'networkidle' }); await shot('storyboard', { wait: 800 });
   fs.writeFileSync(path.join(OUT, '_console.txt'), consoleErrors.join('\n') || '(no console errors)');
   console.log('engine:', ENGINE, 'console errors:', consoleErrors.length); consoleErrors.forEach(e => console.log('  -', e)); console.log('issues:', issues.length); issues.forEach(i => console.log('  !', i));

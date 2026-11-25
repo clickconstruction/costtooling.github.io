@@ -234,6 +234,8 @@ const App = (() => {
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().then(ok => { if (!ok) logLine('storage.persist declined'); }).catch(() => {});
   // ---------- boot ----------
   document.querySelectorAll('[data-ic]').forEach(e => { const w = document.createElement('span'); w.innerHTML = UI.ic(e.dataset.ic, +(e.dataset.size || 18)); e.replaceWith(w.firstChild); });
+  // ?job=sample opens that job (the landing page's Try the sample job), when it is still on this phone.
+  if (Q.get('job') && S.projects.some(p => p.id === Q.get('job'))) S.cur = Q.get('job');
   const sess = Q.get('s') || Q.get('new') || Q.get('welcome') || Q.get('tour') || Q.get('auth') || Q.get('code') ? null : DB.get('ct-session');
   if (sess && sess.at && Date.now() - sess.at < 6 * 3600e3 && P()) {
     if (sess.photoCtx) photoCtx = Object.assign(photoCtx, sess.photoCtx); if (sess.mode) mode = sess.mode; if (sess.logFilter) logFilter = sess.logFilter; if (Array.isArray(sess.trail)) trail = sess.trail;

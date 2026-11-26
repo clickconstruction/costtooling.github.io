@@ -6,7 +6,7 @@ CostTooling is a phone-first web app for tracking a construction job from the si
 
 It is a working prototype, built between Oct 12 and Oct 22, 2026. The last two changes made each line item a folder of its photos and notes by day, with Move to… on a photo, after a tester asked to see Day 1, Day 2 under a line item and to move photos between line items, and made Back return to the screen you came from. The open work below was last reviewed Nov 25, 2026. A direction for what comes next was chosen on Nov 25: see Where it is going. The same day its landing page went live on the front page of costtooling.com, ahead of the features it describes, and the app moved to costtooling.com/app. Version 18, also Nov 25, is the first piece of that direction: billed against in place. The next piece, a plain-words pass for the owner's assistant, is planned in `mockups/owner-side/plain-words.md` and not built.
 
-**Where the latest work is.** Version 18 and the plain-words plan are on the branch `billed-in-place`, pushed to GitHub on Nov 25, 2026 and not merged. `main` and the live site are still on version 17. Merging the branch puts version 18 live, so ask the owner first. When it is merged, fix this paragraph.
+**Where the latest work is.** Version 18 and the plain-words plan were merged into `main` on Nov 25, 2026, so the live site is on version 18. The branch `billed-in-place` holds the same commits and can be deleted. The plain-words pass, version 19, is being built on the branch `plain-words`; when it is merged, fix this paragraph.
 
 ## Where everything lives
 
@@ -142,7 +142,7 @@ The Edge Functions and the sign-up triggers are shared with CharityTooling. Depl
 
 A push to `main` is live in about a minute. There are no pull requests, no automated tests and no branch protection, so check your change before you push.
 
-1. **Bump the version when you change any file that is not a page:** a stylesheet, a script, an icon or a guide photo. The service worker serves those from its cache first, so phones keep the old ones until the version moves. Three places, all one number up (18 on the branch `billed-in-place`; `main` is still on 17):
+1. **Bump the version when you change any file that is not a page:** a stylesheet, a script, an icon or a guide photo. The service worker serves those from its cache first, so phones keep the old ones until the version moves. Three places, all one number up (today 18):
    - every `?v=18` in `app/index.html`
    - every `?v=18` in the `SHELL` list in `sw.js`
    - `VERSION = 'ct-v18'` in `sw.js`
@@ -166,7 +166,7 @@ mkdir -p ~/pw && cd ~/pw && npm i playwright && npx playwright install chromium 
 
 | Script in `qa/` | What it checks | Run it with |
 | --- | --- | --- |
-| `walkthrough.js` | Every screen of the app at iPhone size, as a fresh user, screenshots into `qa/shots/`. It also checks the sample job's bill, a job with no bill, a job saved before bills existed, and the tour's stops. Last run Nov 25, 2026 against a local server on version 18, in Chromium: 78 screens, no issues. One earlier run on a busy machine failed its draft-restore step, because the script reloaded before a photo had finished importing; the script now waits for the import | `NODE_PATH=~/pw/node_modules node qa/walkthrough.js <url>`; add `ENGINE=webkit` for Safari's engine |
+| `walkthrough.js` | Every screen of the app at iPhone size, as a fresh user, screenshots into `qa/shots/`. It also checks the sample job's bill, a job with no bill, a job saved before bills existed, and the tour's stops. Last run Nov 25, 2026 against a local server on version 18, in Chromium and again in WebKit: 78 screens, no issues. One earlier run on a busy machine failed its draft-restore step, because the script reloaded before a photo had finished importing; the script now waits for the import | `NODE_PATH=~/pw/node_modules node qa/walkthrough.js <url>`; add `ENGINE=webkit` for Safari's engine |
 | `plain-check.js` | Text under 14 px and tap targets under 48 px on each main screen of the sample job, for the plain-words pass. It changes nothing and fails nothing. First run Nov 25, 2026 on version 18; the numbers are in `mockups/owner-side/plain-words.md` | `node qa/plain-check.js http://127.0.0.1:8766` |
 | `offline.js` | The app, at `/app/`, opens from the service worker with the network off. Passed against the live site on Nov 25, 2026. It needs HTTPS, so run it against the live site; against a local server it never finishes | `node qa/offline.js <url>` |
 | `cloud-e2e.js` | Sign in, create a company, sync a job with a photo, mint codes, then see it all arrive in a second browser | `E2E_EMAIL=… E2E_PASSWORD=… node qa/cloud-e2e.js <url>` |
@@ -245,4 +245,3 @@ The repo cannot answer these. Settle them in the first conversation.
 3. **Ideas inbox:** should the bulb keep emailing the owner, or you?
 4. **What next:** a direction is written down in Where it is going, and its first piece is built. As of Nov 25 the tester had not been asked the question it rests on. Settle the open points in `mockups/owner-side/README.md` (sub folders, numbered bills) and the seven decisions in `mockups/owner-side/plain-words.md`, which include the tabs and the owner update's name. The README still calls the app a functional mock-up.
 5. **The shared project:** will CostTooling stay on the CharityTooling Supabase project, or move to its own?
-6. **Version 18:** merge the branch `billed-in-place` into `main`, which puts it on the live site?

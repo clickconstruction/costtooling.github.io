@@ -6,8 +6,8 @@ Read [HANDOFF.md](../../HANDOFF.md) first. It says how the app is put together, 
 
 ## Where the work is
 
-- **The code:** the branch `billed-in-place` on GitHub. It holds version 18 (billed against in place), this page, the two mockups and `qa/plain-check.js`. It is not merged into `main`, so the live site is still on version 17. Merging it puts version 18 live, so ask the owner first.
-- **Build the pass on a new branch cut from `billed-in-place`.** It will be version 19.
+- **The code:** `main` on GitHub. Version 18 (billed against in place), this page, the two mockups and `qa/plain-check.js` were merged on Nov 25, 2026, so the live site is on version 18.
+- **Build the pass on the branch `plain-words`, cut from `main`.** It will be version 19.
 
 To pick it up on another computer:
 
@@ -16,7 +16,7 @@ git clone https://github.com/clickconstruction/costtooling.github.io.git
 ```
 
 ```bash
-cd costtooling.github.io && git checkout billed-in-place
+cd costtooling.github.io && git checkout plain-words
 ```
 
 ```bash
@@ -144,7 +144,7 @@ Paste this after cloning the repo:
 ```text
 I'm picking up the plain-words pass for CostTooling, a phone-first web app at costtooling.com. This folder is its repo.
 
-First run: git checkout billed-in-place
+First run: git checkout plain-words
 
 Read HANDOFF.md, then mockups/owner-side/plain-words.md, and look at mockups/owner-side/plain-home.html and plain-part.html.
 
@@ -157,7 +157,7 @@ Do not change anything until I answer. Keep these rules for the whole session:
 - The repo is public and every committed file is served on the site. Never commit names, emails, keys or customer data.
 - The database and account functions live in the charitytooling repo. One live Supabase project serves two apps with no staging copy, so make no database change without asking me. This pass should not need one.
 - One real company syncs a real job. Old jobs must keep working, and nothing may rewrite or drop stored data.
-- Work on a new branch cut from billed-in-place. A push to main deploys to the live site in about a minute, so ask me before anything goes to main.
+- Work on the branch plain-words. A push to main deploys to the live site in about a minute, so ask me before anything goes to main.
 - Bump the version as HANDOFF.md says when a script or stylesheet changes.
 - Keep HANDOFF.md and mockups/owner-side/plain-words.md current when a fact in them changes.
 ```

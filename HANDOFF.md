@@ -6,7 +6,7 @@ CostTooling is a phone-first web app for the person who walks a construction job
 
 It is a working prototype, built between Oct 12 and Oct 22, 2026. The last two changes made each line item a folder of its photos and notes by day, with Move to… on a photo, after a tester asked to see Day 1, Day 2 under a line item and to move photos between line items, and made Back return to the screen you came from. The open work below was last reviewed Nov 25, 2026. A direction for what comes next was chosen on Nov 25: see Where it is going. The same day its landing page went live on the front page of costtooling.com, ahead of the features it describes, and the app moved to costtooling.com/app. Version 18, also Nov 25, is the first piece of that direction: billed against in place. Version 19 is the second: a plain-words pass that rewrote every screen for the owner's assistant. Plain words, under Data and cloud sync, says what it changed; `mockups/owner-side/plain-words.md` has the plan it was built from.
 
-**Where the latest work is.** `main` and the live site are on version 21. Version 22 is on the branch `fix-sign-in-return`, pushed to GitHub and not merged. It fixes coming back to the app with a sign-in code: on version 21 anyone who returns from Google, or opens an emailed sign-in or password link, ends up signed out, so **Google sign-in does not work on the live site until this is merged**. Merging it puts version 22 live, so ask the owner first. When it is merged, fix this paragraph.
+**Where the latest work is.** Everything is on `main`, and the live site is on version 22, merged Nov 25, 2026. There are no other branches. Google sign-in is switched on and published: see Google sign-in, under Data and cloud sync.
 
 ## Where everything lives
 
@@ -161,7 +161,7 @@ Continue with Google is on the sign-in screen since version 21. It was switched 
   1. Done Nov 25, 2026: the Privacy and Terms pages are live.
   2. Done Nov 25, 2026: Google's Branding page has `https://costtooling.com/privacy/` and `https://costtooling.com/terms/`.
   3. Done Nov 25, 2026: the Google app is In production, on Google's Audience page. It needed no verification, because it has no logo, fewer than ten domains and asks only for email and profile. Adding a logo there would start Google's verification review.
-  4. Merge version 22, or Google sign-in ends signed out.
+  4. Done Nov 25, 2026: version 22 is live.
   5. Still to do: sign in once with a Google address that has no CostTooling account, and once with one that has an email-and-password account, and check both land in the right place.
 - **The sign-in code.** Google, an emailed sign-in link and a password link all send people back with `?code=` in the address, and Supabase's library trades that code for a session a moment after the page loads. `init` in `js/cloud.js` used to clean the address straight away, which wiped the code first, and people came back signed out with no message. Version 22 cleans the address only after `getSession` has returned, and says so on the sign-in screen when a code fails. `qa/google-signin.js` checks it; it fails on version 21.
 - **Tried for real, Nov 25, 2026,** in Chrome on a computer, against version 22 on a local server: the owner's Google address, which already had an email-and-password account, went to Google and came back signed in to that same account, with Google added to it as a second way in. It has no CostTooling company, so it landed on Your company, as a new person would.
@@ -182,7 +182,7 @@ The Edge Functions and the sign-up triggers are shared with CharityTooling. Depl
 
 A push to `main` is live in about a minute. There are no pull requests, no automated tests and no branch protection, so check your change before you push.
 
-1. **Bump the version when you change any file that is not a page:** a stylesheet, a script, an icon or a guide photo. The service worker serves those from its cache first, so phones keep the old ones until the version moves. Three places, all one number up (22 on the branch `fix-sign-in-return`; `main` is on 21):
+1. **Bump the version when you change any file that is not a page:** a stylesheet, a script, an icon or a guide photo. The service worker serves those from its cache first, so phones keep the old ones until the version moves. Three places, all one number up (today 22):
    - every `?v=22` in `app/index.html`
    - every `?v=22` in the `SHELL` list in `sw.js`
    - `VERSION = 'ct-v22'` in `sw.js`
@@ -227,7 +227,7 @@ The app's history runs from Oct 12 to Oct 22, 2026; the landing page, the move t
 
 | Date | Change | Commit |
 | --- | --- | --- |
-| Nov 25 | On the branch `fix-sign-in-return`: coming back with a sign-in code, from Google or an emailed link, now signs in; version 21 wiped the code from the address before Supabase could use it. Found by the first real Google sign-in. Version 22 | see `git log` |
+| Nov 25 | Coming back with a sign-in code, from Google or an emailed link, now signs in; version 21 wiped the code from the address before Supabase could use it. Found by the first real Google sign-in. The sign-out and deactivate confirmations say what they do. Version 22 | 0da84c7, e744303 |
 | Nov 25 | Privacy and Terms pages at `/privacy/` and `/terms/`, linked from the front page and Help; Google sign-in switched on in Supabase and published in Google Cloud | ea3365e |
 | Nov 25 | Continue with Google on the sign-in screen, shown only when Supabase has the Google provider on; the account button on the job list no longer disappears when the sync status repaints, which it did in versions 19 and 20 because `window.App` is never defined (`App` is a top-level const); Escape no longer closes a sheet under the tour; version 21 | 381166d |
 | Nov 25 | Fixes from a review of the live site by six kinds of customer. Wrong before: a percent over 100 or dollars over the budget was saved as 100%, and is now refused; a bill a few dollars over was flagged while both percents printed the same; a reload lost the photo form for anyone who came by the landing page's button; a job with no dates showed tens of thousands of days left; Try the sample job opened another job when the sample was gone; a typed total price did not add up across the parts. Changed: the Bill tab takes a percent or dollars on every row and says Saved; the job list says jobs are saved on this phone and no longer offers a sign-in nobody can create; the owner update is marked Sample job on the sample, carries the sender's note and name and a line on what a bill's figures include; Save and add another on the photo form; the floating bulb is gone and ideas are under Help; messages show at the top, with a warning sign when something was not saved; the tour goes back to where it was started and has a Stop button; the reason for Add to Home Screen, shown again on a new job; the guide opens on CostTooling's steps from the app; version 20 | 6122c45 |

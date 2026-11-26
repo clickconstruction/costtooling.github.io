@@ -209,7 +209,7 @@ A push to `main` is live in about a minute. There are no pull requests, no autom
 
 The repo is public and every file in it is served, including `qa/`, `mockups/` and this file. `robots.txt` asks search engines to leave out the `.md` files, `qa/`, `mockups/screens/` and `.claude/`, which keeps them out of search results and does not hide them from anyone with the address. `sitemap.xml` lists the pages meant for search results (the landing page, the guide, Privacy and Terms), so a new public page gets a line there. Never commit keys other than the publishable one already in `js/cloud.js`, and never commit customer data.
 
-The guide page itself always loads fresh. Its photos do not, so a retaken guide photo needs the version bump like any other file.
+The guide page itself always loads fresh. Its photos do not, so a retaken guide photo needs the version bump like any other file. Each `<img>` in the guide carries its photo's width and height in pixels and alt words that name the app, the section and the step, so a retaken photo of another size needs its two numbers changed, and a new step needs all three.
 
 Database and Edge Function changes ship from the CharityTooling repo, not this one: migrations with `supabase db push`, functions with `supabase functions deploy --project-ref cjwybuhogxyayjnuxpem`. That one project serves both live apps, and neither repo describes a staging copy.
 

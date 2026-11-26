@@ -4,7 +4,9 @@ Written Oct 20, 2026, for whoever takes over CostTooling next. When a fact here 
 
 CostTooling is a phone-first web app for tracking a construction job from the site: photos, progress, what the contractor billed against what is in place, costs and a one-page report. It is plain HTML, CSS and JavaScript with no build step, hosted on GitHub Pages at costtooling.com. It works on one phone with no account, and signing in syncs jobs to a Supabase project shared with CharityTooling.
 
-It is a working prototype, built between Oct 12 and Oct 22, 2026. The last two changes made each line item a folder of its photos and notes by day, with Move to… on a photo, after a tester asked to see Day 1, Day 2 under a line item and to move photos between line items, and made Back return to the screen you came from. The open work below was last reviewed Nov 25, 2026. A direction for what comes next was chosen on Nov 25: see Where it is going. The same day its landing page went live on the front page of costtooling.com, ahead of the features it describes, and the app moved to costtooling.com/app. Version 18, also Nov 25, is the first piece of that direction: billed against in place.
+It is a working prototype, built between Oct 12 and Oct 22, 2026. The last two changes made each line item a folder of its photos and notes by day, with Move to… on a photo, after a tester asked to see Day 1, Day 2 under a line item and to move photos between line items, and made Back return to the screen you came from. The open work below was last reviewed Nov 25, 2026. A direction for what comes next was chosen on Nov 25: see Where it is going. The same day its landing page went live on the front page of costtooling.com, ahead of the features it describes, and the app moved to costtooling.com/app. Version 18, also Nov 25, is the first piece of that direction: billed against in place. The next piece, a plain-words pass for the owner's assistant, is planned in `mockups/owner-side/plain-words.md` and not built.
+
+**Where the latest work is.** Version 18 and the plain-words plan are on the branch `billed-in-place`, pushed to GitHub on Nov 25, 2026 and not merged. `main` and the live site are still on version 17. Merging the branch puts version 18 live, so ask the owner first. When it is merged, fix this paragraph.
 
 ## Where everything lives
 
@@ -140,7 +142,7 @@ The Edge Functions and the sign-up triggers are shared with CharityTooling. Depl
 
 A push to `main` is live in about a minute. There are no pull requests, no automated tests and no branch protection, so check your change before you push.
 
-1. **Bump the version when you change any file that is not a page:** a stylesheet, a script, an icon or a guide photo. The service worker serves those from its cache first, so phones keep the old ones until the version moves. Three places, all one number up (today 18):
+1. **Bump the version when you change any file that is not a page:** a stylesheet, a script, an icon or a guide photo. The service worker serves those from its cache first, so phones keep the old ones until the version moves. Three places, all one number up (18 on the branch `billed-in-place`; `main` is still on 17):
    - every `?v=18` in `app/index.html`
    - every `?v=18` in the `SHELL` list in `sw.js`
    - `VERSION = 'ct-v18'` in `sw.js`
@@ -165,11 +167,12 @@ mkdir -p ~/pw && cd ~/pw && npm i playwright && npx playwright install chromium 
 | Script in `qa/` | What it checks | Run it with |
 | --- | --- | --- |
 | `walkthrough.js` | Every screen of the app at iPhone size, as a fresh user, screenshots into `qa/shots/`. It also checks the sample job's bill, a job with no bill, a job saved before bills existed, and the tour's stops. Last run Nov 25, 2026 against a local server on version 18, in Chromium: 78 screens, no issues. One earlier run on a busy machine failed its draft-restore step, because the script reloaded before a photo had finished importing; the script now waits for the import | `NODE_PATH=~/pw/node_modules node qa/walkthrough.js <url>`; add `ENGINE=webkit` for Safari's engine |
-| `offline.js` | The app, at `/app/`, opens from the service worker with the network off. Passed against the live site on Nov 25, 2026 | `node qa/offline.js <url>` |
+| `plain-check.js` | Text under 14 px and tap targets under 48 px on each main screen of the sample job, for the plain-words pass. It changes nothing and fails nothing. First run Nov 25, 2026 on version 18; the numbers are in `mockups/owner-side/plain-words.md` | `node qa/plain-check.js http://127.0.0.1:8766` |
+| `offline.js` | The app, at `/app/`, opens from the service worker with the network off. Passed against the live site on Nov 25, 2026. It needs HTTPS, so run it against the live site; against a local server it never finishes | `node qa/offline.js <url>` |
 | `cloud-e2e.js` | Sign in, create a company, sync a job with a photo, mint codes, then see it all arrive in a second browser | `E2E_EMAIL=… E2E_PASSWORD=… node qa/cloud-e2e.js <url>` |
 | `guide-shots.js` | Retakes the ten "Your first day" photos in `guide/`. Last run Nov 25, 2026 in Chromium, because WebKit was not installed on that machine | `ENGINE=webkit node qa/guide-shots.js http://127.0.0.1:8766` |
 
-Give each script the site's address without `/app`; it adds that itself. Leave out the URL and `walkthrough.js`, `offline.js` and `guide-shots.js` run against the live site, while `cloud-e2e.js` runs against http://127.0.0.1:8766. The screenshot folders are git-ignored.
+Give each script the site's address without `/app`; it adds that itself. Leave out the URL and `walkthrough.js`, `offline.js` and `guide-shots.js` run against the live site, while `cloud-e2e.js` and `plain-check.js` run against http://127.0.0.1:8766. The screenshot folders are git-ignored.
 
 `cloud-e2e.js` writes to the live Supabase project. Use a test user whose address is not on example.com, which Resend refuses. Afterwards delete the test company with SQL, and its photos through the Storage API, since direct deletes on storage are blocked.
 
@@ -207,14 +210,16 @@ The app is being aimed at the person who walks the job for an owner: an owner's 
 - **The screens:** open `mockups/owner-side/index.html`, or [costtooling.com/mockups/owner-side](https://costtooling.com/mockups/owner-side/). Four phone screens of the first release and the draft the landing page was built from.
 - **Still to ask the tester:** when you finish a site visit, who do you send your report to, and what do they decide with it? The owner chose to build billed against in place before that answer. The direction rests on one tester and on reasoning, not on market research.
 - **The order:** that question; then a first release that adds billed against in place and a sample job that shows it (both built), pasting a job's lines from the contractor's bill, a rewritten welcome card and owner's side wording (not built); then a second release for the owner update, issues, and time and place on photos. The landing page was to come last and went first instead.
+- **Next: the plain-words pass.** After reviewing version 18 through the eyes of the owner's assistant, who is often older and not at home on a phone, the owner asked for every screen to be simple enough for a 12-year-old. `mockups/owner-side/plain-words.md` has the findings, a plan in seven steps, a word list, the decisions still open, a size check (`qa/plain-check.js`) and two drawn screens. It takes in the rewritten welcome card, the owner's side wording and the tabs; pasting from the bill stays its own piece.
 - **What the landing page says that version 18 makes true:** it compares what you saw with what was billed; each line the contractor bills has its photos and your own percent, and when the two disagree, it shows; you enter what the contractor billed beside the slider; and the sample job has a bill that runs ahead of the work.
 - **What the landing page says that the app still cannot do:** the page you send is called the owner update. In the app it is still the Report, with a Cover page beside it. The landing page's sample card also shows 67 days left where the app's sample shows 68, and says "each part of the job" where the app says line item.
 
 ## Open work
 
-Nothing here is broken for one person on one phone. The first three items matter once teams share jobs.
+Nothing here is broken for one person on one phone. Merging edits and cleaning up cloud photos matter once teams share jobs.
 
-- [ ] **Finish making the landing page true.** Billed against in place is built. The page still calls the one page you send the owner update; the app calls it the Report. Rename it with the rest of the owner's side wording, or change the page.
+- [ ] **The plain-words pass.** Make every screen simple enough for the owner's assistant. The plan and handoff are in `mockups/owner-side/plain-words.md`; seven decisions there need the owner first.
+- [ ] **Finish making the landing page true.** Billed against in place is built. The page still calls the one page you send the owner update; the app calls it the Report. Rename it in the plain-words pass, or change the page.
 - [ ] **Try the bill fields on a real iPhone.** They were checked only in Chromium at phone size: the decimal keyboard on the percent and amount boxes, and that a figure saves when the keyboard is dismissed.
 - [ ] **Numbered and dated bills.** Each new bill overwrites the last figure, so there is no history and no "since the last bill". `billedAt` is stored so a history can start from it.
 - [ ] **Retake the team guide photos that show the job list.** `guide/ct-01-*` and `ct-04-*` show the sample job's card with its old last line, "$108,330 to finish"; it now reads "36% in place · 38% billed". No script takes those photos.
@@ -238,5 +243,6 @@ The repo cannot answer these. Settle them in the first conversation.
 1. **Access:** which of these do you get? Collaborator on both GitHub repos, the Supabase project, Cloudflare, and Resend.
 2. **Users:** one real company is syncing: the tester's, with one job, last synced Oct 20, 2026 (checked Nov 19). Treat `ct_projects` as real data from here on, and ask whether more companies are coming. The only other company is the one `cloud-e2e.js` left behind on Oct 13, with no jobs; delete it as Test it describes.
 3. **Ideas inbox:** should the bulb keep emailing the owner, or you?
-4. **What next:** a direction is written down in Where it is going, and its first piece is built. As of Nov 25 the tester had not been asked the question it rests on. Settle the open points in `mockups/owner-side/README.md`: the bottom tabs, the owner update's name, and sub folders. The README still calls the app a functional mock-up.
+4. **What next:** a direction is written down in Where it is going, and its first piece is built. As of Nov 25 the tester had not been asked the question it rests on. Settle the open points in `mockups/owner-side/README.md` (sub folders, numbered bills) and the seven decisions in `mockups/owner-side/plain-words.md`, which include the tabs and the owner update's name. The README still calls the app a functional mock-up.
 5. **The shared project:** will CostTooling stay on the CharityTooling Supabase project, or move to its own?
+6. **Version 18:** merge the branch `billed-in-place` into `main`, which puts it on the live site?

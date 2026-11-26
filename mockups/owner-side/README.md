@@ -1,6 +1,6 @@
 # The owner's side: plan and mockups
 
-Chosen Nov 25, 2026. **One piece is built:** version 18 of the app has billed against in place and a sample job that shows it, in the app's own layout and words, not pixel for pixel as drawn here. **The rest of the phone screens is drawn, not built:** see What is built. **The landing page is live:** the owner had it built the same day, with its copy as drawn, as the front page of costtooling.com, and the app moved to costtooling.com/app. Open `index.html` in this folder to see every screen, or https://costtooling.com/mockups/owner-side/.
+Chosen Nov 25, 2026. **One piece is built:** version 18 of the app has billed against in place and a sample job that shows it, in the app's own layout and words, not pixel for pixel as drawn here. **The rest of the phone screens is drawn, not built:** see What is built. **The landing page is live:** the owner had it built the same day, with its copy as drawn, as the front page of costtooling.com, and the app moved to costtooling.com/app. **Next is the plain-words pass:** its plan and two more drawn screens are in `plain-words.md`. Open `index.html` in this folder to see every screen, or https://costtooling.com/mockups/owner-side/.
 
 Read `HANDOFF.md` at the repo root first. It says how the app is put together, shipped and tested.
 
@@ -56,6 +56,8 @@ Landing page claims that are now true: it compares what you saw with what was bi
 | `item.html` | One part of the job: the slider for what you saw, and a new card for what the contractor billed | 3 |
 | `paste.html` | New job: paste the lines from the contractor's bill and see what was read | 5 |
 | `landing.html` | Landing page, first draft, with the owner update as the hero. Built from this draft as `/index.html` at the repo root | 12 |
+| `plain-home.html` | Job home in plain words: one sentence, the bill warning in words, four steps in order, tabs named for what you do | Plain-words pass |
+| `plain-part.html` | One part of the job marked with five words instead of a slider, and the bill's figure in a sentence | Plain-words pass |
 
 The sample numbers are the app's sample job, with one change: the contractor has billed Framing at 100% while 85% is in place. That is $3,420 billed ahead on a $22,800 line, so the job is 36% in place and 38% billed.
 
@@ -70,14 +72,14 @@ The test for each: does it help this person say whether the bill matches the bui
 | 3 | Billed against in place, per line item | It is the promise, and the app could not do it | Medium | Built, version 18 |
 | 4 | Sample job where the bill runs ahead of the work | A visitor sees the point with no words | Small, needs 3 | Built, version 18 |
 | 5 | Paste in the contractor's line items | Setting up a real job is the barrier | Small | First release |
-| 6 | Welcome card rewrite | It is the whole first impression today | Small | First release |
-| 7 | Words: "Billed", "Owner update", "parts of the job" | The app speaks builder, not owner | Small | First release. "Billed", "in place" and "billed ahead" are in; the other two are not |
-| 8 | Tagline under the name | The name says cost, which points at builders | Tiny | First release |
+| 6 | Welcome card rewrite | It is the whole first impression today | Small | Plain-words pass (`plain-words.md`) |
+| 7 | Words: "Billed", "Owner update", "parts of the job" | The app speaks builder, not owner | Small | Plain-words pass (`plain-words.md`). Version 18 added "billed", "in place" and "billed ahead"; the pass proposes plainer words still |
+| 8 | Tagline under the name | The name says cost, which points at builders | Tiny | Plain-words pass (`plain-words.md`) |
 | 9 | Owner update that leads with the gap | It is the page the owner sees | Medium, needs 3 | Second release |
 | 10 | Issues with open and closed status | The tester had this in an inspection app | Medium | Second release |
 | 11 | Time and place recorded on every photo | The record may settle a dispute | Small to medium | Second release |
 | 12 | Landing page in front of the app | For strangers, once the promise is true | Medium, drafted | Live Nov 25, ahead of 3 and 9 |
-| 13 | Guide and tour rewritten for this user | Already overdue, see HANDOFF.md | Medium | After the first release. Both already cover the bill: two tour stops and a guide step |
+| 13 | Guide and tour rewritten for this user | Already overdue, see HANDOFF.md | Medium | Plain-words pass (`plain-words.md`). Both already cover the bill: two tour stops and a guide step |
 | 14 | Payment periods: "since the last request" | How reps work month to month | Large | Later |
 | 15 | Multi-page PDF with photos by line item | A file for the rep's records | Medium | Later |
 | 16 | "What to look for" hints per line item | Makes a non-builder competent; the advice must be right | Medium | Later |
@@ -87,7 +89,7 @@ The test for each: does it help this person say whether the bill matches the bui
 ## The order of work
 
 1. **The gate.** Idea 1, with idea 2 beside it. Not done: the owner chose on Nov 25 to build ideas 3 and 4 before the tester's answer.
-2. **First release: make the promise true and say it.** Ideas 3 to 8. Ideas 3 and 4 are built; 5, 6, 8 and most of 7 are next.
+2. **First release: make the promise true and say it.** Ideas 3 to 8. Ideas 3 and 4 are built. Ideas 6, 7 and 8, with 13 and the tabs, are now one piece, the plain-words pass in `plain-words.md`. Idea 5, pasting from the bill, stays its own piece.
 3. **Second release: a record worth keeping.** Ideas 9, 10 and 11.
 4. **The landing page** was to come here, when everything it claims exists. It went live first, on Nov 25. The comparison it describes is in the app since version 18; the owner update it names is not, until idea 9 or the wording in idea 7.
 
@@ -95,8 +97,8 @@ Merging edits from two phones, the hardest item in HANDOFF.md's open work, can w
 
 ## Not settled
 
-- **The bottom tabs.** The screens use Home, Log, Parts, Bills and Owner update. That folds today's Cover and Report tabs into one and adds Bills. Version 18 left the tabs alone and put the bill inside Progress; whether they change later is still open.
-- **The owner update's name.** The Report keeps its name for now. Renaming it was held for the wording pass, so all the words change at once.
+- **The bottom tabs.** The screens use Home, Log, Parts, Bills and Owner update. That folds today's Cover and Report tabs into one and adds Bills. Version 18 left the tabs alone and put the bill inside Progress; whether they change later is still open. The plain-words pass proposes Home, Photos, Parts, Bill, Send.
+- **The owner update's name.** The Report keeps its name for now. Renaming it was held for the plain-words pass, so all the words change at once.
 - **Numbered and dated bills.** Version 18 keeps one running figure per line item. Bills as a set, like "Bill 2 · Oct 15", are drawn but not designed.
 - **Sub folders.** The tester has not said whether they mean days, areas or stages.
 

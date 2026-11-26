@@ -6,7 +6,7 @@ CostTooling is a phone-first web app for the person who walks a construction job
 
 It is a working prototype, built between Oct 12 and Oct 22, 2026. The last two changes made each line item a folder of its photos and notes by day, with Move to… on a photo, after a tester asked to see Day 1, Day 2 under a line item and to move photos between line items, and made Back return to the screen you came from. The open work below was last reviewed Nov 25, 2026. A direction for what comes next was chosen on Nov 25: see Where it is going. The same day its landing page went live on the front page of costtooling.com, ahead of the features it describes, and the app moved to costtooling.com/app. Version 18, also Nov 25, is the first piece of that direction: billed against in place. Version 19 is the second: a plain-words pass that rewrote every screen for the owner's assistant. Plain words, under Data and cloud sync, says what it changed; `mockups/owner-side/plain-words.md` has the plan it was built from.
 
-**Where the latest work is.** `main` and the live site are on version 21, merged Nov 25, 2026. The branch `privacy-pages`, pushed to GitHub and not merged, adds a Privacy page and a Terms page with links from the front page and from Help. They are drafts for the owner to read first: they name who runs CostTooling and make promises about data. Google will not let its sign-in app leave testing until the privacy link exists: see Google sign-in, under Data and cloud sync. When the branch is merged, fix this paragraph.
+**Where the latest work is.** Everything is on `main`, and the live site is on version 21, merged Nov 25, 2026. There are no other branches. A Privacy page and a Terms page went live the same day, at `/privacy/` and `/terms/`, linked from the front page and from Help; the owner read and approved them. Google sign-in is switched on: see Google sign-in, under Data and cloud sync.
 
 ## Where everything lives
 
@@ -158,7 +158,7 @@ Continue with Google is on the sign-in screen since version 21, and was switched
   - Google Workspace: help@clickconstruction.com is a Google Group, "CostTooling Help", made for this. Anyone may email it; only invited people may join. Mail to it reaches its members, so add whoever should answer.
   - Supabase: the Google provider is on, with that client's ID and secret, which the owner pasted in. The redirect list already had `https://costtooling.com/**` and `http://127.0.0.1:8766/**`. New sign-ups are allowed, so Google makes an account for anyone on first use.
 - **What is left.**
-  1. Publish the Privacy and Terms pages (the branch `privacy-pages`), once the owner has read them.
+  1. Done Nov 25, 2026: the Privacy and Terms pages are live.
   2. Google Cloud, Google Auth Platform, Branding: add `https://costtooling.com/privacy/` as the privacy policy link and `https://costtooling.com/terms/` as the terms link, and save.
   3. Google Cloud, Google Auth Platform, Audience: press Publish app. Until then only the test users listed there can sign in with Google, and everyone else who taps the button gets Google's message that the app is being tested. The owner's own address is the one test user.
   4. Sign in once with a Google address that has no CostTooling account, and once with one that has an email-and-password account, and check both land in the right place.

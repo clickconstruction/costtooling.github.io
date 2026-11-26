@@ -48,6 +48,20 @@ const issues = []; const same = (what, got, want) => { if (JSON.stringify(got) !
   same('back from Google, address', await t.page.evaluate(() => location.search), ''); await t.ctx.close();
   t = await open({ external: { email: true, google: true }, disable_signup: false }, '/?auth=signin&error=server_error&error_description=Unable+to+exchange+external+code');
   same('back from Google, other error', (await look(t.page)).err, 'Google sign-in did not finish. Try again, or sign in with your email.'); await t.ctx.close();
+  // 7. coming back with a sign-in code, as from Google or an emailed link: the app must still hold the code when Supabase
+  //    trades it for a session. Version 21 wiped it from the address first, and people came back signed out.
+  {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }); const page = await ctx.newPage(); let traded = null;
+    await page.route('**/auth/v1/settings', r => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ external: { email: true, google: true }, disable_signup: false }) }));
+    await page.route('**/auth/v1/token**', r => { traded = { url: r.request().url(), body: r.request().postData() || '' }; r.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ error: 'invalid_grant', error_description: 'fake code' }) }); });
+    await page.goto(APP + '/?s=projects', { waitUntil: 'networkidle' });
+    // the code verifier Supabase left on the phone before the trip out; its key carries the project's name, read from cloud.js
+    await page.evaluate(async () => { localStorage.setItem('ct-welcomed', '1'); const src = await (await fetch('../js/cloud.js')).text(); const ref = /https:\/\/([a-z0-9]+)\.supabase\.co/.exec(src)[1]; localStorage.setItem('sb-' + ref + '-auth-token-code-verifier', '"fake-verifier-for-the-check"'); });
+    await page.goto(APP + '/?auth=signin&code=fake-code-for-the-check', { waitUntil: 'networkidle' }); await page.waitForTimeout(1500);
+    same('a sign-in code is traded for a session', traded && { pkce: /grant_type=pkce/.test(traded.url), code: /fake-code-for-the-check/.test(traded.body) }, { pkce: true, code: true });
+    same('after a code that fails', await page.evaluate(() => ({ screen: App.current(), err: (document.getElementById('siErr') || {}).innerText || '', address: location.search })), { screen: 'signin', err: 'That sign-in did not finish. Try again.', address: '' });
+    await ctx.close();
+  }
   console.log('engine:', ENGINE, 'issues:', issues.length); issues.forEach(i => console.log('  !', i));
   await browser.close(); process.exit(issues.length ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });

@@ -57,12 +57,18 @@ const Cloud = (() => {
     const q = new URLSearchParams(location.search); authIntent = q.get('auth');
     // Google sends people back with an error, not a session, when sign-in did not finish: say why on the sign-in screen.
     const oauthErr = q.get('error_description') || q.get('error') || new URLSearchParams(location.hash.replace(/^#/, '')).get('error_description');
-    if (q.get('auth') || q.get('code') || oauthErr) { try { history.replaceState(null, '', location.pathname); } catch (e) {} }
+    // Clean the address, but not while it still holds a sign-in code. Supabase reads ?code= from the address a moment
+    // after the page loads and trades it for a session; wiping it first left people signed out when they came back
+    // from Google or from an emailed link. With a code, the address is cleaned after getSession below, which waits for that trade.
+    const cleanUrl = () => { try { history.replaceState(null, '', location.pathname); } catch (e) {} };
+    const hasCode = !!q.get('code');
+    if (!hasCode && (q.get('auth') || oauthErr)) cleanUrl();
     if (!enabled()) { setStatus('off'); return; }
     loadAuthSettings();
     if (oauthErr) { authIntent = null; setTimeout(() => { App.go('signin'); showErr('siErr', /sign-?ups? not allowed/i.test(oauthErr) ? 'No CostTooling account uses that Google address yet. Ask your company for a code, then try again.' : 'Google sign-in did not finish. Try again, or sign in with your email.'); }, 300); }
     setStatus('out');
     const { data } = await sb.auth.getSession(); session = data.session; user = session ? session.user : null;
+    if (hasCode) { cleanUrl(); if (!session) { App.go('signin'); showErr('siErr', 'That sign-in did not finish. Try again.'); } }
     sb.auth.onAuthStateChange((event, s) => {
       session = s; user = s ? s.user : null;
       if (event === 'PASSWORD_RECOVERY') { authIntent = 'reset'; afterSignIn(); }

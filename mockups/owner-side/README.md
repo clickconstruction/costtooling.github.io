@@ -1,6 +1,6 @@
 # The owner's side: plan and mockups
 
-Chosen Nov 25, 2026. **One piece is built:** version 18 of the app has billed against in place and a sample job that shows it, in the app's own layout and words, not pixel for pixel as drawn here. **The rest of the phone screens is drawn, not built:** see What is built. **The landing page is live:** the owner had it built the same day, with its copy as drawn, as the front page of costtooling.com, and the app moved to costtooling.com/app. **Next is the plain-words pass:** its plan and two more drawn screens are in `plain-words.md`. Open `index.html` in this folder to see every screen, or https://costtooling.com/mockups/owner-side/.
+Chosen Nov 25, 2026. **Two pieces are built:** version 18 of the app has billed against in place and a sample job that shows it, and version 19, on the branch `plain-words` and not yet live, has the plain-words pass. Both are in the app's own layout, not pixel for pixel as drawn here. **The rest is drawn, not built:** see What is built. **The landing page is live:** the owner had it built the same day, with its copy as drawn, as the front page of costtooling.com, and the app moved to costtooling.com/app. **The plain-words pass:** its plan, its two drawn screens and what was built from them are in `plain-words.md`. Open `index.html` in this folder to see every screen, or https://costtooling.com/mockups/owner-side/.
 
 Read `HANDOFF.md` at the repo root first. It says how the app is put together, shipped and tested.
 
@@ -34,8 +34,8 @@ Version 18, Nov 25, 2026. HANDOFF.md, under Billed against in place, says how it
 | --- | --- |
 | `home.html`: in place, billed, billed ahead, days left | Built, for a job that has a bill. A job with no bill keeps its old four numbers |
 | `home.html`: Check before you pay card | Built. It says "line items", not "parts" |
-| `home.html`: Mark what you saw, Enter a bill and Owner update buttons | Not built. The buttons are as they were; the card has an Enter a new bill link |
-| `home.html` and `item.html`: Home, Log, Parts, Bills, Owner update tabs | Not built. The tabs are still Home, Log, Cover, Progress, Report |
+| `home.html`: Mark what you saw, Enter a bill and Owner update buttons | Built in version 19 as four numbered steps: Take photos, Mark what you saw, Type in the bill, Send the owner one page |
+| `home.html` and `item.html`: Home, Log, Parts, Bills, Owner update tabs | Built in version 19 as Home, Photos, Parts, Bill, Send, the set the plain-words pass chose |
 | `item.html`: what the contractor billed, as a percent or an amount | Built, as one row under the slider in the Progress card, with a tick on the slider at the billed percent |
 | `item.html`: the amber "Billed ahead by" banner | Built as the second tile at the top, which turns amber |
 | `item.html`: Bill 1, Bill 2 with dates | Not built. One running figure; each new bill overwrites it |
@@ -43,7 +43,7 @@ Version 18, Nov 25, 2026. HANDOFF.md, under Billed against in place, says how it
 | Not drawn: typing a whole bill in one pass | Built: Progress has a Bill choice beside Line items and Schedule |
 | Not drawn: the report and cover | Built: with a bill, both carry the four numbers, and the report names each line billed ahead |
 | `paste.html` | Not built |
-| `welcome.html` | Not built |
+| `welcome.html` | Built in version 19, with the words as drawn |
 
 Landing page claims that are now true: it compares what you saw with what was billed; when your percent and the bill disagree, it shows; you enter what the contractor billed beside the slider; the sample has a bill that runs ahead of the work. Still not true: the page you send is not yet called the owner update.
 

@@ -181,7 +181,7 @@ const UI = (() => {
   function entryform(p, f) {
     const items = p.items || [], more = !!(f.wx || (f.temp !== '' && f.temp != null) || f.crew);
     entryBody.innerHTML = `<div class="card">
-      <h3>${f.id ? 'Change this photo or note' : 'Add a photo'} <small>${wd(f.d)}${f.time ? ' · ' + esc(f.time) : ''}</small></h3>
+      <h3>${f.id ? (f.photos.length ? 'Change this photo' : 'Change this note') : 'Add a photo'} <small>${wd(f.d)}${f.time ? ' · ' + esc(f.time) : ''}</small></h3>
       <div class="pend" id="pendGrid">${entryPhotosHtml(f)}</div>
       <p class="hint" style="margin:0 0 6px" id="pendHint">Take a photo, or pick ones you were texted.</p>
       <label for="efItem">Which part of the job is it?</label>${items.length
@@ -211,7 +211,7 @@ const UI = (() => {
         ${e.wx || e.crew ? `<div class="row" style="border:0"><div class="l"><small>Weather and people</small><div>${condChips(e)}</div></div></div>` : ''}
         ${p.addr ? `<div class="row" style="border:0;padding-top:0"><div class="l"><small>Place</small><div><span class="chip">${ic('pin', 14)}${esc(p.addr)}</span></div></div></div>` : ''}</div>
       <div class="stack"><button class="btn" onclick="App.openMove()">${ic('move')}Move it to another part</button>
-        <button class="btn q" onclick="App.editEntry('${e.id}')">${ic('edit')}Change the note</button>
+        <button class="btn q" onclick="App.editEntry('${e.id}')">${ic('edit')}${n ? 'Change this photo' : 'Change this note'}</button>
         ${ph ? `<button class="btn q" onclick="App.usePhotoOnCover()">${ic('image')}Use it in the picture to text</button>` : ''}
         <button class="btn danger" onclick="App.deleteEntry('${e.id}')">${ic('trash')}${n > 1 ? `Delete these ${n} photos` : n ? 'Delete this photo' : 'Delete this note'}</button></div>`;
     hydrate(photoBody, p);

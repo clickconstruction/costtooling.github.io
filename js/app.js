@@ -35,7 +35,7 @@ const App = (() => {
   const BACKWORD = { projects: 'Jobs', home: 'Home', log: 'Photos', sov: 'Parts', bill: 'Bill', report: 'Send' };
   const backDest = () => cur === 'entryform' ? trailPeek('log') : cur === 'photo' || cur === 'item' || cur === 'itemform' ? trailPeek(PARENT[cur]) : PARENT[cur] || 'projects';
   const SCREEN_NAMES = { projects: 'Your jobs', projform: 'Job form', home: 'Job home', log: 'Photos', entryform: 'Add a photo', photo: 'Photo', cover: 'Picture to text', sov: 'Parts', bill: 'Bill', item: 'Part', itemform: 'Part form', report: 'Send', signin: 'Sign in', join: 'Join', forgot: 'Forgot password', setpass: 'Set password', company: 'Company', account: 'Account', team: 'Team' };
-  function titles(s) { const p = P(); const sub = p ? (p.name || 'Untitled job') : ''; const it = p && (p.items || []).find(x => x.id === photoCtx.itemId); return { projects: ['Your jobs', 'CostTooling'], projform: [editProj && editProj.id ? 'Change this job' : 'New job', editProj && editProj.id ? sub : 'Set up in a minute'], home: [sub, 'What to do on this job'], log: ['Photos', sub], entryform: [form && form.id ? 'Change a photo' : 'Add a photo', sub], photo: ['Photo', sub], cover: ['A picture to text', sub], sov: ['Parts of the job', sub], bill: ['The bill', sub], item: [(it && it.n) || 'Part', 'One part of the job'], itemform: [editItem && editItem.id ? 'Change this part' : 'New part', sub], report: ['Send', sub], signin: ['Sign in', 'CostTooling'], join: ['Join a company', 'CostTooling'], forgot: ['Reset password', 'CostTooling'], setpass: ['Choose a password', 'CostTooling'], company: ['Your company', 'CostTooling'], account: ['Account', (window.Cloud && Cloud.state().user && Cloud.state().user.email) || 'CostTooling'], team: ['Team', (window.Cloud && (Cloud.state().memberships.find(m => m.company_id === Cloud.state().companyId) || {}).name) || 'Company'] }[s]; }
+  function titles(s) { const p = P(); const sub = p ? (p.name || 'Untitled job') : ''; const it = p && (p.items || []).find(x => x.id === photoCtx.itemId); return { projects: ['Your jobs', 'CostTooling'], projform: [editProj && editProj.id ? 'Change this job' : 'New job', editProj && editProj.id ? sub : 'Set up in a minute'], home: [sub, 'What to do on this job'], log: ['Photos', sub], entryform: [form && form.id ? (form.photos && form.photos.length ? 'Change this photo' : 'Change this note') : 'Add a photo', sub], photo: ['Photo', sub], cover: ['A picture to text', sub], sov: ['Parts of the job', sub], bill: ['The bill', sub], item: [(it && it.n) || 'Part', 'One part of the job'], itemform: [editItem && editItem.id ? 'Change this part' : 'New part', sub], report: ['Send', sub], signin: ['Sign in', 'CostTooling'], join: ['Join a company', 'CostTooling'], forgot: ['Reset password', 'CostTooling'], setpass: ['Choose a password', 'CostTooling'], company: ['Your company', 'CostTooling'], account: ['Account', (window.Cloud && Cloud.state().user && Cloud.state().user.email) || 'CostTooling'], team: ['Team', (window.Cloud && (Cloud.state().memberships.find(m => m.company_id === Cloud.state().companyId) || {}).name) || 'Company'] }[s]; }
   function render(s) {
     const t0 = performance.now(); try { renderInner(s); } finally { lastRender = Math.round(performance.now() - t0); if (lastRender > 50) logLine('slow render ' + s + ' ' + lastRender + 'ms'); }
   }
@@ -61,6 +61,7 @@ const App = (() => {
   function go(s) {
     if (s !== 'projects' && !P()) s = 'projects';
     if (ROOTS.includes(s)) trail = [];
+    if (s !== 'sov' && s !== 'item' && s !== 'itemform') mode = 'items'; // Parts opens on its list; the schedule is kept only while you stay under Parts
     if (s !== 'itemform') editItem = null; if (s !== 'projform') editProj = null; // a finished edit must not reopen its form after a reload
     cur = s; render(s);
     document.querySelectorAll('.screen').forEach(e => e.classList.toggle('on', e.dataset.s === s));
@@ -161,7 +162,7 @@ const App = (() => {
   function coverField(f, v) { P().cover[f] = v; save(); clearTimeout(coverTimer); coverTimer = setTimeout(drawCover, 250); }
   function coverManual(f, v) { P().cover.manual[f] = v; P().cover.numMode = 'manual'; coverField('numMode', 'manual'); }
   function shareResult(r, what) { if (r === 'shared') toast('Shared'); else if (r === 'downloaded') toast(what + ' saved'); else if (r === 'blocked') toast('Tap again to open the share sheet'); else if (r === 'empty') toast('Nothing to share yet'); }
-  async function saveCover() { const b = Render.coverBlob(); if (b) return shareResult(await Render.shareBlob(b, 'costtooling-cover.jpg', 'Owner update'), 'Picture'); toast('Finishing the picture…'); await Render.ready(); const b2 = Render.coverBlob(); if (b2) shareResult(await Render.shareBlob(b2, 'costtooling-cover.jpg', 'Owner update'), 'Picture'); }
+  async function saveCover() { const b = Render.coverBlob(); if (b) return shareResult(await Render.shareBlob(b, 'costtooling-picture.jpg', 'Owner update'), 'Picture'); toast('Finishing the picture…'); await Render.ready(); const b2 = Render.coverBlob(); if (b2) shareResult(await Render.shareBlob(b2, 'costtooling-picture.jpg', 'Owner update'), 'Picture'); }
   let reportBlob = null, reportBuilding = null;
   function buildReport() { const p = P(), k = Data.calc(p); reportBlob = null; reportBuilding = Render.report($('reportCanvas'), p, k, UI.sortedEntries(p).flatMap(e => e.photos.map(ph => ({ ph, e }))).slice(0, 3)).then(() => Render.canvasBlob($('reportCanvas'))).then(b => { reportBlob = b; return b; }).catch(e => { console.warn('report', e); return null; }); return reportBuilding; }
 
@@ -201,7 +202,7 @@ const App = (() => {
   function openShare(kind) { shareKind = kind; $('shareTitle').textContent = kind === 'cover' ? 'Send this picture' : 'Send the owner update'; showSheet('shareSheet'); }
   async function shareDo(action, kind) {
     kind = kind || shareKind; closeSheet(); const p = P(), k = Data.calc(p);
-    const name = kind === 'cover' ? 'costtooling-cover.jpg' : 'costtooling-report.jpg', title = 'Owner update', what = kind === 'cover' ? 'Picture' : 'Owner update';
+    const name = kind === 'cover' ? 'costtooling-picture.jpg' : 'costtooling-owner-update.jpg', title = 'Owner update', what = kind === 'cover' ? 'Picture' : 'Owner update';
     const getBlob = () => kind === 'cover' ? Render.coverBlob() : reportBlob;
     if (action === 'share' || action === 'save') {
       let b = getBlob();

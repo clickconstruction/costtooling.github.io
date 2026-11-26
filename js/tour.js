@@ -28,7 +28,7 @@ const Tour = (() => {
         go: () => { App.setMode('items'); App.go('sov'); }, target: () => document.querySelector('#sovBody [data-item]') || document.querySelector('#sovBody .empty') },
       { title: 'Type in the bill', text: 'When the contractor sends a bill, copy the percent for each part. The app sets it beside what you saw.',
         go: () => App.go('bill'), target: () => $('billCard') || document.querySelector('#billBody .empty'), block: 'start', cap: 0.5 },
-      { title: 'The owner update', text: bill ? 'One page with the numbers and the photos. Any part billed ahead of the work is named at the top.' : 'One page with the numbers and the photos.',
+      { title: 'The owner update', text: bill ? 'One page with the numbers and the photos. Any part billed for more than you saw is named at the top.' : 'One page with the numbers and the photos.',
         go: () => App.go('report'), target: () => $('reportPreview'), block: 'start', cap: 0.5 },
       { title: 'Send it', text: 'Tap Send it to the owner. Text it, save it, print it or email it.',
         go: () => { if (App.current() !== 'report') App.go('report'); }, target: () => $('sendBtn'), pad: 6 },

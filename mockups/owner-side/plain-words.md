@@ -1,15 +1,14 @@
 # The plain-words pass: plan and handoff
 
-Written Nov 25, 2026. **Nothing in it is built.** The owner asked for this pass after a review of version 18 through the eyes of the person they most often have to onboard. The choices below are proposals until the owner confirms them: see Decide with the owner first.
+Written Nov 25, 2026, as a plan. **It is built, as version 19,** on the branch `plain-words`, and not merged: the live site is on version 18. The owner asked for this pass after a review of version 18 through the eyes of the person they most often have to onboard. What was built says what the app does now and where it differs from the plan below; the rest of the page is the plan as it was written, kept for the reasons behind each choice.
 
 Read [HANDOFF.md](../../HANDOFF.md) first. It says how the app is put together, shipped and tested. The two drawn screens are [plain-home.html](plain-home.html) and [plain-part.html](plain-part.html), also shown with the other mockups in this folder's [index.html](index.html).
 
 ## Where the work is
 
-- **The code:** `main` on GitHub. Version 18 (billed against in place), this page, the two mockups and `qa/plain-check.js` were merged on Nov 25, 2026, so the live site is on version 18.
-- **Build the pass on the branch `plain-words`, cut from `main`.** It will be version 19.
+- **The code:** the branch `plain-words` on GitHub, cut from `main` at version 18. It is not merged. Merging it puts version 19 live and changes the words on every screen, so ask the owner first.
 
-To pick it up on another computer:
+To look at it on another computer:
 
 ```bash
 git clone https://github.com/clickconstruction/costtooling.github.io.git
@@ -23,7 +22,39 @@ cd costtooling.github.io && git checkout plain-words
 python3 -m http.server 8766 --bind 127.0.0.1
 ```
 
-Then open http://127.0.0.1:8766/app/ at a phone size such as 390 × 844, and http://127.0.0.1:8766/mockups/owner-side/ for the drawings. Test it, in HANDOFF.md, says how to install Playwright for the scripts in `qa/`. A prompt for Claude Code is at the end of this page.
+Then open http://127.0.0.1:8766/app/ at a phone size such as 390 × 844. Test it, in HANDOFF.md, says how to install Playwright for the scripts in `qa/`.
+
+## What was built
+
+All seven steps of the plan, in version 19. HANDOFF.md, under Plain words, says where each piece is in the code.
+
+| Step | Built as |
+| --- | --- |
+| 1. A job's first screen is a short list of steps | One sentence, the bill warning in words, four numbered steps, then Latest photos. The numbers fold under The numbers |
+| 2. One plain name per thing | The word list below, in the app, the tour, the guide, the send sheet, the email, both images and the landing page |
+| 3. Mark each part with words | Five word buttons on a part, with Type an exact percent one tap away. No sliders are left anywhere |
+| 4. The bill has its own door | A Bill tab that starts with a drawing of a bill with the percent column ringed, and the caption about stored materials |
+| 5. The photo form asks three things | The photo, which part, a note. The rest folds under More details |
+| 6. A floor on size | No text under 14 px and no target under 48 px on any screen `qa/plain-check.js` opens, the owner update included. Back says where it goes; Help is on every screen; messages stay 5 seconds |
+| 7. Tabs named for what they do | Home, Photos, Parts, Bill, Send. Old links (`?s=cover`, `?s=report`, `?s=sov&m=bill`) open the right screen |
+
+**What was decided, Nov 25, 2026.** The proposals as written for decisions 1, 2, 3, 5 and 6: the word list, the tabs Home, Photos, Parts, Bill and Send, the five words and what each stores, the Cover page folded into Send as a picture to text, and the Help button. For decision 4, the builder's cost numbers are on the Parts tab only. Decision 7, who sets a job up, is still open, and so is the second half of decision 1: whether a part shows the bill's own name for its line.
+
+**Where the build differs from the plan.**
+
+- **Photos of one part are picked from a list, not from chips.** Version 18 had a chip per part across the top of the log. Ten chips at 48 px tall filled half the screen, so the Photos tab has one list, Show photos of, with every part and its photo count.
+- **The Parts tab is a list of doors.** Each part shows its word, its percent and its photo count, and opens its own screen. Version 18 had a slider on every row.
+- **The numbers kept a home.** The plan said the numbers would be one tap away; they are in a fold on the job's home screen, and the builder's cost numbers are in a card under the list on the Parts tab.
+- **Messages stay 5 seconds and do not wait for a tap.** A message that waits would cover the buttons under it.
+- **A new photo no longer starts as sunny.** With the weather folded away, the old default would have recorded sun on every photo without anyone choosing it.
+- **The owner update met the size floor,** so it is not the exception the plan allowed for.
+- **The bulb stayed.** Its help links moved to the Help button; it still floats over the screens, which finding 8 counted against it.
+- **The landing page changed five phrases** to match: tap the words where it said drag a slider, part where it said line item, done where its sample card said in place, and 68 days left where it said 67.
+- **Not touched:** the sign-in, company and team screens, and the account button on the job list, which is still an icon with no word.
+
+**Checked.** `qa/plain-check.js` on version 19, Nov 25, 2026, in WebKit: no text under 14 px and no tap target under 48 px on any of its 15 screens and sheets; the table under What gets in the way today is version 18. `qa/walkthrough.js`: 118 screens, no issues.
+
+**Not done.** Nobody who has never seen the app has tried it, and it has not been on a real iPhone. How to check it, below, has both.
 
 ## Who it is for
 
@@ -76,7 +107,7 @@ The smallest text is the schedule's month labels (9 px), the report's number lab
 
 ## The plan, in order
 
-Each step says where the change goes and what done looks like. Steps 1, 3 and 7 are drawn in the mockups.
+All seven steps are built; What was built, above, says how. Each step says where the change goes and what done looks like. Steps 1, 3 and 7 are drawn in the mockups.
 
 1. **Make a job's first screen a short list of steps.** One plain sentence where the four tiles are ("About a third of the work is done."), the bill warning in words when there is one, then four numbered steps in the order of a site visit: Take photos, Mark what you saw, Type in the bill, Send the owner one page, each with one line on where it stands. Drawn in `plain-home.html`. Where: `UI.home` in `js/ui.js`. Done when the home screen reads top to bottom as what to do, and the numbers are one tap away instead of first.
 2. **Use one plain name per thing, everywhere.** Apply the word list below in the app, the tour, the guide, the share sheet and the email, and line up the landing page with it. The welcome card takes the words drawn in `welcome.html`, with the tagline under the name (ideas 6 and 8 in README.md). Where: `js/ui.js`; `js/app.js` (the screen titles in `titles()`, `SCREEN_NAMES`, toasts, confirm texts and the email); `js/tour.js`; `js/cover.js` (the words on the images); `app/index.html` (tabs, welcome card, share and bulb sheets); `js/cloud.js` (sign-in screens); `guide/index.html`; `index.html`. Done when each thing has one name on every screen and none of the words in finding 3 is left on the assistant's screens.
@@ -116,6 +147,8 @@ The landing page already says "part of the job" three times and "line item" twic
 
 ## Decide with the owner first
 
+Decided Nov 25, 2026, except decision 7 and the second half of decision 1. What was built, above, has the answers.
+
 1. **The words.** Confirm or change the word list. The contractor's bill will still say "item" or "line"; decide whether a part shows the bill's own name for its line.
 2. **The tabs.** This plan proposes Home, Photos, Parts, Bill, Send. The owner's side mockups in this folder drew Home, Log, Parts, Bills, Owner update. Pick one set.
 3. **The five words for how far along a part is, and what each stores.** Proposed: tapping Not started stores 0%, Just started 10%, About half 50%, Nearly done 90% and Done 100%; for display, 1 to 34% reads Just started, 35 to 65% About half and 66 to 99% Nearly done. Tapping Nearly done on the sample's Framing would store 90% and change the $3,420 the landing page quotes, so the sample keeps its exact 85%.
@@ -142,22 +175,22 @@ The landing page already says "part of the job" three times and "line item" twic
 Paste this after cloning the repo:
 
 ```text
-I'm picking up the plain-words pass for CostTooling, a phone-first web app at costtooling.com. This folder is its repo.
+I'm reviewing version 19 of CostTooling, the plain-words pass. CostTooling is a phone-first web app at costtooling.com. This folder is its repo.
 
 First run: git checkout plain-words
 
-Read HANDOFF.md, then mockups/owner-side/plain-words.md, and look at mockups/owner-side/plain-home.html and plain-part.html.
+Read HANDOFF.md, then mockups/owner-side/plain-words.md.
 
 Then tell me, briefly:
 1. Where the app stands, and what is on the branch that is not live yet.
-2. What the plain-words pass changes, in order.
-3. Which of the decisions under "Decide with the owner first" you need from me before you start.
+2. What the plain-words pass changed, and where it differs from its plan.
+3. What is left before it can be merged.
 
 Do not change anything until I answer. Keep these rules for the whole session:
 - The repo is public and every committed file is served on the site. Never commit names, emails, keys or customer data.
-- The database and account functions live in the charitytooling repo. One live Supabase project serves two apps with no staging copy, so make no database change without asking me. This pass should not need one.
+- The database and account functions live in the charitytooling repo. One live Supabase project serves two apps with no staging copy, so make no database change without asking me.
 - One real company syncs a real job. Old jobs must keep working, and nothing may rewrite or drop stored data.
-- Work on the branch plain-words. A push to main deploys to the live site in about a minute, so ask me before anything goes to main.
+- A push to main deploys to the live site in about a minute, so ask me before anything goes to main.
 - Bump the version as HANDOFF.md says when a script or stylesheet changes.
 - Keep HANDOFF.md and mockups/owner-side/plain-words.md current when a fact in them changes.
 ```

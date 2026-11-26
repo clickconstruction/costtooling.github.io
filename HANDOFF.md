@@ -19,7 +19,7 @@ The app is one repo, but its database and account functions live in the CharityT
 | App code | [clickconstruction/costtooling.github.io](https://github.com/clickconstruction/costtooling.github.io), public, branch `main`, no branch protection | Owner adds you as a collaborator |
 | Live site | [costtooling.com](https://costtooling.com) on GitHub Pages, HTTPS enforced. The front page is the landing page; the app is at [costtooling.com/app](https://costtooling.com/app/) | Deploys itself on every push to `main` |
 | Domain and DNS | Cloudflare. The bare domain points at GitHub Pages; `www` is a CNAME to clickconstruction.github.io | Owner's Cloudflare account |
-| Cloud backend | Supabase project `cjwybuhogxyayjnuxpem` ("charity-tooling"), shared with CharityTooling | Owner's Supabase organization |
+| Cloud backend | Supabase project `cjwybuhogxyayjnuxpem` ("shared-tooling", named "charity-tooling" until Nov 26, 2026), shared with CharityTooling | Owner's Supabase organization |
 | Database migrations and account functions | [charitytooling/charitytooling.github.io](https://github.com/charitytooling/charitytooling.github.io): `supabase/migrations/20261013010000_costtooling_tenancy.sql`, the shared Edge Functions, and `docs/multi-app-tenancy.md` | Owner adds you as a collaborator |
 | Sign-in and invite emails | The `auth-email` Edge Function, sending through Resend | Owner's Resend account |
 | Google sign-in | Google Cloud project `costtooling`, in the owner's Google Workspace organization: the consent screen and one OAuth client. Its client ID and secret are in Supabase, Authentication, Providers, Google | Owner's Google Cloud account |
@@ -334,7 +334,7 @@ The repo cannot answer these. Settle them in the first conversation.
 2. **Users:** one real company is syncing: the tester's, with one job, last synced Oct 20, 2026 (checked Nov 19). Treat `ct_projects` as real data from here on, and ask whether more companies are coming. The only other company is the one `cloud-e2e.js` left behind on Oct 13, with no jobs; delete it as Test it describes.
 3. **Ideas inbox:** should the ideas form keep emailing the owner, or you?
 4. **What next:** a direction is written down in Where it is going, and its first two pieces are built. As of Nov 25 the tester had not been asked the question it rests on. Settle the open points in `mockups/owner-side/README.md` (sub folders, numbered bills) and the two left open in `mockups/owner-side/plain-words.md`: whether a part shows the bill's own name for its line, and who sets a job up. The README still calls the app a functional mock-up.
-5. **The shared project:** will CostTooling stay on the CharityTooling Supabase project, or move to its own? The dashboard plan assumes it stays.
+5. **The shared project:** will CostTooling stay on the shared Supabase project ("shared-tooling"), or move to its own? The dashboard plan assumes it stays.
 6. **The All companies screen:** build it? It was offered and not answered.
 7. **The suite:** which other apps are in it, and which Supabase project is each on? Step 1 of One dashboard for the suite.
 8. **Who runs it:** the Privacy and Terms pages say Click Construction. The owner approved that; confirm it is the legal name, and whether the terms should name a state's law.

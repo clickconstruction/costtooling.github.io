@@ -3,7 +3,7 @@
    Tap the mask, swipe, or press Next to move on. Nothing the tour does changes the user's data. */
 const Tour = (() => {
   const $ = id => document.getElementById(id);
-  let stops = [], i = 0, on = false, pid = null, root, hole, card, raf, swipeX = null;
+  let stops = [], i = 0, on = false, pid = null, origin = null, root, hole, card, raf, swipeX = null;
 
   // ---------- the stops ----------
   const sampleOrFirst = () => { const S = App.state(); const s = S.projects.find(p => p.sample); return (s || S.projects[0] || {}).id || null; };
@@ -30,9 +30,9 @@ const Tour = (() => {
         go: () => App.go('bill'), target: () => $('billCard') || document.querySelector('#billBody .empty'), block: 'start', cap: 0.5 },
       { title: 'The owner update', text: bill ? 'One page with the numbers and the photos. Any part billed for more than you saw is named at the top.' : 'One page with the numbers and the photos.',
         go: () => App.go('report'), target: () => $('reportPreview'), block: 'start', cap: 0.5 },
-      { title: 'Send it', text: 'Tap Send it to the owner. Text it, save it, print it or email it.',
+      { title: 'Send it', text: 'Tap Choose how to send it. Text it, save it, print it or email it. Nothing goes until you pick.',
         go: () => { if (App.current() !== 'report') App.go('report'); }, target: () => $('sendBtn'), pad: 6 },
-      cloud && { title: 'Your jobs on every phone', text: 'Sign in and every job and photo follows you. Your team sees them too. Not ready? This phone still works on its own.',
+      cloud && { title: 'Saved on this phone', text: 'Your jobs are kept on this phone, with no sign-in. With an account from your company they follow you to any phone, and your team sees them too.',
         go: () => App.go('projects'), target: () => $('cloudPromo'), block: 'start' },
       { title: "That's the whole app", text: 'Try it on the sample job. Nothing you do there matters. The Help button is at the top of every screen.',
         go: () => App.go('projects'), target: null, done: true },
@@ -44,7 +44,7 @@ const Tour = (() => {
   function mount() {
     if (root) return;
     root = document.createElement('div'); root.id = 'tour'; root.setAttribute('role', 'dialog'); root.setAttribute('aria-label', 'Show me around');
-    root.innerHTML = '<div id="tourHole"></div><div id="tourCard"><button class="x" id="tourX" aria-label="Close the tour">' + UI.ic('x', 18) + '</button><div class="dots" id="tourDots"></div><h4 id="tourTitle"></h4><p id="tourText"></p><div class="btns" id="tourBtns"></div></div>';
+    root.innerHTML = '<div id="tourHole"></div><div id="tourCard"><button class="x" id="tourX" aria-label="Stop the tour">Stop</button><div class="dots" id="tourDots"></div><h4 id="tourTitle"></h4><p id="tourText"></p><div class="btns" id="tourBtns"></div></div>';
     document.querySelector('.app').appendChild(root);
     hole = $('tourHole'); card = $('tourCard');
     root.addEventListener('click', e => { if (!card.contains(e.target)) next(); });
@@ -72,7 +72,7 @@ const Tour = (() => {
       $('tourBtns').innerHTML = s.done
         ? `<button class="btn" id="tourTry">${UI.ic('check')}Try the sample job</button><button class="btn q" id="tourNew">${UI.ic('plus')}Start my own job</button>`
         : `<button class="btn q" id="tourBack" ${i === 0 ? 'disabled' : ''}>${UI.ic('chevl')}Back</button><button class="btn" id="tourNext">${last ? 'Done' : 'Next'}${UI.ic('chevr')}</button>`;
-      if (s.done) { $('tourTry').onclick = () => { end(); App.openProject(pid); }; $('tourNew').onclick = () => { end(); App.newProject(); }; }
+      if (s.done) { $('tourTry').onclick = () => { end(true); App.openProject(pid); }; $('tourNew').onclick = () => { end(true); App.newProject(); }; }
       else { $('tourBack').onclick = back; $('tourNext').onclick = next; }
       root.classList.toggle('done', !!s.done);
       place();
@@ -104,6 +104,7 @@ const Tour = (() => {
     mount();
     if (!App.state().projects.length) App.restoreSample();
     pid = sampleOrFirst(); if (!pid) return App.toast('Add a job first');
+    origin = { pid: App.state().cur, screen: App.current() }; // where the tour was started, to go back to when it is stopped
     stops = build(); i = 0; on = true;
     App.closeSheet(); DB.set('ct-welcomed', 1);
     document.documentElement.classList.add('touring'); root.classList.add('show'); document.addEventListener('keydown', onKey);
@@ -111,8 +112,10 @@ const Tour = (() => {
   }
   function next() { if (!on) return; if (i >= stops.length - 1) return end(); i++; show(); }
   function back() { if (!on || i === 0) return; i--; show(); }
-  function end() {
+  /** Stop the tour. Unless told to stay, go back to the job and the screen it was started from: the tour itself moves to the sample job. */
+  function end(stay) {
     if (!on) return; on = false; clearTimeout(raf);
+    if (stay !== true && origin) { const back = { itemform: 'sov', projform: 'projects', entryform: 'log' }[origin.screen] || origin.screen; if (App.state().projects.some(p => p.id === origin.pid)) App.openProject(origin.pid); App.go(back); }
     root.classList.remove('show', 'done'); document.documentElement.classList.remove('touring'); document.removeEventListener('keydown', onKey);
     DB.set('ct-toured', 1);
   }

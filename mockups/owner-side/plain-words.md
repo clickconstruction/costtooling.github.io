@@ -32,7 +32,7 @@ All seven steps of the plan, in version 19. HANDOFF.md, under Plain words, says 
 - **Messages stay 5 seconds and do not wait for a tap.** A message that waits would cover the buttons under it.
 - **A new photo no longer starts as sunny.** With the weather folded away, the old default would have recorded sun on every photo without anyone choosing it.
 - **The owner update met the size floor,** so it is not the exception the plan allowed for.
-- **The bulb stayed.** Its help links moved to the Help button; it still floats over the screens, which finding 8 counted against it.
+- **The bulb stayed in version 19 and went in version 20.** Its help links moved to the Help button; it still floated over the screens, which finding 8 counted against it, and every reviewer in the version 20 review said so. Ideas are now under Help, as Tell us what is confusing.
 - **The landing page changed five phrases** to match: tap the words where it said drag a slider, part where it said line item, done where its sample card said in place, and 68 days left where it said 67.
 - **Not touched:** the sign-in, company and team screens, and the account button on the job list, which is still an icon with no word.
 

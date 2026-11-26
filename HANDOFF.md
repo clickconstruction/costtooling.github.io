@@ -6,7 +6,7 @@ CostTooling is a phone-first web app for the person who walks a construction job
 
 It is a working prototype, built between Oct 12 and Oct 22, 2026. The last two changes made each line item a folder of its photos and notes by day, with Move to… on a photo, after a tester asked to see Day 1, Day 2 under a line item and to move photos between line items, and made Back return to the screen you came from. The open work below was last reviewed Nov 25, 2026. A direction for what comes next was chosen on Nov 25: see Where it is going. The same day its landing page went live on the front page of costtooling.com, ahead of the features it describes, and the app moved to costtooling.com/app. Version 18, also Nov 25, is the first piece of that direction: billed against in place. Version 19 is the second: a plain-words pass that rewrote every screen for the owner's assistant. Plain words, under Data and cloud sync, says what it changed; `mockups/owner-side/plain-words.md` has the plan it was built from.
 
-**Where the latest work is.** Everything is on `main`, and the live site is on version 19, merged Nov 25, 2026. The branches `billed-in-place` and `plain-words` hold only commits that are already in `main` and can be deleted.
+**Where the latest work is.** `main` and the live site are on version 19, merged Nov 25, 2026. Version 20, the fixes from a review of the live site by customer type, is on the branch `persona-pass`, pushed to GitHub and not merged. Merging it puts version 20 live, so ask the owner first. When it is merged, fix this paragraph. The branches `billed-in-place` and `plain-words` were deleted on Nov 25, 2026, after everything on them was in `main`.
 
 ## Where everything lives
 
@@ -21,7 +21,7 @@ The app is one repo, but its database and account functions live in the CharityT
 | Database migrations and account functions | [charitytooling/charitytooling.github.io](https://github.com/charitytooling/charitytooling.github.io): `supabase/migrations/20261013010000_costtooling_tenancy.sql`, the shared Edge Functions, and `docs/multi-app-tenancy.md` | Owner adds you as a collaborator |
 | Sign-in and invite emails | The `auth-email` Edge Function, sending through Resend | Owner's Resend account |
 | User guide | [costtooling.com/guide](https://costtooling.com/guide/), from `guide/index.html` in the app repo | Same as app code |
-| Ideas from users | The yellow bulb emails ideas to the address in `FEEDBACK_EMAIL`, near the top of `js/app.js` | Change that line to receive them yourself |
+| Ideas from users | Tell us what is confusing, under Help, saves ideas on the phone, and its Email all ideas sends them to the address in `FEEDBACK_EMAIL`, near the top of `js/app.js` | Change that line to receive them yourself |
 
 ## Run it on your machine
 
@@ -41,7 +41,7 @@ The repo's `.claude/launch.json` starts the same server on port 8765. There, pas
 
 Your test data lives in that browser only. **Start over**, under Help and then More, wipes it and brings back the sample job. The service worker only registers over HTTPS, so local runs never serve stale files.
 
-These address-bar switches save clicks. Add them to the app's address, `/app/`; the front page passes them on, so links from before the move, such as `costtooling.com/?for=Diane`, still work.
+These address-bar switches save clicks. Since version 20 the app drops the one-time ones (`s`, `job`, `new`, `m`, `welcome`, `tour`, `help`, `ideas`, `sheet`, `layout`) from the address once it has opened, so a reload restores what was open instead of replaying them. Add them to the app's address, `/app/`; the front page passes them on, so links from before the move, such as `costtooling.com/?for=Diane`, still work.
 
 | Add to the URL | What it does |
 | --- | --- |
@@ -51,7 +51,7 @@ These address-bar switches save clicks. Add them to the app's address, `/app/`; 
 | `?s=report` | Opens a screen directly: `projects`, `home`, `log` (Photos), `photo`, `sov` (Parts), `bill`, `item` (one part), `report` (Send, the owner update), `cover` (the picture to text) |
 | `?s=log&new=1` | Opens the form to add a photo |
 | `?s=sov&m=gantt` | Opens Parts on the schedule. `?s=sov&m=bill`, from version 18, still opens the Bill tab |
-| `?s=home&help=1` | Opens the Help sheet; `ideas=1` opens the bulb's sheet and `sheet=report` the send sheet |
+| `?s=home&help=1` | Opens the Help sheet; `ideas=1` opens the ideas sheet and `sheet=report` the send sheet |
 | `?s=home&job=sample` | Opens the sample job, if it is still on the phone. The landing page's Try the sample job uses it |
 | `?shot=1` | Pins the layout to 390 × 844 for screenshots |
 | `?debug=1` | Overlays viewport sizes, safe areas, the focused field, render time and the last log lines |
@@ -106,16 +106,17 @@ The phone is the source of truth. Signed in, each job is copied whole to Supabas
 | Sync bookkeeping | localStorage `ct-sync` and `ct-company` | Which jobs and photos are already up, and the chosen company |
 | Ideas and diagnostics | localStorage `ct-ideas` and `ct-log` (last 50 lines) | Both go out with **Email all ideas** |
 | First-run flags | localStorage `ct-welcomed`, `ct-toured`, `ct-for`, `ct-sample-bill` | Welcome card seen, tour finished, name from `?for=`, and the stored sample job checked once for its bill |
+| The sender's name | localStorage `ct-me` | Typed on the Send tab, printed at the foot of the owner update. It stays on the phone and never syncs |
 
 ### Billed against in place
 
 Since version 18 a part of the job (a line item, in the data and in this section) can carry what the contractor billed, beside the percent the user sets. This section is written in version 18's words; Plain words, below, gives the names version 19 puts on screen.
 
-- **The field.** `billed` on a line item is the percent the contractor's latest bill shows as complete, 0 to 100, and `billedAt` is the day it was typed. Both are plain JSON on the job, so nothing in the database changed. A line with no `billed` is "not billed yet". Typing an amount stores the percent of the line's budget; a figure past 100% is cut to 100.
+- **The field.** `billed` on a line item is the percent the contractor's latest bill shows as complete, 0 to 100, and `billedAt` is the day it was typed. Both are plain JSON on the job, so nothing in the database changed. A line with no `billed` is "not billed yet". Typing an amount stores the percent of the line's budget; a figure past 100% is refused.
 - **One running figure.** There are no numbered or dated bills. Each new bill overwrites the last figure.
-- **Where it is typed.** On the Bill tab, which lists every part with a percent box. A part's own screen has the same figure under its word buttons, as a percent or an amount.
+- **Where it is typed.** On the Bill tab, which lists every part with two boxes, a percent or dollars; each fills in the other. A part's own screen has the same two boxes under its word buttons. A figure that cannot be right, a percent over 100 or dollars over the part's budget, is refused and the box goes back to what it held; until version 20 it was cut to 100% and saved.
 - **A job with a bill, and a job without.** A job is drawn the new way once any of its line items has `billed`. Its home screen then shows in place, billed, billed ahead and days left, with a Check before you pay card; its report, cover and email carry the same numbers and name each line billed ahead; its line items show billed where they showed spent; and the Costs card folds to one row. A job with no `billed` anywhere draws exactly as it did in version 17, apart from the quiet Bill choice and one empty "Billed to date" row. `qa/walkthrough.js` checks both, and that a job saved before version 18 is not rewritten.
-- **Billed ahead** is the sum, over the lines billed past what is in place, of that gap times the line's budget. A line billed under the work does not cancel one billed ahead. There is no tolerance: a 62% bill against a 60% slider counts.
+- **Billed ahead** is the sum, over the lines billed past what is in place, of that gap times the line's budget. A line billed under the work does not cancel one billed ahead. There is no tolerance: a 62% bill against 60% marked counts. Since version 20 the two are compared as they are shown, to one decimal, so a bill a few dollars over that prints as the same percent is not flagged.
 - **Costs** are kept. The data is untouched; in a job with a bill the cost numbers leave the home screen, the report and the Progress list, and stay in the folded Costs card on each line item.
 - **The sample job** has Framing billed at 100% with 85% in place, and its other started lines billed at what is in place: 36% in place, 38% billed, $3,420 billed ahead, the numbers on the landing page. A sample stored on a phone before version 18 is given that bill once, by line item name (`ct-sample-bill` records that it was checked). Nothing else on a phone is changed.
 - **The code.** The sums and sentences are in `js/data.js` under "billed against in place"; `App.setBilled` in `js/app.js` is the one place a figure is saved.
@@ -126,7 +127,7 @@ Version 19 rewrote the screens for the owner's assistant, who is often older and
 
 - **One name per thing.** A line item is a part of the job, or a part. The log and its entries are Photos. Progress is Parts. In place is done, or what you saw. Billed ahead of the work is billed more than you saw. The report is the owner update, and the cover page is a picture to text. A project is a job. The page the owner reads says done, billed, billed ahead and days left.
 - **Five tabs:** Home, Photos, Parts, Bill and Send. `TABOF` in `js/app.js` maps each screen to its tab. Bill is its own screen (`bill`), no longer a choice inside Parts. Send opens the `report` screen; the `cover` screen is reached from it and goes back to it.
-- **The top bar** has a Back button that says where it goes (`BACKWORD` and `backDest` in `js/app.js`) and a Help button on every screen. Help opens Show me around, the guide, the bulb's ideas form and, under More, About, Back up my data and Start over. The yellow corner button with a pencil, a plus or a share arrow is gone: each of those actions is now a worded button on its screen.
+- **The top bar** has a Back button that says where it goes (`BACKWORD` and `backDest` in `js/app.js`) and a Help button on every screen. Help opens Show me around, the guide, the ideas form (Tell us what is confusing) and, under More, About, Back up my data and Start over. The yellow corner button with a pencil, a plus or a share arrow is gone: each of those actions is now a worded button on its screen.
 - **A job opens on what to do** (`UI.home`): one sentence on how much is done (`Data.doneSentence`), the bill warning in words when the bill is more than what was seen, then four numbered steps in the order of a site visit. The numbers fold under The numbers. The builder's cost numbers, cost so far and cost to finish, are on the Parts tab only, under its list.
 - **A part is marked with words** (`UI.item`, `Data.WORDS`): Not started, Just started, About half, Nearly done and Done store 0, 10, 50, 90 and 100. A stored percent reads as the word for its range (1 to 34, 35 to 65, 66 to 99), and tapping the word a part already reads as changes nothing, so the sample's Framing stays at 85%. Type an exact percent is one tap away. There are no sliders left. `App.setPct` is still the one place a percent is saved.
 - **The Bill tab** (`UI.bill`) starts with a drawing of a contractor's bill with the percent column ringed, and says that the number counts stored materials.
@@ -158,10 +159,10 @@ The Edge Functions and the sign-up triggers are shared with CharityTooling. Depl
 
 A push to `main` is live in about a minute. There are no pull requests, no automated tests and no branch protection, so check your change before you push.
 
-1. **Bump the version when you change any file that is not a page:** a stylesheet, a script, an icon or a guide photo. The service worker serves those from its cache first, so phones keep the old ones until the version moves. Three places, all one number up (today 19):
-   - every `?v=19` in `app/index.html`
-   - every `?v=19` in the `SHELL` list in `sw.js`
-   - `VERSION = 'ct-v19'` in `sw.js`
+1. **Bump the version when you change any file that is not a page:** a stylesheet, a script, an icon or a guide photo. The service worker serves those from its cache first, so phones keep the old ones until the version moves. Three places, all one number up (20 on the branch `persona-pass`; `main` is on 19):
+   - every `?v=20` in `app/index.html`
+   - every `?v=20` in the `SHELL` list in `sw.js`
+   - `VERSION = 'ct-v20'` in `sw.js`
 2. **A new script or stylesheet** goes in both `app/index.html` and the `SHELL` list in `sw.js`. The landing page needs neither: it is one file, and the service worker fetches it fresh whenever the phone is online.
 3. **Commit and push to `main`.** The workflow `.github/workflows/pages.yml` uploads the whole repo and deploys it. The last deploy took 54 seconds. If the deploy step fails with "No artifacts named github-pages were found", as it did on two pushes in a row on Nov 25, do not re-run the failed job, which then finds two artifacts and fails again. Start a fresh run with `gh workflow run pages.yml --ref main`.
 4. **Check it is live.** `gh run list` shows the deploy. Then load the live app and look for the new version number. Phones that had the old version see an **Update ready. Reload** message the next time they open the app.
@@ -182,7 +183,7 @@ mkdir -p ~/pw && cd ~/pw && npm i playwright && npx playwright install chromium 
 
 | Script in `qa/` | What it checks | Run it with |
 | --- | --- | --- |
-| `walkthrough.js` | Every screen of the app at iPhone size, as a fresh user, screenshots into `qa/shots/` (`qa/shots-webkit/` with WebKit). It checks which screen and tab each tap lands on, reads every screen for the words version 19 retired, and checks the sample job's bill, the word buttons and the exact percent, the Bill tab, Help on 13 screens, a job with no bill, a job saved before bills existed, old links and the tour's stops. It ends with a count of issues, and with notes for behaviour nobody has decided. Last run Nov 25, 2026 on version 19, in WebKit, against a local server and then against the live site: 118 screens, no issues. Chromium was not installed on that machine, and WebKit fires no download event, so the backup file and the two saved pictures were checked only by their messages | `NODE_PATH=~/pw/node_modules node qa/walkthrough.js <url>`; add `ENGINE=webkit` for Safari's engine |
+| `walkthrough.js` | Every screen of the app at iPhone size, as a fresh user, screenshots into `qa/shots/` (`qa/shots-webkit/` with WebKit). It checks which screen and tab each tap lands on, reads every screen for the words version 19 retired, and checks the sample job's bill, the word buttons and the exact percent, the Bill tab, Help on 13 screens, a job with no bill, a job saved before bills existed, old links and the tour's stops. It ends with a count of issues, and with notes for behaviour nobody has decided. Last run Nov 25, 2026 in WebKit: on version 19 against the live site, 118 screens, no issues; on version 20 against a local server, 122 screens, no issues. Chromium was not installed on that machine, and WebKit fires no download event, so the backup file and the two saved pictures were checked only by their messages | `NODE_PATH=~/pw/node_modules node qa/walkthrough.js <url>`; add `ENGINE=webkit` for Safari's engine |
 | `plain-check.js` | Text under 14 px and tap targets under 48 px on 15 screens and sheets of the sample job. It changes nothing and fails nothing. Last run Nov 25, 2026 on version 19, in WebKit: none of either on any screen. The numbers from version 18 are in `mockups/owner-side/plain-words.md` | `node qa/plain-check.js http://127.0.0.1:8766`; add `ENGINE=webkit` for Safari's engine |
 | `offline.js` | The app, at `/app/`, opens from the service worker with the network off. Passed against the live site on Nov 25, 2026, on version 17. Not run on version 19: it needs Chromium, which was not installed on that machine, and with WebKit the offline reload fails inside Playwright. On version 19 the live site's service worker was seen in control, with every file of the app in its `ct-v19` cache. It needs HTTPS, so run it against the live site; against a local server it never finishes | `node qa/offline.js <url>` |
 | `cloud-e2e.js` | Sign in, create a company, sync a job with a photo, mint codes, then see it all arrive in a second browser | `E2E_EMAIL=… E2E_PASSWORD=… node qa/cloud-e2e.js <url>` |
@@ -202,6 +203,7 @@ The app's history runs from Oct 12 to Oct 22, 2026; the landing page, the move t
 
 | Date | Change | Commit |
 | --- | --- | --- |
+| Nov 25 | Fixes from a review of the live site by six kinds of customer, on the branch `persona-pass`. Wrong before: a percent over 100 or dollars over the budget was saved as 100%, and is now refused; a bill a few dollars over was flagged while both percents printed the same; a reload lost the photo form for anyone who came by the landing page's button; a job with no dates showed tens of thousands of days left; Try the sample job opened another job when the sample was gone; a typed total price did not add up across the parts. Changed: the Bill tab takes a percent or dollars on every row and says Saved; the job list says jobs are saved on this phone and no longer offers a sign-in nobody can create; the owner update is marked Sample job on the sample, carries the sender's note and name and a line on what a bill's figures include; Save and add another on the photo form; the floating bulb is gone and ideas are under Help; messages show at the top, with a warning sign when something was not saved; the tour goes back to where it was started and has a Stop button; the reason for Add to Home Screen, shown again on a new job; the guide opens on CostTooling's steps from the app; version 20 | see `git log` |
 | Nov 25 | The plain-words pass: a job opens on one sentence, the bill warning in words and four numbered steps; a part is marked with five words, with an exact percent one tap away, and the sliders are gone; tabs are Home, Photos, Parts, Bill and Send; the Bill tab draws where to find the number on a bill; adding a photo asks three things; Back says where it goes and Help is on every screen; nothing under 14 px or 48 px; one plain name per thing in the app, the tour, the guide, both images and the landing page; saved pictures are named `costtooling-owner-update.jpg` and `costtooling-picture.jpg`; the guide has thirteen first-day steps with new photos; version 19 | 3c32cd2, b92ca18 |
 | Nov 25 | Billed against in place: a billed figure on each line item, typed on Progress under Bill or on the line item as a percent or an amount; a job with a bill leads with in place, billed and billed ahead on its home screen, report, cover and email, with a Check before you pay card; the sample job's bill runs $3,420 ahead on Framing; costs fold away in a job with a bill; two tour stops and a guide step; all ten guide photos retaken; version 18 | 23b4ae4 |
 | Nov 25 | The owner's side landing page is the front page of costtooling.com, with its copy as drawn; the app moves to `/app/` and the front page passes on home-screen apps, emailed links and old links; the service worker caches both pages; the manifest starts at `/app/`; `?job=sample`; version 17 | 4941f68 |
@@ -234,6 +236,13 @@ The app is being aimed at the person who walks the job for an owner: an owner's 
 
 Nothing here is broken for one person on one phone. Merging edits and cleaning up cloud photos matter once teams share jobs.
 
+- [ ] **Decide what a tapped word tells the owner.** From the review by customer type, and the most serious thing it left open. About half stores 50 for anything a person would call about half, and the owner update then prints "On site it is 50%" and a dollar gap to the dollar. Either keep a word as a range (flag only when the bill passes the top of the range, and print "about half done"), or keep the exact figure and accept that it claims more than was seen. It changes what the owner is told, so it is the owner's call.
+- [ ] **The owner update for a contractor who pushes back.** Still missing, by an owner's rep's standard: the bill's number and date, retainage, the date each percent was marked beside its part (version 20 stores `pctAt` and prints only the latest), and the flagged part's own photo under its flag. The tile says billed ahead where the app says billed more than you saw.
+- [ ] **A bill that is one total, and bills over time.** The Bill tab takes a percent or dollars per part; a one-page invoice with one total has nowhere to go. Each new bill still overwrites the last.
+- [ ] **Setting up and getting out.** Parts are typed one form at a time, with no paste and no reorder; budgets from a template are a guess. The backup is JSON without photos and cannot be loaded back; Print it prints a picture, and there is no spreadsheet export.
+- [ ] **Nobody can create an account.** Sign-in works only for accounts made through a company invite. The job list now says so; a way to sign up is a decision for the owner, and lives in the CharityTooling repo.
+- [ ] **Desktop and assistive use.** The browser's own Back leaves the app; Enter submits no form; photo rows and template choices are not reachable by keyboard; sheets do not take focus. Escape now closes a sheet, messages are announced, and the lit tab is exposed.
+- [ ] **The landing page, for the owner to decide.** Reviewers playing an owner read "For owner's reps, and anyone who walks the job for an owner" as not for them; the sample card shows blank photo tiles and a literal [YOUR NAME]; nothing says where the data lives. Version 20 changed one phrase there: how many were on site, where it said who.
 - [ ] **Hand the phone to someone who has never seen the app.** The test that matters for version 19, and not done: the sample job and three tasks with no help. Add a photo to Framing; mark Roofing as about half done; say which part the contractor billed too much for. Note every place they stop or ask.
 - [ ] **Plain words on the sign-in, company and team screens.** `js/cloud.js` kept its words and sizes, and the account button on the job list is still an icon with no word.
 - [ ] **Paste a job's lines from the contractor's bill.** Setting up a job is still builder's work: parts, budgets and dates. Drawn in `mockups/owner-side/paste.html`.
@@ -259,6 +268,6 @@ The repo cannot answer these. Settle them in the first conversation.
 
 1. **Access:** which of these do you get? Collaborator on both GitHub repos, the Supabase project, Cloudflare, and Resend.
 2. **Users:** one real company is syncing: the tester's, with one job, last synced Oct 20, 2026 (checked Nov 19). Treat `ct_projects` as real data from here on, and ask whether more companies are coming. The only other company is the one `cloud-e2e.js` left behind on Oct 13, with no jobs; delete it as Test it describes.
-3. **Ideas inbox:** should the bulb keep emailing the owner, or you?
+3. **Ideas inbox:** should the ideas form keep emailing the owner, or you?
 4. **What next:** a direction is written down in Where it is going, and its first two pieces are built. As of Nov 25 the tester had not been asked the question it rests on. Settle the open points in `mockups/owner-side/README.md` (sub folders, numbered bills) and the two left open in `mockups/owner-side/plain-words.md`: whether a part shows the bill's own name for its line, and who sets a job up. The README still calls the app a functional mock-up.
 5. **The shared project:** will CostTooling stay on the CharityTooling Supabase project, or move to its own?

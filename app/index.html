@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="CostTooling">
 <script>if (new URLSearchParams(location.search).get("shot")) document.documentElement.classList.add("shot");</script>
 <link rel="manifest" href="../manifest.webmanifest"><link rel="apple-touch-icon" href="../icons/apple-touch-icon.png"><link rel="icon" href="../icons/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="../css/app.css?v=19">
+<link rel="stylesheet" href="../css/app.css?v=20">
 </head>
 <body>
 <div class="shell">
@@ -49,24 +49,23 @@
       <button data-t="bill" onclick="App.go('bill')"><span class="pill"><i data-ic="bill" data-size="22"></i></span>Bill</button>
       <button data-t="send" onclick="App.go('report')"><span class="pill"><i data-ic="send" data-size="22"></i></span>Send</button>
     </div>
-    <button class="fab" id="fab" onclick="App.openIdeas()" aria-label="Tell us an idea"><i data-ic="bulb" data-size="26"></i><span class="n" id="fabN"></span></button>
-    <div class="toast" id="toast"></div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <div class="sheet-bg" id="sheetBg" onclick="App.closeSheet()"></div>
 
     <div class="sheet" id="shareSheet">
       <div class="grab"></div>
       <h4 id="shareTitle">Send the owner update</h4>
-      <button class="hrow" onclick="App.shareDo('share')"><b>Text it or send it</b><small>Opens your phone’s share menu.</small></button>
+      <button class="hrow" onclick="App.shareDo('share')"><b>Text it or send it</b><small>You pick who gets it. Nothing goes until you press send.</small></button>
       <button class="hrow" onclick="App.shareDo('save')"><b>Save it as a picture</b><small>It goes with your photos.</small></button>
       <button class="hrow" onclick="App.shareDo('print')"><b>Print it</b><small>Or save it as a PDF.</small></button>
-      <button class="hrow" onclick="App.shareDo('mail')"><b>Email the numbers</b><small>Starts an email with the numbers typed in.</small></button>
+      <button class="hrow" onclick="App.shareDo('mail')"><b>Email the numbers</b><small>Starts an email with the numbers typed in. Add the saved picture for the full page.</small></button>
       <button class="btn q" onclick="App.closeSheet()">Cancel</button>
     </div>
     <div class="sheet" id="helpSheet">
       <div class="grab"></div>
       <h4>Help</h4>
       <button class="hrow" onclick="Tour.start()"><b>Show me around</b><small>A short walk through the app, step by step.</small></button>
-      <a class="hrow" href="../guide/"><b>How do I…</b><small>Pictures of each step.</small></a>
+      <a class="hrow" href="../guide/#costtooling-first"><b>How do I…</b><small>Pictures of each step.</small></a>
       <button class="hrow" onclick="App.openIdeas()"><b>Tell us what is confusing</b><small>Send a question or an idea.</small></button>
       <details class="more"><summary>More<i data-ic="chevr" data-size="18"></i></summary>
         <button class="hrow" onclick="App.openWelcome()"><b>About CostTooling</b></button>
@@ -92,7 +91,7 @@
       <p><b>See what’s done before you pay for it.</b></p>
       <ol><li><i>1</i>Walk the job and take photos.</li><li><i>2</i>Mark what you saw, part by part.</li><li><i>3</i>Send the owner one page.</li></ol>
       <p><b>Not a builder?</b> The list tells you what to look at.</p>
-      <p id="installTip" style="display:none"><b>On an iPhone?</b> Tap Share <span style="display:inline-block;vertical-align:-3px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 12v8h14v-8"/></svg></span> in Safari, then <b>Add to Home Screen</b>. Do this before you add real jobs.</p>
+      <p id="installTip" style="display:none"><b>On an iPhone?</b> Tap Share <span style="display:inline-block;vertical-align:-3px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 12v8h14v-8"/></svg></span> in Safari, then <b>Add to Home Screen</b>, and open CostTooling from there. Safari can clear a website’s saved work after a few weeks; from the Home Screen your jobs stay put. Do this before you add real jobs.</p>
       <div class="two" id="welcomeBtns"><button class="btn" id="welcomeTour" onclick="Tour.start()">Show me around</button><button class="btn q" id="welcomeGo" onclick="App.closeSheet()"><i data-ic="check"></i>Let's go</button></div>
     </div>
     <div class="sheet" id="confirmSheet">
@@ -115,15 +114,15 @@
   </div></div>
 </div>
 <div id="printArea" hidden></div>
-<script src="../js/db.js?v=19"></script>
-<script src="../js/photos.js?v=19"></script>
-<script src="../js/data.js?v=19"></script>
-<script src="../js/cover.js?v=19"></script>
-<script src="../js/ui.js?v=19"></script>
+<script src="../js/db.js?v=20"></script>
+<script src="../js/photos.js?v=20"></script>
+<script src="../js/data.js?v=20"></script>
+<script src="../js/cover.js?v=20"></script>
+<script src="../js/ui.js?v=20"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
-<script src="../js/cloud.js?v=19"></script>
-<script src="../js/tour.js?v=19"></script>
-<script src="../js/app.js?v=19"></script>
+<script src="../js/cloud.js?v=20"></script>
+<script src="../js/tour.js?v=20"></script>
+<script src="../js/app.js?v=20"></script>
 <script>
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
   navigator.serviceWorker.register('../sw.js').then(reg => {

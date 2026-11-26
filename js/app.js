@@ -65,10 +65,9 @@ const App = (() => {
     if (s !== 'itemform') editItem = null; if (s !== 'projform') editProj = null; // a finished edit must not reopen its form after a reload
     cur = s; render(s);
     document.querySelectorAll('.screen').forEach(e => e.classList.toggle('on', e.dataset.s === s));
-    document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === TABOF[s]));
+    document.querySelectorAll('.tabs button').forEach(b => { const on = b.dataset.t === TABOF[s]; b.classList.toggle('on', on); if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
     const cloudScreen = !!(window.Cloud && Cloud.SCREENS.includes(s));
     $('tabs').classList.toggle('hide', s === 'projects' || s === 'projform' || cloudScreen);
-    $('fab').classList.toggle('hide', s === 'entryform' || s === 'itemform' || s === 'projform' || cloudScreen);
     const cb = $('cloudBtn'); if (cb) cb.style.display = s === 'projects' && window.Cloud && Cloud.enabled() ? '' : 'none';
     const t = titles(s); $('ttl').textContent = t[0]; $('sub').textContent = t[1];
     $('back').classList.toggle('show', s !== 'projects'); $('mark').style.display = s === 'projects' ? '' : 'none';
@@ -85,7 +84,8 @@ const App = (() => {
   function pickTemplate(k) { tpl = k; document.querySelectorAll('.tpl div').forEach(d => d.classList.toggle('on', d.textContent.startsWith(Data.TEMPLATES[k].name))); }
   function saveProject() {
     const v = id => ($(id) || {}).value || '';
-    const name = v('pfName').trim(); if (!name) { $('pfName').focus(); return toast('Give the job a name'); }
+    const name = v('pfName').trim(); if (!name) { $('pfName').focus(); return toast('Give the job a name', true); }
+    if (v('pfStart') && v('pfFinish') && v('pfFinish') < v('pfStart')) return toast('The finish date is before the start date', true);
     if (editProj.id) { const p = P(); Object.assign(p, { name, client: v('pfClient').trim(), addr: v('pfAddr').trim(), start: v('pfStart'), finish: v('pfFinish') }); save(); toast('Saved'); return go('home'); }
     const p = { id: Data.uid('pr'), name, client: v('pfClient').trim(), addr: v('pfAddr').trim(), start: v('pfStart'), finish: v('pfFinish'), items: Data.itemsFromTemplate(tpl, v('pfStart'), v('pfFinish'), +v('pfContract') || 0), entries: [], cover: { picked: [], layout: 'hero', head: '', note: '', numMode: 'auto', manual: {} } };
     S.projects.unshift(p); S.cur = p.id; save(); toast('Job created'); go('home');
@@ -118,14 +118,16 @@ const App = (() => {
   function captureForm() { if (!form || cur !== 'entryform') return; const v = id => ($(id) || {}).value ?? ''; form.note = v('efNote'); form.itemId = v('efItem'); form.temp = v('efTemp'); form.crew = v('efCrew'); form.d = v('efDate') || form.d; }
   function setWx(w) { captureForm(); form.wx = form.wx === w ? '' : w; document.querySelectorAll('#efWx button').forEach((b, i) => b.classList.toggle('on', ['sun', 'cloud', 'rain', 'wind'][i] === form.wx)); }
   async function removeFormPhoto(i) { captureForm(); const ph = form.photos.splice(i, 1)[0]; if (ph && ph.id && form.added.includes(ph.id)) { await Photos.remove(ph.id); form.added = form.added.filter(x => x !== ph.id); } UI.entryPhotos(P(), form); }
-  function saveEntry() {
+  /** again: after saving, open a fresh form for the next photo of the same part. */
+  function saveEntry(again) {
     if (importing) return toast('Still importing photos…'); captureForm(); const p = P();
-    if (!form.photos.length && !form.note.trim()) return toast('Add a photo or a note first');
+    if (!form.photos.length && !form.note.trim()) return toast('Add a photo or a note first', true);
     const rec = { id: form.id || Data.uid('e'), d: form.d, time: form.time || Data.nowTime(), ts: form.ts || Date.now(), itemId: form.itemId, wx: form.wx, temp: form.temp, crew: form.crew, note: form.note.trim(), photos: form.photos };
     const idx = p.entries.findIndex(x => x.id === rec.id); if (idx >= 0) p.entries[idx] = rec; else p.entries.push(rec);
     save(); const wasNew = !form.id; form = null; persistSession();
     // Land where it went: the line item's folder, with the entry outlined. Untagged entries land in the log.
     const it = rec.itemId && p.items.find(x => x.id === rec.itemId);
+    if (again === true && wasNew) { toast(it ? `Saved under ${it.n}. Now the next one.` : 'Saved. Now the next one.'); return newEntry(rec.itemId, rec.d); }
     if (it) { photoCtx.itemId = it.id; flash = rec.id; go('item'); toast(`Saved under ${it.n} · Day ${Data.itemDay(p, it.id, rec.d)}`); }
     else { toast(wasNew ? 'Saved under Photos. No part picked.' : 'Saved'); go('log'); }
   }
@@ -167,26 +169,32 @@ const App = (() => {
   function buildReport() { const p = P(), k = Data.calc(p); reportBlob = null; reportBuilding = Render.report($('reportCanvas'), p, k, UI.sortedEntries(p).flatMap(e => e.photos.map(ph => ({ ph, e }))).slice(0, 3)).then(() => Render.canvasBlob($('reportCanvas'))).then(b => { reportBlob = b; return b; }).catch(e => { console.warn('report', e); return null; }); return reportBuilding; }
 
   // ---------- line items ----------
-  function setPct(id, v, commit) { const p = P(), i = p.items.find(x => x.id === id); if (!i) return; i.pct = Math.min(100, Math.max(0, +v || 0)); UI.itemProgress(i); UI.itemBill(i, Data.calc(p)); if (commit) save(); }
+  function setPct(id, v, commit) { const p = P(), i = p.items.find(x => x.id === id); if (!i) return; i.pct = Math.min(100, Math.max(0, +v || 0)); if (commit) i.pctAt = Data.iso(Data.today()); UI.itemProgress(i); UI.itemBill(i, Data.calc(p)); if (commit) save(); }
   /** Tapping a word stores its percent. Tapping the word a part already reads as changes nothing, so an exact 85% stays 85%. */
-  function setWord(id, n) { const i = P().items.find(x => x.id === id); if (!i || !Data.WORDS[n] || Data.wordIdx(i.pct) === n) return; setPct(id, Data.WORDS[n][1], true); toast('Saved: ' + Data.WORDS[n][0].toLowerCase()); }
+  function setWord(id, n) { const i = P().items.find(x => x.id === id); if (!i || !Data.WORDS[n]) return; if (Data.wordIdx(i.pct) === n) { const v = +i.pct || 0; return toast('It is marked ' + Data.WORDS[n][0].toLowerCase() + (v > 0 && v < 100 ? ' (' + v + '%)' : '')); } setPct(id, Data.WORDS[n][1], true); toast('Saved: ' + Data.WORDS[n][0].toLowerCase()); }
   /** The exact percent, for anyone who wants it: a number from 0 to 100. */
-  function setExact(id, raw) { const i = P().items.find(x => x.id === id); if (!i) return; const s = String(raw ?? '').replace(/[%\s]/g, ''), v = +s; if (s === '' || !isFinite(v) || v < 0 || v > 100) { toast('Type a number from 0 to 100'); const ex = $('exactIn'); if (ex) ex.value = +i.pct || 0; return; } setPct(id, Math.round(v * 10) / 10, true); toast('Saved: ' + (+i.pct || 0) + '% done'); }
+  function setExact(id, raw) { const i = P().items.find(x => x.id === id); if (!i) return; const v = Data.num(raw); if (v === null || isNaN(v) || v > 100) { toast('Type a number from 0 to 100', true); const ex = $('exactIn'); if (ex) ex.value = +i.pct || 0; return; } setPct(id, Math.round(v * 10) / 10, true); toast('Saved: ' + (+i.pct || 0) + '% done'); }
   function toggleExact() { const r = $('exactRow'); if (!r) return; r.hidden = !r.hidden; if (!r.hidden) $('exactIn').focus(); }
   /** What the contractor billed for a line item, typed as a percent or as an amount of its budget. Empty clears it: not billed yet. */
   function setBilled(id, kind, raw) {
     const p = P(), i = p.items.find(x => x.id === id); if (!i) return;
-    const s = String(raw ?? '').replace(/[%$,\s]/g, ''), back = msg => { if (msg) toast(msg); UI.itemBill(i, Data.calc(p)); };
-    if (s === '') { if (!Data.hasBill(i)) return back(); delete i.billed; delete i.billedAt; }
+    const typed = Data.num(raw), back = msg => { if (msg) toast(msg, true); UI.itemBill(i, Data.calc(p)); };
+    if (typed === null) { if (!Data.hasBill(i)) return back(); delete i.billed; delete i.billedAt; }
     else {
-      let v = +s; if (!isFinite(v) || v < 0) return back('Type a number, like 50 or 11,400');
-      if (kind === 'amt') { const b = +i.b || 0; if (!b) return back('Give this part a budget first'); v = v / b * 100; }
-      if (v > 100.005) toast(kind === 'amt' ? 'The bill cannot be more than the budget. Raise the budget if the price went up.' : 'The bill cannot be more than 100%');
+      // A figure that cannot be right is not saved: the box goes back to what it held. (It used to be cut to 100% and saved.)
+      if (isNaN(typed)) return back('Type a number, like 50 or 11,400');
+      let v = typed;
+      if (kind === 'amt') { const b = +i.b || 0; if (!b) return back('Give this part a budget first'); if (v > b + 0.005) return back(`That is more than this part’s budget of ${Data.fmt$(b)}. Not saved. Raise the budget if the price went up.`); v = v / b * 100; }
+      else if (v > 100) return back('A percent cannot be more than 100. Not saved. If the bill shows dollars, type them in the dollars box.');
       i.billed = Math.min(100, v); i.billedAt = Data.iso(Data.today());
     }
     save(); const k = Data.calc(p);
     UI.itemBill(i, k);
+    toast(Data.hasBill(i) ? `Saved: the bill says ${Data.fmtPct(Data.itemBilledPct(i))} for ${i.n}` : `Cleared the bill for ${i.n}`);
   }
+  /** The two things on the Send tab that are the sender's own: a note to the owner, kept on the job, and their name, kept on this phone. */
+  function setNote(v) { const p = P(); p.cover.note = String(v || '').trim(); save(); UI.reportPreview(p, Data.calc(p)); buildReport(); }
+  function setMe(v) { DB.set('ct-me', String(v || '').trim()); const p = P(); UI.reportPreview(p, Data.calc(p)); buildReport(); }
   function openBill() { go('bill'); }
   function setMode(m) { if (m === 'bill') return go('bill'); mode = m === 'gantt' ? 'gantt' : 'items'; const parts = { items: $('modeItems'), gantt: $('modeGantt') }; if (!parts.items) return; Object.keys(parts).forEach(k => { if (parts[k]) parts[k].style.display = k === mode ? '' : 'none'; }); document.querySelectorAll('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.m === mode)); }
   function openGantt() { mode = 'gantt'; go('sov'); }
@@ -218,22 +226,23 @@ const App = (() => {
     }
     else if (action === 'mail') {
       // A job with a bill sends billed against in place; any other job sends what it always did.
-      const nums = k.hasBill ? Data.billNums(k).map(([v, l]) => v + ' ' + l).join(' · ') + (k.aheadItems.length ? '\n\n' + k.aheadItems.map(Data.aheadLine).join('\n') : '') : `${Math.round(k.pct * 100)}% done · ${Data.fmt$(k.cost)} cost so far · ${Data.fmt$(k.toGo)} to finish · ${k.daysLeft} days left`;
+      const nums = k.hasBill ? Data.billNums(k).map(([v, l]) => v + ' ' + l).join(' · ') + (k.aheadItems.length ? '\n\n' + k.aheadItems.map(Data.aheadLine).join('\n') : '') : `${Math.round(k.pct * 100)}% done · ${Data.fmt$(k.cost)} cost so far · ${Data.fmt$(k.toGo)} to finish · ${k.daysLeft ?? '—'} days left`;
       const line = i => k.hasBill ? `${i.n}: ${i.pct || 0}% done of ${Data.fmt$(i.b)}, ${Data.hasBill(i) ? 'billed ' + Data.fmtPct(Data.itemBilledPct(i)) + (Data.billState(i) === 'ahead' ? ' (' + Data.aheadLabel(i) + ')' : '') : 'not billed yet'}` : `${i.n}: ${i.pct || 0}% done of ${Data.fmt$(i.b)}, ${Data.fmt$(Data.itemCost(i))} spent`;
-      const body = `${p.name}\nOwner update, ${Data.mdy(Data.iso(Data.today()))}\n\n${nums}\n\n${p.items.map(line).join('\n')}\n\n${p.cover.note || ''}\n\n(Attach the saved picture for the full page.)`; location.href = 'mailto:?subject=' + encodeURIComponent('Owner update: ' + p.name) + '&body=' + encodeURIComponent(body);
+      const body = `${p.name}\nOwner update, ${Data.mdy(Data.iso(Data.today()))}\n\n${nums}\n\n${p.items.map(line).join('\n')}\n\n${p.cover.note || ''}\n\n${Data.basisLine(p, k, DB.get('ct-me') || '')}\n\n(Attach the saved picture for the full page.)`; location.href = 'mailto:?subject=' + encodeURIComponent('Owner update: ' + p.name) + '&body=' + encodeURIComponent(body);
     }
   }
 
   // ---------- sheets, toast, confirm ----------
   function showSheet(id) { closeSheet(); $('sheetBg').classList.add('show'); $(id).classList.add('show'); }
   function closeSheet() { $('sheetBg').classList.remove('show'); document.querySelectorAll('.sheet').forEach(s => s.classList.remove('show')); }
-  function confirm(title, text, fn) { $('confirmTitle').textContent = title; $('confirmText').textContent = text; $('confirmBtn').onclick = () => { closeSheet(); fn(); }; showSheet('confirmSheet'); }
-  let tt; function toast(m) { const t = $('toast'); t.innerHTML = UI.ic('check', 16) + '<span>' + UI.esc(m) + '</span>'; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 5000); }
+  function confirm(title, text, fn, label) { $('confirmTitle').textContent = title; $('confirmText').textContent = text; $('confirmBtn').textContent = label || 'Delete'; $('confirmBtn').onclick = () => { closeSheet(); fn(); }; showSheet('confirmSheet'); }
+  let tt; /** bad: the message says something was not done, so it carries a warning sign, not a tick. */
+  function toast(m, bad) { const t = $('toast'); t.innerHTML = UI.ic(bad ? 'alert' : 'check', 16) + '<span>' + UI.esc(m) + '</span>'; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 5000); }
 
   // ---------- ideas ----------
   let ideaImp = 'want';
   const ideas = () => DB.get('ct-ideas') || [];
-  function renderIdeas() { const list = ideas(); $('fabN').textContent = list.length; $('fabN').classList.toggle('show', list.length > 0); $('ideaList').innerHTML = list.slice().reverse().map(i => `<div class="row"><div class="l"><b>${UI.esc(i.text)}</b><small>${UI.esc(i.screen)} · ${UI.esc(i.imp)} · ${UI.esc(i.when)}</small></div></div>`).join(''); }
+  function renderIdeas() { const list = ideas(); $('ideaList').innerHTML = list.slice().reverse().map(i => `<div class="row"><div class="l"><b>${UI.esc(i.text)}</b><small>${UI.esc(i.screen)} · ${UI.esc(i.imp)} · ${UI.esc(i.when)}</small></div></div>`).join(''); }
   function openHelp() { showSheet('helpSheet'); }
   function openIdeas() { $('ideaScreen').textContent = SCREEN_NAMES[cur] || cur; renderIdeas(); showSheet('ideaSheet'); }
   function saveIdea() { const t = $('ideaText').value.trim(); if (!t) return $('ideaText').focus(); const list = ideas(); list.push({ text: t, screen: SCREEN_NAMES[cur] || cur, imp: { nice: 'nice to have', want: "I'd use this", must: 'must have' }[ideaImp], when: new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) }); DB.set('ct-ideas', list); $('ideaText').value = ''; renderIdeas(); toast('Saved. Keep going!'); }
@@ -244,12 +253,12 @@ const App = (() => {
   async function exportData() { closeSheet(); const name = 'costtooling-backup-' + Data.iso(Data.today()) + '.json'; const blob = new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' }); const file = new File([blob], name, { type: 'application/json' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: 'CostTooling backup' }); return toast('Backup shared (photos not included yet)'); } catch (e) { if (e.name === 'AbortError') return; } }
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); toast('Backup saved (photos not included yet)'); }
-  function resetAll() { confirm('Start over?', 'This removes every job, photo and idea from this phone and brings back the sample job.', async () => { await DB.clearPhotos(); DB.del(DB.KEY); DB.del('ct-ideas'); DB.del('ct-session'); DB.del('ct-log'); location.href = location.pathname; }); }
+  function resetAll() { confirm('Start over?', 'This removes every job, photo and idea from this phone and brings back the sample job.', async () => { await DB.clearPhotos(); DB.del(DB.KEY); DB.del('ct-ideas'); DB.del('ct-session'); DB.del('ct-log'); location.href = location.pathname; }, 'Start over'); }
 
   // ---------- diagnostics ----------
   const LOG = 'ct-log'; const logLine = m => { const l = DB.get(LOG) || []; l.push(new Date().toISOString().slice(11, 19) + ' ' + m); DB.set(LOG, l.slice(-50)); };
-  window.addEventListener('error', e => { logLine('error: ' + (e.message || e.type) + ' @' + (e.filename || '').split('/').pop() + ':' + e.lineno); toast('Something went wrong'); });
-  window.addEventListener('unhandledrejection', e => { logLine('rejection: ' + (e.reason && (e.reason.message || e.reason))); toast('Something went wrong'); });
+  window.addEventListener('error', e => { logLine('error: ' + (e.message || e.type) + ' @' + (e.filename || '').split('/').pop() + ':' + e.lineno); toast('Something went wrong', true); });
+  window.addEventListener('unhandledrejection', e => { logLine('rejection: ' + (e.reason && (e.reason.message || e.reason))); toast('Something went wrong', true); });
   document.addEventListener('touchstart', () => {}, { passive: true }); // lets iOS apply :active styles
   if (window.visualViewport) { const vv = window.visualViewport; const onVV = () => { const kb = Math.max(0, Math.round(innerHeight - vv.height - vv.offsetTop)); document.documentElement.style.setProperty('--kb', kb + 'px'); if (kb === 0 && scrollY) window.scrollTo(0, 0); }; vv.addEventListener('resize', onVV); vv.addEventListener('scroll', onVV); }
   document.addEventListener('focusout', () => setTimeout(() => { if (!document.activeElement || document.activeElement === document.body) window.scrollTo(0, 0); }, 50));
@@ -269,7 +278,8 @@ const App = (() => {
   // ---------- boot ----------
   document.querySelectorAll('[data-ic]').forEach(e => { const w = document.createElement('span'); w.innerHTML = UI.ic(e.dataset.ic, +(e.dataset.size || 18)); e.replaceWith(w.firstChild); });
   // ?job=sample opens that job (the landing page's Try the sample job), when it is still on this phone.
-  if (Q.get('job') && S.projects.some(p => p.id === Q.get('job'))) S.cur = Q.get('job');
+  const lostJob = !!Q.get('job') && !S.projects.some(p => p.id === Q.get('job'));
+  if (Q.get('job') && !lostJob) S.cur = Q.get('job');
   const sess = Q.get('s') || Q.get('new') || Q.get('welcome') || Q.get('tour') || Q.get('auth') || Q.get('code') ? null : DB.get('ct-session');
   if (sess && sess.at && Date.now() - sess.at < 6 * 3600e3 && P()) {
     if (sess.photoCtx) photoCtx = Object.assign(photoCtx, sess.photoCtx); if (sess.mode) mode = sess.mode; if (mode === 'bill') { mode = 'items'; if (sess.cur === 'sov') sess.cur = 'bill'; } if (sess.logFilter) logFilter = sess.logFilter; if (Array.isArray(sess.trail)) trail = sess.trail;
@@ -281,6 +291,12 @@ const App = (() => {
   } else { const s0 = Q.get('s'); go(s0 && PARENT.hasOwnProperty(s0) && s0 !== 'entryform' && s0 !== 'itemform' && s0 !== 'projform' ? s0 : 'projects'); }
   setTimeout(async () => { try { const ids = await Photos.listIds(); const used = new Set(); S.projects.forEach(p => p.entries.forEach(e => e.photos.forEach(ph => ph.id && used.add(ph.id)))); if (form) form.photos.forEach(ph => ph.id && used.add(ph.id)); const orphans = (ids || []).filter(id => !used.has(id)); for (const id of orphans) await Photos.remove(id); if (orphans.length) logLine('cleaned ' + orphans.length + ' orphan photo(s)'); } catch (e) { logLine('cleanup: ' + (e && e.message)); } }, 3000);
   if (Q.get('new')) newEntry(); if (Q.get('s') === 'projform') newProject(); if (Q.get('s') === 'itemform') newItem(); if (Q.get('m') === 'gantt' || Q.get('m') === 'bill') { setMode(Q.get('m')); } if (Q.get('layout')) coverLayout(Q.get('layout'));
+  // Try the sample job, from the landing page, when the sample was deleted: say so instead of opening some other job.
+  if (lostJob) { go('projects'); toast(Q.get('job') === 'sample' ? 'The sample job was deleted. Tap Bring back the sample job.' : 'That job is not on this phone.'); }
+  // The address's one-time switches have done their work. Drop them, so a reload restores what was open instead of replaying them:
+  // iOS reloads the page after the camera, and a visitor who came by the landing page's button would lose the photo form.
+  try { const u = new URL(location.href); ['s', 'job', 'new', 'm', 'welcome', 'tour', 'help', 'ideas', 'sheet', 'layout'].forEach(k => u.searchParams.delete(k)); if (u.href !== location.href) history.replaceState(null, '', u.pathname + u.search + u.hash); } catch (e) {}
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !(window.Tour && Tour.active())) closeSheet(); });
   renderIdeas(); if (Q.get('tour')) setTimeout(() => Tour.start(), 500); else if (!DB.get('ct-welcomed') || Q.get('welcome')) setTimeout(openWelcome, 400);
   if (Q.get('ideas')) setTimeout(openIdeas, 300); if (Q.get('help')) setTimeout(openHelp, 300); if (Q.get('sheet')) setTimeout(() => openShare(Q.get('sheet')), 300);
   if (Q.get('s') === 'photo' && P() && P().entries[0]) openPhoto(P().entries[0].id);
@@ -288,6 +304,6 @@ const App = (() => {
 
   }
   function refreshAfterSync() { if (cur === 'projects' || cur === 'home') render(cur); }
-  return { boot, go, current: () => cur, toast, confirm, refreshAfterSync, openGantt, openProject, newProject, editProject, pickTemplate, saveProject, deleteProject, restoreSample, newEntry, editEntry, cam, gal, setWx, removeFormPhoto, saveEntry, cancelEntry, deleteEntry, openPhoto, photoIdx, usePhotoOnCover, openMove, setMoveMode, moveEntry, filterLog, coverPick, coverLayout, coverNum, coverField, coverManual, saveCover, setPct, setWord, setExact, toggleExact, setBilled, openBill, setMode, openItem, newItem, editItem: editItemForm, saveItem, deleteItem, addCost, deleteCost, openShare, shareDo, closeSheet, openHelp, openIdeas, saveIdea, sendIdeas, openWelcome, exportData, resetAll, state: () => S, filesPicked };
+  return { boot, go, current: () => cur, toast, confirm, refreshAfterSync, openGantt, openProject, newProject, editProject, pickTemplate, saveProject, deleteProject, restoreSample, newEntry, editEntry, cam, gal, setWx, removeFormPhoto, saveEntry, cancelEntry, deleteEntry, openPhoto, photoIdx, usePhotoOnCover, openMove, setMoveMode, moveEntry, filterLog, coverPick, coverLayout, coverNum, coverField, coverManual, saveCover, setPct, setWord, setExact, toggleExact, setBilled, setNote, setMe, needsInstall: () => isIOS && !standalone, openBill, setMode, openItem, newItem, editItem: editItemForm, saveItem, deleteItem, addCost, deleteCost, openShare, shareDo, closeSheet, openHelp, openIdeas, saveIdea, sendIdeas, openWelcome, exportData, resetAll, state: () => S, filesPicked };
 })();
 App.boot();

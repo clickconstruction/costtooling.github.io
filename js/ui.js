@@ -100,12 +100,14 @@ const UI = (() => {
 
   function projform(p, tpl) {
     const isNew = !p.id; const T = Data.iso(Data.today());
-    projformBody.innerHTML = `<div class="card">
+    // On an iPhone in Safari, a real job should wait until the app is on the Home Screen: say so where real jobs start.
+    const install = isNew && App.needsInstall() ? `<div class="notice flat" style="margin:0 0 12px"><b style="margin:0 0 4px">First, put CostTooling on your Home Screen</b>1. Tap the Share button at the bottom of Safari. 2. Tap Add to Home Screen. 3. Open CostTooling from that new picture, then start your job there. Safari can clear a website’s saved work after a few weeks; from the Home Screen your jobs stay put.</div>` : '';
+    projformBody.innerHTML = install + `<div class="card">
       <label for="pfName">Name of the job</label><input class="in" id="pfName" value="${esc(p.name || '')}" placeholder="e.g. Oak St porch">
-      <label for="pfClient">Who is it for?</label><input class="in" id="pfClient" value="${esc(p.client || '')}" placeholder="The owner’s name">
+      <label for="pfClient">Who is paying for it?</label><input class="in" id="pfClient" value="${esc(p.client || '')}" placeholder="The owner’s name, or yours">
       <label for="pfAddr">Address</label><input class="in" id="pfAddr" value="${esc(p.addr || '')}" placeholder="Where the job is">
       <div class="in2"><div><label for="pfStart">Start</label><input class="in" type="date" id="pfStart" value="${esc(p.start || T)}"></div><div><label for="pfFinish">Finish</label><input class="in" type="date" id="pfFinish" value="${esc(p.finish || Data.iso(Data.addDays(Data.today(), 60)))}"></div></div>
-      ${isNew ? `<label for="pfContract">Total price of the job, if you know it</label><input class="in" type="number" inputmode="decimal" id="pfContract" placeholder="$">` : ''}
+      ${isNew ? `<label for="pfContract">Total price of the job, if you know it</label><input class="in" type="number" inputmode="decimal" id="pfContract" placeholder="$"><p class="hint">We share it out across the parts as a first guess. Change each part’s budget to match the contractor’s bill.</p>` : ''}
     </div>` + (isNew ? `<div class="card"><h3>Start with a list of parts</h3><p class="hint" style="margin:-4px 0 10px">You can change them later.</p><div class="tpl">${Object.entries(Data.TEMPLATES).map(([k, t]) => `<div class="${k === tpl ? 'on' : ''}" onclick="App.pickTemplate('${k}')"><b>${esc(t.name)}</b><span>${esc(t.note)}</span></div>`).join('')}</div></div>` : '') +
       `<button class="btn" onclick="App.saveProject()">${ic('check')}${isNew ? 'Create this job' : 'Save'}</button>` +
       (isNew ? '' : `<button class="btn danger" style="margin-top:10px" onclick="App.deleteProject()">${ic('trash')}Delete this job</button>`);
@@ -120,12 +122,12 @@ const UI = (() => {
     const frac = doneFrac(p, k);
     const notice = !n ? '' : `<button class="notice" id="checkCard" onclick="${n === 1 ? `App.openItem('${k.aheadItems[0].id}')` : `App.go('bill')`}">${k.total && k.billedAhead > 0 ? `The contractor has billed ${fmt$(k.billedAhead)} more than you saw.` : `The contractor has billed more than you saw on ${plural(n, 'part')}.`}<b>${n === 1 ? 'See which part' : 'See which parts'}${ic('chevr', 18)}</b></button>`;
     const step = (num, title, sub, act) => `<button class="step" onclick="${act}"><i>${num}</i><span><b>${title}</b><small>${sub}</small></span>${ic('chevr', 20)}</button>`;
-    const day = `Day ${Math.max(1, Math.round(k.elapsed))} of ${Math.round(k.span)}`;
+    const day = k.dated ? `Day ${Math.max(1, Math.round(k.elapsed))} of ${Math.round(k.span)}` : 'no dates yet';
     // The numbers are one tap away. The builder's cost numbers are not here: they are on the Parts tab.
     const tiles = `<div class="kpi">${ic('trend')}<b>${Math.round(frac * 100)}%</b><span>of the work is done</span><em>${day}</em></div>` +
       (k.hasBill ? `<div class="kpi light">${ic('bill')}<b>${k.total ? Math.round(k.billedPct * 100) + '%' : '—'}</b><span>is what the bill says</span><em>${k.total ? fmt$(k.billed) + ' of ' + fmt$(k.total) : 'no budgets yet'}</em></div>
-      <div class="kpi ${n ? 'warn' : 'light'}">${ic(n ? 'alert' : 'check')}<b>${k.total || !n ? fmt$(k.billedAhead) : n}</b><span>${k.total || !n ? 'billed more than you saw' : 'part' + (n === 1 ? '' : 's') + ' billed more than you saw'}</span><em>${n ? plural(n, 'part') + ' to check' : 'nothing to check'}</em></div>` : '') +
-      `<div class="kpi light">${ic('clock')}<b>${k.daysLeft}</b><span>days left</span><em>${p.finish ? 'due ' + md(p.finish) : 'no finish date'}</em></div>`;
+      <div class="kpi ${n ? 'warn' : 'light'}">${ic(n ? 'alert' : 'check')}<b>${k.billedAhead > 0 || !n ? fmt$(k.billedAhead) : n}</b><span>${k.billedAhead > 0 || !n ? 'billed more than you saw' : 'part' + (n === 1 ? '' : 's') + ' billed more than you saw'}</span><em>${n ? plural(n, 'part') + ' to check' : 'nothing to check'}</em></div>` : '') +
+      `<div class="kpi light">${ic('clock')}<b>${k.daysLeft ?? '—'}</b><span>days left</span><em>${k.dated ? 'due ' + md(p.finish) : 'no dates yet'}</em></div>`;
     homeBody.innerHTML = `<div class="say">${!items.length ? 'This job has no parts yet.' : Data.doneSentence(frac)}</div>${notice}
       <div class="steps">
         ${step(1, 'Take photos', nPhotos ? `${nPhotos} so far. The last one was ${when(lastPhoto.d)}.` : 'None yet. Start here.', 'App.newEntry()')}
@@ -195,7 +197,8 @@ const UI = (() => {
         <label for="efDate">Date</label><input class="in" type="date" id="efDate" value="${esc(f.d)}">
       </details>
     </div>
-    <div style="display:flex;gap:8px"><button class="btn" onclick="App.saveEntry()">${ic('check')}Save</button><button class="btn q" style="width:auto" onclick="App.cancelEntry()">Cancel</button></div>`;
+    <div class="stack"><button class="btn" onclick="App.saveEntry()">${ic('check')}Save</button>
+      <div style="display:flex;gap:8px">${f.id ? '' : `<button class="btn q" onclick="App.saveEntry(true)">${ic('camera')}Save and add another</button>`}<button class="btn q" style="${f.id ? '' : 'width:auto'}" onclick="App.cancelEntry()">Cancel</button></div></div>`;
     hydrate(entryBody, p, f.photos);
   }
 
@@ -251,14 +254,14 @@ const UI = (() => {
   // ---------- Parts: the list of parts, each a door to its own screen; the builder's numbers sit under the list ----------
   const sumRow = (label, val, cls) => `<div class="row" style="border:0;padding:6px 0 0"><div class="l"><small${cls ? ` class="${cls}"` : ''}>${label}</small></div><div class="r${cls ? ' ' + cls : ''}">${val}</div></div>`;
   const sovSummaryHtml = (p, k) => { const n = (p.items || []).length, pc = Math.round(k.pct * 100); return `<h3>The numbers</h3><div class="row" style="border:0;padding:0"><div class="l"><b>The whole job</b><small>${plural(n, 'part')}</small></div><div class="r"><b>${fmt$(k.total)}</b></div></div>` + (k.hasBill
-    ? sumRow('What you saw done', `${fmt$(k.earned)} (${pc}%)`) + sumRow('What the bill says', `${fmt$(k.billed)} (${Math.round(k.billedPct * 100)}%)`) + (k.aheadItems.length ? sumRow('Billed more than you saw', k.total ? fmt$(k.billedAhead) : plural(k.aheadItems.length, 'part'), 'aheadTxt') : '')
+    ? sumRow('What you saw done', `${fmt$(k.earned)} (${pc}%)`) + sumRow('What the bill says', `${fmt$(k.billed)} (${Math.round(k.billedPct * 100)}%)`) + (k.aheadItems.length ? sumRow('Billed more than you saw, part by part', k.billedAhead > 0 ? fmt$(k.billedAhead) : plural(k.aheadItems.length, 'part'), 'aheadTxt') : '')
     : sumRow('Work done so far', `${fmt$(k.earned)} (${pc}%)`) + sumRow('Cost so far', fmt$(k.cost)) + sumRow('Cost to finish', fmt$(k.toGo))); };
   const partRowHtml = (p, i) => { const c = photoCount(p, i.id); return `<button class="card tap part" data-item="${i.id}" onclick="App.openItem('${i.id}')"><span class="l"><b>${esc(i.n)}</b><small>${wordPct(i)} · ${c ? plural(c, 'photo') : 'no photos yet'}</small>${Data.billState(i) === 'ahead' ? `<small class="aheadTxt">The bill says ${Data.fmtPct(Data.itemBilledPct(i))}</small>` : ''}<span class="mini"><i style="width:${pctOf(i)}%"></i></span></span>${ic('chevr', 20)}</button>`; };
   const sovItemsHtml = (p, k) => { const items = p.items || []; return items.length
     ? `<p class="lead">Tap a part. Then tap the words that fit what you saw.</p>` + items.map(i => partRowHtml(p, i)).join('') + `<button class="btn q" onclick="App.newItem()">${ic('plus')}Add a part</button><div class="card" id="sovSummary" style="margin-top:12px">${sovSummaryHtml(p, k)}</div>`
     : `<div class="empty">${ic('folder', 36)}This job has no parts yet.<br><button class="btn sm" style="margin-top:12px" onclick="App.newItem()">${ic('plus')}Add a part</button></div>`; };
   const ganttHtml = (p, k) => { const items = p.items || []; const diff = Math.round((k.paceFinish - Data.parse(p.finish)) / Data.DAY); return `<div class="card"><h3>Schedule <small>${p.start ? md(p.start) + ' to ' + md(p.finish) : ''}</small></h3>${items.length ? gantt(p, false) : '<p class="hint" style="margin:0">Add parts with dates to see a schedule.</p>'}<div class="legend"><span><i style="background:#d9d6cc"></i>planned</span><span><i style="background:var(--green)"></i>done</span><span><i style="background:var(--yellow)"></i>started</span><span><i style="background:var(--red)"></i>late</span></div></div>
-        <div class="card"><h3>When it will finish</h3><div class="row"><div class="l"><b>The plan says</b></div><div class="r">${p.finish ? md(p.finish) : '—'}</div></div><div class="row"><div class="l"><b>At this pace</b><small>${k.pct > 0 ? (diff > 0 ? diff + ' days late' : diff < 0 ? Math.abs(diff) + ' days early' : 'on time') : 'nothing marked done yet'}</small></div><div class="r">${k.pct > 0 ? md(Data.iso(k.paceFinish)) : '—'}</div></div><div class="row"><div class="l"><b>Days used</b></div><div class="r">${Math.round(k.elapsed)} of ${Math.round(k.span)}</div></div></div>`; };
+        <div class="card"><h3>When it will finish</h3><div class="row"><div class="l"><b>The plan says</b></div><div class="r">${p.finish ? md(p.finish) : '—'}</div></div><div class="row"><div class="l"><b>At this pace</b><small>${k.dated && k.pct > 0 ? (diff > 0 ? diff + ' days late' : diff < 0 ? Math.abs(diff) + ' days early' : 'on time') : 'nothing marked done yet'}</small></div><div class="r">${k.dated && k.pct > 0 ? md(Data.iso(k.paceFinish)) : '—'}</div></div><div class="row"><div class="l"><b>Days used</b></div><div class="r">${Math.round(k.elapsed)} of ${Math.round(k.span)}</div></div></div>`; };
   function sov(p, k, mode) {
     const show = m => `style="display:${mode === m ? '' : 'none'}"`;
     sovBody.innerHTML = `<div class="seg big" id="modeSeg">${[['items', 'Parts'], ['gantt', 'Schedule']].map(([m, n]) => `<button class="${mode === m ? 'on' : ''}" data-m="${m}" onclick="App.setMode('${m}')">${n}</button>`).join('')}</div>
@@ -269,19 +272,19 @@ const UI = (() => {
   const billVal = i => Data.hasBill(i) ? Data.fmtPct(Data.itemBilledPct(i)) : '';
   const billAmt = i => Data.hasBill(i) && (+i.b || 0) ? fmt$(Data.itemBilled(i)) : '';
   const billSubHtml = i => `You saw: ${wordPct(i).toLowerCase()}` + (Data.billState(i) === 'ahead' ? `<span class="aheadTxt">The bill says more than you saw${(+i.b || 0) ? ', by ' + fmt$(Data.itemAhead(i)) : ''}.</span>` : '');
-  const billTotalHtml = k => `<div class="l"><b>The whole bill</b><small>You saw ${Math.round(k.pct * 100)}% done${k.aheadItems.length ? `<span class="aheadTxt">${k.total ? fmt$(k.billedAhead) : plural(k.aheadItems.length, 'part')} billed more than you saw</span>` : ''}</small></div><div class="r"><b>${k.total ? Math.round(k.billedPct * 100) + '%' : '—'}</b><small>${fmt$(k.billed)} of ${fmt$(k.total)}</small></div>`;
+  const billTotalHtml = k => `<div class="l"><b>The whole bill</b><small>You saw ${Math.round(k.pct * 100)}% done${k.aheadItems.length ? `<span class="aheadTxt">${k.billedAhead > 0 ? fmt$(k.billedAhead) : plural(k.aheadItems.length, 'part')} billed more than you saw</span>` : ''}</small></div><div class="r"><b>${k.total ? Math.round(k.billedPct * 100) + '%' : '—'}</b><small>${fmt$(k.billed)} of ${fmt$(k.total)}</small></div>`;
   /** A drawing of a contractor's bill with the column to copy ringed. Most bills follow the AIA G703 form. */
-  const billPicHtml = `<div class="billpic" role="img" aria-label="A sample bill. The last column, marked percent, is ringed."><div class="bp h"><span>Item</span><span>Total completed and stored to date</span><span>% (G ÷ C)</span></div><div class="bp"><span>Framing</span><span>$22,800</span><span>100%</span></div><div class="bp"><span>Roofing</span><span>$9,900</span><span>60%</span></div><i class="ring"></i></div>`;
+  const billPicHtml = `<div class="billpic" role="img" aria-label="A sample bill. The column marked percent is ringed."><div class="bp h"><span>Item</span><span>Total completed and stored to date</span><span>% (G ÷ C)</span></div><div class="bp"><span>Framing</span><span>$22,800</span><span>100%</span></div><div class="bp"><span>Roofing</span><span>$9,900</span><span>60%</span></div><i class="ring"></i></div>`;
   function bill(p, k) {
     const items = p.items || [];
     billBody.innerHTML = items.length ? `<div class="card" id="billHow"><h3>Find this on the contractor’s bill</h3>${billPicHtml}
         <p class="cap">Look for the column marked <b>%</b>. On most bills it is called “% (G ÷ C)” and sits beside “total completed and stored to date”. Copy that number for each part.</p>
         <p class="hint">That number also counts materials that are on site but not put in yet. So the bill can say a little more than you saw.</p></div>
       <div class="card" id="billCard"><h3>What the bill says</h3>
-        <p class="hint" style="margin:0 0 4px">Leave a part empty until the contractor bills for it.</p>
-        ${items.map(i => `<div class="row billline" data-bill="${i.id}"><div class="l"><b>${esc(i.n)}</b><small class="billSub">${billSubHtml(i)}</small></div><input class="in" type="text" inputmode="decimal" autocomplete="off" aria-label="Percent the bill says for ${esc(i.n)}" placeholder="%" value="${billVal(i)}" onchange="App.setBilled('${i.id}', 'pct', this.value)"></div>`).join('')}
-        <div class="row billtot" id="billTotal">${billTotalHtml(k)}</div></div>
-      <p class="hint">When a new bill comes, type over the old numbers. These are the totals so far, not this month’s amount.</p>`
+        <p class="cap">Type the percent or the dollars the bill shows for each part. Either one works: the other fills itself in.</p>
+        <p class="hint" style="margin:0 0 4px">These are the totals so far, not this month’s amount. When a new bill comes, type over the old numbers. Leave a part empty until the contractor bills for it.</p>
+        ${items.map(i => `<div class="billline" data-bill="${i.id}"><div class="l"><b>${esc(i.n)}</b><small class="billSub">${billSubHtml(i)}</small></div>${billPairHtml(i)}</div>`).join('')}
+        <div class="row billtot" id="billTotal">${billTotalHtml(k)}</div></div>`
       : `<div class="empty">${ic('bill', 36)}This job has no parts yet.<br>Add them on the Parts tab, then type the bill here.</div>`;
   }
 
@@ -290,13 +293,13 @@ const UI = (() => {
   /** What to make of the bill against what was seen, in a sentence. Nothing until the part is billed. */
   const partNoteHtml = i => { const st = Data.billState(i), v = pctOf(i), b = Data.itemBilledPct(i);
     if (st === 'none') return '';
-    if (st === 'ahead') return `<div class="notice flat">The bill says this part is ${b >= 100 ? 'finished' : Data.fmtPct(b) + ' done'}. You marked it ${Data.word(v).toLowerCase()}${v > 0 && v < 100 ? ' (' + v + '%)' : ''}.${(+i.b || 0) ? ' That is ' + fmt$(Data.itemAhead(i)) + ' more than you saw.' : ''}</div>`;
+    if (st === 'ahead') return `<div class="notice flat">The bill says this part is ${b >= 100 ? 'finished' : Data.fmtPct(b) + ' done'}. You marked it ${Data.word(v).toLowerCase()}${v > 0 && v < 100 ? ' (' + v + '%)' : ''}.${(+i.b || 0) ? ' That is ' + fmt$(Data.itemAhead(i)) + ' more than you saw.' : ''}<span class="todo">Ask the contractor about it before you pay. It may be materials that are on site but not put in yet.</span></div>`;
     return `<p class="hint ok">${st === 'match' ? 'The bill matches what you saw.' : 'The bill says less than you saw. Nothing to check.'}</p>`; };
   const billNoteHtml = i => Data.hasBill(i) ? 'typed in' + (i.billedAt ? ' ' + when(i.billedAt) : '') : 'from the contractor’s bill';
   /** What the bill says, beside the words: a percent or an amount, whichever the bill shows. Each fills in the other. */
-  const billRowHtml = i => { const b = +i.b || 0; return `<div class="billrow" data-billrow="${i.id}"><div class="l"><b>The bill says</b><small class="billNote">${billNoteHtml(i)}</small></div>
-        <input class="in" type="text" inputmode="decimal" autocomplete="off" data-k="pct" aria-label="Percent the bill says" placeholder="%" value="${billVal(i)}" onchange="App.setBilled('${i.id}', 'pct', this.value)">
-        <input class="in amt" type="text" inputmode="decimal" autocomplete="off" data-k="amt" aria-label="Dollars the bill says" placeholder="${b ? '$' : 'no budget'}" value="${billAmt(i)}" ${b ? '' : 'disabled'} onchange="App.setBilled('${i.id}', 'amt', this.value)"></div>`; };
+  /** The two boxes for what the bill says: a percent, or dollars. Each has its word, and each fills in the other. */
+  const billPairHtml = i => { const b = +i.b || 0; return `<div class="pair"><label>Percent<input class="in" type="text" inputmode="decimal" autocomplete="off" data-k="pct" aria-label="Percent the bill says for ${esc(i.n)}" placeholder="%" value="${billVal(i)}" onchange="App.setBilled('${i.id}', 'pct', this.value)"></label><label>or dollars<input class="in amt" type="text" inputmode="decimal" autocomplete="off" data-k="amt" aria-label="Dollars the bill says for ${esc(i.n)}" placeholder="${b ? '$' : 'no budget yet'}" value="${billAmt(i)}" ${b ? '' : 'disabled'} onchange="App.setBilled('${i.id}', 'amt', this.value)"></label></div>`; };
+  const billRowHtml = i => `<div class="billrow" data-billrow="${i.id}"><div class="l"><b>The bill says</b><small class="billNote">${billNoteHtml(i)}</small></div>${billPairHtml(i)}</div>`;
   const itemCostsHtml = i => { const cost = Data.itemCost(i); return `<div id="costRows">${(i.costs || []).map(c => `<div class="row"><div class="l"><b>${esc(c.desc)}</b><small>${c.date ? md(c.date) : ''}</small></div><div class="r">${fmt$(c.amt)}</div><button class="del" aria-label="Remove this cost" onclick="App.deleteCost('${i.id}','${c.id}')">${ic('x', 18)}</button></div>`).join('') || '<p class="hint" style="margin:0 0 8px">No costs typed in yet.</p>'}
         ${(i.costs || []).length ? `<div class="row" style="border:0"><div class="l"><b>Total</b></div><div class="r"><b>${fmt$(cost)}</b></div></div>` : ''}</div>
         <div style="border-top:1px solid var(--line);padding-top:10px;margin-top:6px"><div class="in2"><div><label for="cfDesc">What it was</label><input class="in" id="cfDesc" placeholder="e.g. Lumber"></div><div><label for="cfAmt">How much</label><input class="in" type="number" inputmode="decimal" id="cfAmt" placeholder="$"></div></div><label for="cfDate">Date</label><input class="in" type="date" id="cfDate" value="${Data.iso(Data.today())}"><button class="btn q sm" style="margin-top:10px" onclick="App.addCost('${i.id}')">${ic('plus')}Add cost</button></div>`; };
@@ -346,7 +349,7 @@ const UI = (() => {
   /** Update every place one part's billed figure shows, in place: no field is redrawn, so the one being typed in keeps its focus. */
   function itemBill(i, k) {
     document.querySelectorAll(`[data-billrow="${i.id}"]`).forEach(row => { row.querySelector('[data-k=pct]').value = billVal(i); row.querySelector('[data-k=amt]').value = billAmt(i); row.querySelector('.billNote').innerHTML = billNoteHtml(i); });
-    document.querySelectorAll(`[data-bill="${i.id}"]`).forEach(row => { row.querySelector('input').value = billVal(i); row.querySelector('.billSub').innerHTML = billSubHtml(i); });
+    document.querySelectorAll(`[data-bill="${i.id}"]`).forEach(row => { row.querySelector('[data-k=pct]').value = billVal(i); row.querySelector('[data-k=amt]').value = billAmt(i); row.querySelector('.billSub').innerHTML = billSubHtml(i); });
     const note = itemBody.querySelector(`[data-item="${i.id}"] #partNote`); if (note) note.innerHTML = partNoteHtml(i);
     const tot = document.getElementById('billTotal'); if (tot && k) tot.innerHTML = billTotalHtml(k);
   }
@@ -361,32 +364,43 @@ const UI = (() => {
   }
 
   /** Send: the owner update, the one page the owner reads. It keeps its numbers; only the words around it are the assistant's. */
-  function report(p, k) {
+  function reportPageHtml(p, k) {
+    const basis = Data.basisLine(p, k, DB.get('ct-me') || '');
     const items = p.items || [], pics = sortedEntries(p).flatMap(e => e.photos.map(ph => ({ ph, e }))).slice(0, 3);
-    const bill = k.hasBill, calendar = `${k.ahead ? 'Work is ahead of the calendar' : 'Work is behind the calendar'} (${Math.round(k.pct * 100)}% done with ${Math.round(k.schedPct * 100)}% of the time used).`;
-    const pace = k.pct > 0 ? ' At this pace the job finishes ' + md(Data.iso(k.paceFinish)) + '.' : '';
+    const bill = k.hasBill, calendar = Data.calendarSentence(k);
+    const pace = k.dated && k.pct > 0 ? ' At this pace the job finishes ' + md(Data.iso(k.paceFinish)) + '.' : '';
     // With a bill, the page leads with what was billed against what is done and names each part billed ahead. Without one it keeps the builder's numbers.
     const nums = bill ? Data.billNums(k).map(([v, l], x) => `<div${x === 2 && k.aheadItems.length ? ' class="warn"' : ''}><b>${v}</b><span>${l}</span></div>`).join('')
-      : `<div><b>${Math.round(k.pct * 100)}%</b><span>done</span></div><div><b>${Data.fmtK(k.cost)}</b><span>cost so far</span></div><div><b>${Data.fmtK(k.toGo)}</b><span>to finish</span></div><div><b>${k.daysLeft}</b><span>days left</span></div>`;
+      : `<div><b>${Math.round(k.pct * 100)}%</b><span>done</span></div><div><b>${Data.fmtK(k.cost)}</b><span>cost so far</span></div><div><b>${Data.fmtK(k.toGo)}</b><span>to finish</span></div><div><b>${k.daysLeft ?? '—'}</b><span>days left</span></div>`;
     const summary = !k.total && !bill ? 'This job has no parts with a budget yet. Add them on the Parts tab and this page fills itself in.'
-      : bill ? `${k.total ? calendar + ' ' : ''}${esc(Data.billSentence(k))}${pace}`
-      : `${calendar} ${Data.costSentence(k)}${pace}`;
+      : bill ? `${calendar}${esc(Data.billSentence(k))}${pace}`
+      : `${calendar}${Data.costSentence(k)}${pace}`;
     const flags = bill ? k.aheadItems.slice(0, 4).map(i => `<div class="flagline">${ic('alert', 16)}<b>${esc(Data.aheadLine(i))}</b></div>`).join('') + (k.aheadItems.length > 4 ? `<p class="aheadTxt">And ${k.aheadItems.length - 4} more billed ahead, marked below.</p>` : '') : '';
     const table = bill
       ? `<tr><td><b>Part of the job</b></td><td class="n"><b>Budget</b></td><td class="n"><b>Done</b></td><td class="n"><b>Billed</b></td></tr>${items.map(i => `<tr><td>${esc(i.n)}</td><td class="n">${fmt$(i.b)}</td><td class="n">${i.pct || 0}%</td><td class="n${Data.billState(i) === 'ahead' ? ' aheadTxt' : ''}">${Data.hasBill(i) ? Data.fmtPct(Data.itemBilledPct(i)) : '—'}</td></tr>`).join('')}<tr class="tot"><td>Total</td><td class="n">${fmt$(k.total)}</td><td class="n">${Math.round(k.pct * 100)}%</td><td class="n">${k.total ? Math.round(k.billedPct * 100) + '%' : '—'}</td></tr>`
       : `<tr><td><b>Part of the job</b></td><td class="n"><b>Budget</b></td><td class="n"><b>Done</b></td><td class="n"><b>Cost</b></td></tr>${items.map(i => `<tr><td>${esc(i.n)}</td><td class="n">${fmt$(i.b)}</td><td class="n">${i.pct || 0}%</td><td class="n">${fmt$(Data.itemCost(i))}</td></tr>`).join('')}<tr class="tot"><td>Total</td><td class="n">${fmt$(k.total)}</td><td class="n">${Math.round(k.pct * 100)}%</td><td class="n">${fmt$(k.cost)}</td></tr>`;
-    const html = `<p class="lead">This is the page the owner gets. Look it over, then send it.</p>
-      <button class="btn" id="sendBtn" onclick="App.openShare('report')">${ic('send')}Send it to the owner</button>
-      <div class="report" id="reportPreview" style="margin-top:12px"><div class="hd"><div class="mark">CT</div><div><h4>${esc(p.name || 'Untitled job')}</h4><div class="meta">Owner update · ${Data.mdy(Data.iso(Data.today()))}${p.client ? ' · for ' + esc(p.client) : ''}</div></div></div>
+    return `<div class="hd"><div class="mark">CT</div><div><h4>${esc(p.name || 'Untitled job')}</h4><div class="meta">${p.sample ? '<b class="sampleTag">Sample job</b> · ' : ''}Owner update · ${Data.mdy(Data.iso(Data.today()))}${p.client ? ' · for ' + esc(p.client) : ''}</div></div></div>
       <div class="num4">${nums}</div>
       ${flags}
       <p><b>Summary.</b> ${p.cover.head ? esc(p.cover.head) + '. ' : ''}${summary}</p>
       <table class="sov">${table}</table>
       ${pics.length ? `<p style="margin-top:12px"><b>Latest photos</b></p><div class="grid3">${pics.map(({ ph }) => photoPh(ph, Data.photoKey(ph))).join('')}</div>` : ''}
-      ${p.cover.note ? `<p>${esc(p.cover.note)}</p>` : ''}</div>
+      ${p.cover.note ? `<p>${esc(p.cover.note)}</p>` : ''}
+      ${basis ? `<p class="basis">${esc(basis)}</p>` : ''}`;
+  }
+  /** Redraw only the page, after the note or the name changed: the boxes above it keep their focus. */
+  function reportPreview(p, k) { const el = document.getElementById('reportPreview'); if (!el) return; el.innerHTML = reportPageHtml(p, k); hydrate(el, p); }
+  function report(p, k) {
+    const pics = sortedEntries(p).flatMap(e => e.photos.map(ph => ({ ph, e }))).slice(0, 3);
+    reportBody.innerHTML = `<p class="lead">This is the page the owner gets. Look it over, then send it. Nothing goes until you pick how.</p>
+      <button class="btn" id="sendBtn" onclick="App.openShare('report')">${ic('send')}Choose how to send it</button>
+      <div class="report" id="reportPreview" style="margin-top:12px">${reportPageHtml(p, k)}</div>
+      <div class="card" style="margin-top:12px"><h3>Add your own words</h3>
+        <label for="rpNote">A note to the owner, at the bottom of the page</label><textarea class="in" id="rpNote" style="min-height:72px" placeholder="e.g. Roofers are back Tuesday." onchange="App.setNote(this.value)">${esc(p.cover.note)}</textarea>
+        <label for="rpMe">Your name, so the owner knows who looked</label><input class="in" id="rpMe" autocomplete="name" value="${esc(DB.get('ct-me') || '')}" onchange="App.setMe(this.value)"></div>
       <div class="stack" style="margin-top:12px"><button class="btn q" onclick="App.shareDo('print','report')">${ic('file')}Print it</button><button class="btn q" id="toCover" onclick="App.go('cover')">${ic('image')}Make a picture to text instead</button></div>`;
-    reportBody.innerHTML = html; hydrate(reportBody, p); return pics;
+    hydrate(reportBody, p); return pics;
   }
 
-  return { ic, esc, hydrate, coverSelection, projects, projform, home, log, applyLogFilter, entryform, entryPhotos, photo, photoSwap, moveSheet, cover, coverCtl, sov, bill, itemBill, item, itemProgress, itemCosts, itemform, report, sortedEntries, itemName };
+  return { ic, esc, hydrate, coverSelection, projects, projform, home, log, applyLogFilter, entryform, entryPhotos, photo, photoSwap, moveSheet, cover, coverCtl, sov, bill, itemBill, item, itemProgress, itemCosts, itemform, report, reportPreview, sortedEntries, itemName };
 })();

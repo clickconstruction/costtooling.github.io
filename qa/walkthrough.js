@@ -85,7 +85,7 @@ let n = 0;
   // the warning opens the part billed ahead: Framing, marked nearly done (85%) with the bill at 100%
   await tap('#checkCard'); await shot('part-billed-ahead'); await at('the bill warning', 'item', 'sov');
   same('billed part top bar', await top(), { ttl: 'Framing', back: 'Home' });
-  same('billed part', await partScreen(), { words: WORDS, on: 'Nearly done 85%', pressed: 1, exactHidden: true, exact: '85', note: 'The bill says this part is finished. You marked it nearly done (85%). That is $3,420 more than you saw.', fold: true, foldOpen: false });
+  same('billed part', await partScreen(), { words: WORDS, on: 'Nearly done 85%', pressed: 1, exactHidden: true, exact: '85', note: 'The bill says this part is finished. You marked it nearly done (85%). That is $3,420 more than you saw.\nAsk the contractor about it before you pay. It may be materials that are on site but not put in yet.', fold: true, foldOpen: false });
   need('billed part', await text('#itemBody'), ['How far along is it?', 'Type an exact percent', 'The bill says', 'Photos and notes', 'Add a photo of Framing', 'Costs', 'Change the name, budget or dates', 'Delete this part']);
   same('billed part bill boxes', await page.evaluate(() => [document.querySelector('[data-billrow] [data-k=pct]').value, document.querySelector('[data-billrow] [data-k=amt]').value]), ['100%', '$22,800']);
   await page.locator('.screen.on [data-billrow]').scrollIntoViewIfNeeded(); await shot('part-billed-ahead-bill');
@@ -105,7 +105,7 @@ let n = 0;
   await tap('#homeBody .steps button.step', 2); await at('step 3, Type in the bill', 'bill', 'bill'); await shot('bill-sample');
   need('sample bill total', await text('#billTotal'), ['The whole bill', 'You saw 36% done', '$3,420 billed more than you saw', '38%']);
   need('sample bill, Framing', await page.locator('#billCard .billline').nth(2).innerText(), ['Framing', 'You saw: nearly done · 85%', 'The bill says more than you saw, by $3,420.']);
-  same('sample bill, Framing box', await page.locator('#billCard .billline input').nth(2).inputValue(), '100%');
+  same('sample bill, Framing box', await page.locator('#billCard .billline [data-k=pct]').nth(2).inputValue(), '100%');
   await tap('.tabs button[data-t=home]');
   await tap('#homeBody .steps button.step', 3); await at('step 4, Send the owner one page', 'report', 'send');
   same('Send top bar', await top(), { ttl: 'Send', back: 'Home' });
@@ -217,16 +217,16 @@ let n = 0;
 
   // ---------- Bill: its own tab. One percent per part. Roofing is at 80% seen; billing it at 85% puts it $825 ahead, beside Framing's $3,420 ----------
   await tap('.tabs button[data-t=bill]'); await shot('bill-top'); await at('Bill tab', 'bill', 'bill'); same('Bill top bar', await top(), { ttl: 'The bill', back: 'Home' });
-  same('Bill tab layout', await page.evaluate(() => ({ how: __vis(document.getElementById('billHow')), pic: document.querySelectorAll('#billHow .billpic .ring').length, lines: document.querySelectorAll('#billCard .billline[data-bill] input').length, total: !!document.getElementById('billTotal') })), { how: true, pic: 1, lines: 10, total: true });
+  same('Bill tab layout', await page.evaluate(() => ({ how: __vis(document.getElementById('billHow')), pic: document.querySelectorAll('#billHow .billpic .ring').length, lines: document.querySelectorAll('#billCard .billline[data-bill] [data-k=pct]').length, total: !!document.getElementById('billTotal') })), { how: true, pic: 1, lines: 10, total: true });
   need('Bill tab', await text('#billBody'), ['Find this on the contractor’s bill', 'Look for the column marked %', 'What the bill says', 'Leave a part empty until the contractor bills for it.', 'The whole bill', 'When a new bill comes, type over the old numbers.']);
   await help('Bill');
   await scrollBottom(); await shot('bill-bottom'); await page.locator('#billCard').scrollIntoViewIfNeeded();
-  const billIn = n => page.locator('#billCard .billline input').nth(n);
+  const billIn = n => page.locator('#billCard .billline [data-k=pct]').nth(n);
   await billIn(3).fill('85'); await billIn(3).blur(); await page.waitForTimeout(300); await shot('bill-roofing-ahead');
   const k1 = await page.evaluate(() => { const k = Data.calc(App.state().projects.find(x => x.id === 'sample')); return { ahead: Math.round(k.billedAhead), names: k.aheadItems.map(i => i.n).join(), shown: document.querySelectorAll('#billCard .billline')[3].innerText, total: document.getElementById('billTotal').innerText }; });
   if (k1.ahead !== 4245 || k1.names !== 'Framing,Roofing' || !k1.shown.includes('The bill says more than you saw, by $825.') || !k1.total.includes('$4,245 billed more than you saw')) issues.push('bill list: ' + JSON.stringify(k1));
   await billIn(3).fill('junk'); await billIn(3).blur(); await page.waitForTimeout(300); if (await billIn(3).inputValue() !== '85%') issues.push('a bad billed figure was kept: ' + await billIn(3).inputValue()); same('bad billed figure toast', await toast(), 'Type a number, like 50 or 11,400');
-  await billIn(3).fill('120'); await billIn(3).blur(); await page.waitForTimeout(300); same('a bill over 100%', [await billIn(3).inputValue(), (await sampleItem('Roofing')).billed, await toast()], ['100%', 100, 'The bill cannot be more than 100%']);
+  const b4 = (await sampleItem('Roofing')).billed, box4 = await billIn(3).inputValue(); await billIn(3).fill('120'); await billIn(3).blur(); await page.waitForTimeout(300); same('a bill over 100% is not saved', [await billIn(3).inputValue(), (await sampleItem('Roofing')).billed, (await toast()).startsWith('A percent cannot be more than 100. Not saved.')], [box4, b4, true]);
   await billIn(3).fill('80%'); await billIn(3).blur(); await page.waitForTimeout(300);
   need('Roofing billed at what was seen', await page.locator('#billCard .billline').nth(3).innerText(), ['You saw: nearly done · 80%']); not('Roofing billed at what was seen', await page.locator('#billCard .billline').nth(3).innerText(), ['more than you saw']);
   // the Parts tab remembers Schedule from before; Parts in the switch brings the list back
@@ -240,7 +240,7 @@ let n = 0;
   await page.fill('[data-billrow] [data-k=pct]', ''); await page.locator('[data-billrow] [data-k=pct]').blur(); await page.waitForTimeout(300); await shot('part-bill-cleared');
   if ((await sampleItem('Framing')).has) issues.push('clearing the billed figure left it on the part'); same('no bill, no sentence', (await partScreen()).note, '');
   await page.fill('[data-billrow] [data-k=pct]', '100'); await page.locator('[data-billrow] [data-k=pct]').blur(); await page.waitForTimeout(300);
-  same('bill back at 100%', (await partScreen()).note, 'The bill says this part is finished. You marked it nearly done (85%). That is $3,420 more than you saw.');
+  same('bill back at 100%', (await partScreen()).note, 'The bill says this part is finished. You marked it nearly done (85%). That is $3,420 more than you saw.\nAsk the contractor about it before you pay. It may be materials that are on site but not put in yet.');
   // in a job with a bill the costs are folded at the bottom
   if (await page.locator('#cfDesc').isVisible()) issues.push('costs are not folded in a job with a bill');
   await tap('#costFold summary'); await scrollBottom(); await shot('part-costs-open');
@@ -258,7 +258,7 @@ let n = 0;
   const repTxt = await text('#reportPreview'); need('owner update', repTxt, ['Owner update · ', ' · for Hernandez', 'done', 'billed', 'billed ahead', 'days left', '$3,420', 'Framing (edited) is billed at 100%. On site it is 85%.', 'Summary.', 'Part of the job', 'Budget', 'Done', 'Billed', 'Latest photos']);
   same('owner update table head', await page.evaluate(() => [...document.querySelectorAll('#reportPreview table.sov tr')[0].cells].map(c => c.textContent).join(' | ')), 'Part of the job | Budget | Done | Billed');
   same('owner update numbers', await page.evaluate(() => [...document.querySelectorAll('#reportPreview .num4 span')].map(s => s.textContent).join(' | ')), 'done | billed | billed ahead | days left');
-  need('Send screen', await text('#reportBody'), ['This is the page the owner gets. Look it over, then send it.', 'Send it to the owner', 'Print it', 'Make a picture to text instead']); same('Send button', (await text('#sendBtn')).trim(), 'Send it to the owner');
+  need('Send screen', await text('#reportBody'), ['This is the page the owner gets. Look it over, then send it.', 'Choose how to send it', 'Print it', 'Make a picture to text instead']); same('Send button', (await text('#sendBtn')).trim(), 'Choose how to send it');
   await scrollBottom(); await shot('send-bottom'); await scrollTop();
   await tap('#sendBtn'); await shot('share-sheet');
   same('share sheet', await page.evaluate(() => [document.getElementById('shareTitle').textContent, ...[...document.querySelectorAll('#shareSheet .hrow b')].map(b => b.textContent)]), ['Send the owner update', 'Text it or send it', 'Save it as a picture', 'Print it', 'Email the numbers']);
@@ -274,7 +274,7 @@ let n = 0;
   await page.locator('#helpSheet details.more summary').click(); await page.waitForTimeout(300); await shot('help-sheet-more');
   same('Help rows under More', await page.evaluate(() => [...document.querySelectorAll('#helpSheet details.more .hrow b')].filter(__vis).map(b => b.textContent).join(' | ')), 'About CostTooling | Back up my data | Start over');
   // How do I… is a link to the guide
-  const guideUrl = await page.evaluate(() => (document.querySelector('#helpSheet a.hrow') || {}).href || ''); if (!/\/guide\/$/.test(guideUrl)) issues.push('How do I… goes to ' + guideUrl); else { const r = await page.request.get(guideUrl); if (!r.ok()) issues.push('How do I… link answers ' + r.status() + ': ' + guideUrl); }
+  const guideUrl = await page.evaluate(() => (document.querySelector('#helpSheet a.hrow') || {}).href || ''); if (!/\/guide\/#costtooling-first$/.test(guideUrl)) issues.push('How do I… goes to ' + guideUrl); else { const r = await page.request.get(guideUrl); if (!r.ok()) issues.push('How do I… link answers ' + r.status() + ': ' + guideUrl); }
   // About CostTooling opens the welcome card
   await page.locator('#helpSheet .hrow', { hasText: 'About CostTooling' }).click(); await page.waitForTimeout(400); await shot('help-about'); if (!(await page.locator('#welcomeSheet.show').count())) issues.push('About CostTooling did not open the welcome card'); await page.locator('#welcomeGo').click(); await page.waitForTimeout(350);
   // Show me around starts the tour
@@ -286,15 +286,15 @@ let n = 0;
   if (!(await page.locator('#ideaSheet.show').count())) issues.push('Tell us what is confusing did not open the ideas sheet'); same('ideas sheet names the screen', await text('#ideaScreen'), 'Send');
   not('ideas sheet', await text('#ideaSheet'), ['Show me around', 'Back up my data', 'Start over']); same('ideas sheet foot links', await page.locator('#ideaSheet .foot, #ideaSheet a').count(), 0);
   await page.evaluate(() => App.closeSheet()); await page.waitForTimeout(300);
-  // ideas, from the bulb
-  await tap('#fab'); await page.fill('#ideaText', 'Let me text the picture straight to the owner'); await tap(byText('Must have')); await tap(byText('Save idea')); await shot('ideas-saved');
-  same('idea saved', await page.evaluate(() => ({ list: document.querySelectorAll('#ideaList .row').length, badge: document.getElementById('fabN').textContent, kept: (JSON.parse(localStorage.getItem('ct-ideas')) || []).map(i => i.screen + ' · ' + i.imp).join() })), { list: 1, badge: '1', kept: 'Send · must have' });
+  // ideas, from Help: the floating bulb is gone
+  await tap('#helpBtn'); await tap(byText('Tell us what is confusing')); await page.fill('#ideaText', 'Let me text the picture straight to the owner'); await tap(byText('Must have')); await tap(byText('Save idea')); await shot('ideas-saved');
+  same('idea saved', await page.evaluate(() => ({ list: document.querySelectorAll('#ideaList .row').length, kept: (JSON.parse(localStorage.getItem('ct-ideas')) || []).map(i => i.screen + ' · ' + i.imp).join() })), { list: 1, kept: 'Send · must have' });
   await page.locator('#sheetBg').click({ position: { x: 12, y: 12 } }); await page.waitForTimeout(400);
 
   // ---------- a new job from a list of parts → empty states ----------
   await page.locator('#back').click(); await page.waitForTimeout(300); await page.locator('#back').click(); await page.waitForTimeout(300); await at('Back to the job list', 'projects', '');
   await press('Start a new job'); await shot('job-form-empty'); await at('Start a new job', 'projform', ''); same('job form', [(await top()).ttl, await page.locator('#projformBody > .btn').count()], ['New job', 1]); await help('the job form');
-  await page.fill('#pfName', 'Cedar Ridge garage'); await page.fill('#pfClient', 'Okafor'); await page.fill('#pfAddr', '77 Cedar Ridge Rd'); await page.fill('#pfContract', '48000'); await tap(byText('New garage / ADU'));
+  await page.fill('#pfName', 'Cedar Ridge garage'); await page.fill('#pfClient', 'Okafor'); await page.fill('#pfAddr', '77 Cedar Ridge Rd'); await page.fill('#pfContract', '48000'); await tap(byText('New garage or backyard house'));
   await scrollBottom(); await shot('job-form-filled'); await press('Create this job'); await shot('new-job-home'); await at('Create this job', 'home', 'home');
   // a job with no bill: no warning card, nothing about a bill beyond step 3, and no cost numbers on home (they are on Parts)
   const plain = async where => { const h = await page.evaluate(() => { const num = document.getElementById('numbers'), was = num.open; num.open = true; const r = { txt: document.getElementById('homeBody').innerText, card: !!document.getElementById('checkCard'), notices: document.querySelectorAll('#homeBody .notice').length, tiles: [...document.querySelectorAll('#numbers .kpi span')].map(s => s.textContent).join(' | '), warn: document.querySelectorAll('#homeBody .warn, #homeBody .aheadTxt').length }; num.open = was; return r; }); if (h.card || h.notices || h.warn || h.tiles !== 'of the work is done | days left' || /billed|bill says|cost so far|to finish/i.test(h.txt) || !h.txt.includes('Type in the bill') || !h.txt.includes('Nothing typed in yet.')) issues.push(where + ': a job with no bill shows bill or cost words on its home: ' + JSON.stringify({ card: h.card, notices: h.notices, warn: h.warn, tiles: h.tiles })); };
@@ -311,14 +311,14 @@ let n = 0;
   if (!(await page.locator('#cfDesc').isVisible())) issues.push('a part in a job with no bill has its costs folded'); need('new job part', await text('#itemBody'), ['The bill says', 'from the contractor’s bill', 'No costs typed in yet.', '$0 total']);
   await page.locator('#back').click(); await page.waitForTimeout(400);
   // typing its first bill turns the home screen over: the warning card and the bill tiles appear
-  await tap('.tabs button[data-t=bill]'); await shot('new-job-bill-empty'); same('new job bill is empty', await page.evaluate(() => [...document.querySelectorAll('#billCard .billline input')].map(i => i.value).join('')), '');
-  await page.locator('#billCard .billline input').nth(0).fill('25'); await page.locator('#billCard .billline input').nth(0).blur(); await page.waitForTimeout(300); await shot('new-job-bill-first');
+  await tap('.tabs button[data-t=bill]'); await shot('new-job-bill-empty'); same('new job bill is empty', await page.evaluate(() => [...document.querySelectorAll('#billCard .billline [data-k=pct]')].map(i => i.value).join('')), '');
+  await page.locator('#billCard .billline [data-k=pct]').nth(0).fill('25'); await page.locator('#billCard .billline [data-k=pct]').nth(0).blur(); await page.waitForTimeout(300); await shot('new-job-bill-first');
   need('new job bill total', await text('#billTotal'), ['You saw 0% done', '$1,200 billed more than you saw']);
   await tap('.tabs button[data-t=home]'); await shot('new-job-home-billed');
   const flipped = await page.evaluate(() => { const num = document.getElementById('numbers'); num.open = true; const r = { txt: document.getElementById('homeBody').innerText, card: (c => c && c.innerText.replace(/\s+/g, ' ').trim())(document.getElementById('checkCard')) }; num.open = false; return r; });
   if (flipped.card !== 'The contractor has billed $1,200 more than you saw. See which part' || !flipped.txt.includes('is what the bill says') || !flipped.txt.includes('billed more than you saw') || !flipped.txt.includes('Last typed today.') || flipped.txt.includes('cost so far')) issues.push('the first bill did not change the home screen: ' + JSON.stringify(flipped.card));
   await tap('.tabs button[data-t=sov]'); need('new job Parts numbers after a bill', await text('#sovSummary'), ['What you saw done', 'What the bill says', 'Billed more than you saw', '$1,200']); need('new job billed part on the list', await page.locator('#modeItems button.card.part').nth(0).innerText(), ['The bill says 25%']);
-  await tap('.tabs button[data-t=home]'); await tap('#checkCard'); await at('new job bill warning', 'item', 'sov'); same('new job billed part', (({ note, fold, foldOpen }) => ({ note, fold, foldOpen }))(await partScreen()), { note: 'The bill says this part is 25% done. You marked it not started. That is $1,200 more than you saw.', fold: true, foldOpen: false });
+  await tap('.tabs button[data-t=home]'); await tap('#checkCard'); await at('new job bill warning', 'item', 'sov'); same('new job billed part', (({ note, fold, foldOpen }) => ({ note, fold, foldOpen }))(await partScreen()), { note: 'The bill says this part is 25% done. You marked it not started. That is $1,200 more than you saw.\nAsk the contractor about it before you pay. It may be materials that are on site but not put in yet.', fold: true, foldOpen: false });
   // change the job, then delete it
   await tap('.tabs button[data-t=home]'); await scrollBottom(); await press('Change this job’s name or dates'); await scrollBottom(); await shot('job-edit-form'); await at('change a job', 'projform', '');
   same('job form, changing', await page.evaluate(() => [document.getElementById('ttl').textContent, ...[...document.querySelectorAll('#projformBody > .btn')].map(b => b.textContent.trim())]), ['Change this job', 'Save', 'Delete this job']);
@@ -388,7 +388,7 @@ let n = 0;
   const link = async (q, screen, tab) => { await page.goto(APP + '/' + q, { waitUntil: 'networkidle' }); await page.waitForTimeout(400); await at('link ' + q, screen, tab); };
   await link('?s=cover', 'cover', 'send'); await shot('link-cover', { wait: 900 }); same('link ?s=cover top bar', await top(), { ttl: 'A picture to text', back: 'Send' });
   await page.locator('#back').click(); await page.waitForTimeout(400); await at('Back from link ?s=cover', 'report', 'send');
-  await link('?s=report', 'report', 'send'); await shot('link-report', { wait: 900 }); same('link ?s=report top bar', await top(), { ttl: 'Send', back: 'Home' }); if (!(await shown('#sendBtn'))) issues.push('link ?s=report has no Send it to the owner button');
+  await link('?s=report', 'report', 'send'); await shot('link-report', { wait: 900 }); same('link ?s=report top bar', await top(), { ttl: 'Send', back: 'Home' }); if (!(await shown('#sendBtn'))) issues.push('link ?s=report has no Choose how to send it button');
   await link('?s=sov&m=bill', 'bill', 'bill'); await shot('link-sov-bill'); same('link ?s=sov&m=bill top bar', await top(), { ttl: 'The bill', back: 'Home' }); if (!(await shown('#billCard'))) issues.push('link ?s=sov&m=bill does not show the bill');
   await link('?s=sov&m=gantt', 'sov', 'sov'); same('link ?s=sov&m=gantt', await page.evaluate(() => ({ gantt: __vis(document.getElementById('modeGantt')), on: document.querySelector('#modeSeg button.on').dataset.m })), { gantt: true, on: 'gantt' });
   await link('?s=sov', 'sov', 'sov'); if (!(await shown('#modeItems button.card.part'))) issues.push('link ?s=sov does not show the list of parts');
@@ -410,7 +410,7 @@ let n = 0;
   await tap('#modeItems button.card.part', 0); await shot('old-job-part'); await scrollBottom(); await shot('old-job-part-bottom');
   same('old job part', await partScreen(), { words: WORDS, on: 'About half 50%', pressed: 1, exactHidden: true, exact: '50', note: '', fold: false, foldOpen: false });
   if (!(await page.locator('#cfDesc').isVisible())) issues.push('old job: the costs on a part are folded'); need('old job part', await text('#itemBody'), ['Concrete', '$6,000 total', 'from the contractor’s bill']);
-  await page.evaluate(() => App.go('bill')); await shot('old-job-bill'); same('old job bill is empty', await page.evaluate(() => [...document.querySelectorAll('#billCard .billline input')].map(i => i.value).join('')), '');
+  await page.evaluate(() => App.go('bill')); await shot('old-job-bill'); same('old job bill is empty', await page.evaluate(() => [...document.querySelectorAll('#billCard .billline [data-k=pct]')].map(i => i.value).join('')), '');
   await page.evaluate(() => App.go('report')); await shot('old-job-send', { wait: 900 }); const oldRep = await text('#reportPreview'); need('old job owner update', oldRep, ['cost so far', 'to finish', 'Part of the job', 'Cost', 'Costs are $1,000 more than the value of the work done.']); not('old job owner update', oldRep, ['billed', 'Billed']);
   const oldAfter = await page.evaluate(() => ({ mem: JSON.stringify(App.state().projects.find(p => p.id === 'old1')), disk: JSON.stringify(JSON.parse(localStorage.getItem('ct-data-v2')).projects.find(p => p.id === 'old1')), sample: App.state().projects.find(p => p.id === 'sample').items.filter(i => 'billed' in i).length, flag: localStorage.getItem('ct-sample-bill') }));
   if (oldAfter.mem !== oldJob || oldAfter.disk !== oldJob) issues.push('old job: its data was rewritten'); if (oldAfter.sample !== 6 || !oldAfter.flag) issues.push('stored sample did not get its bill: ' + oldAfter.sample); // 6 of the 7 billed parts: the bill goes on by name, and this run renamed Framing
@@ -425,7 +425,7 @@ let n = 0;
   const walkTour = async shots => { const stops = []; for (let s = 0; s < 20; s++) { const t = await page.locator('#tourTitle').innerText(); const hole = await page.evaluate(() => { const r = document.getElementById('tourHole').getBoundingClientRect(); return Math.round(r.width) + 'x' + Math.round(r.height); }); stops.push(t); const last = await page.locator('#tourTry').count(); if (!last && /^0x|x0$/.test(hole)) issues.push('tour stop "' + t + '" points at nothing'); if (shots) { await shot('tour-' + t.toLowerCase().replace(/[^a-z]+/g, '-').replace(/-$/, ''), { wait: 600 }); } if (last) break; await page.locator('#tourNext').click(); await page.waitForTimeout(500); } return stops; };
   await page.goto(APP + '/?tour=1', { waitUntil: 'networkidle' }); await page.waitForTimeout(1200);
   const cloudStop = await page.evaluate(() => !!(window.Cloud && Cloud.enabled() && !Cloud.signedIn()));
-  const want = ['Your jobs', 'How the job is going', 'Check before you pay', 'Four steps', 'Photos', 'Photos of one part', 'Mark what you saw', 'Type in the bill', 'The owner update', 'Send it', ...(cloudStop ? ['Your jobs on every phone'] : []), "That's the whole app"];
+  const want = ['Your jobs', 'How the job is going', 'Check before you pay', 'Four steps', 'Photos', 'Photos of one part', 'Mark what you saw', 'Type in the bill', 'The owner update', 'Send it', ...(cloudStop ? ['Saved on this phone'] : []), "That's the whole app"];
   const stops = await walkTour(true); same('tour stops', stops.join(' > '), want.join(' > '));
   need('tour end card', await text('#tourCard'), ['Try the sample job', 'Start my own job', 'The Help button is at the top of every screen.']);
   await page.locator('#tourX').click(); await page.waitForTimeout(300); if (await page.evaluate(() => Tour.active())) issues.push('the tour did not close');
@@ -435,6 +435,43 @@ let n = 0;
   await page.evaluate(had => { const p = App.state().projects.find(x => x.id === 'sample'); p.items.forEach((i, x) => { if (had[x]) { i.billed = had[x][0]; i.billedAt = had[x][1]; } }); DB.save(App.state()); }, hadBill);
 
   // desktop + storyboard
+  // ---------- version 20: what the review by customer type changed ----------
+  const fresh20 = async q => { await page.goto(APP + '/?s=projects', { waitUntil: 'networkidle' }); await page.evaluate(async () => { await DB.clearPhotos(); localStorage.clear(); localStorage.setItem('ct-welcomed', '1'); }); await page.goto(APP + '/' + q, { waitUntil: 'networkidle' }); await page.waitForTimeout(500); };
+  const typeIn20 = async (sel, v) => { await page.fill(sel, v); await page.locator(sel).blur(); await page.waitForTimeout(250); return page.evaluate(() => document.getElementById('toast').innerText.trim()); };
+  const roof20 = () => page.evaluate(() => { const i = App.state().projects.find(p => p.id === 'sample').items.find(i => i.n === 'Roofing'); return { billed: Math.round(i.billed * 100) / 100, state: Data.billState(i), id: i.id }; });
+  await fresh20('?job=sample&s=bill');
+  same('the address drops its one-time switches', await page.evaluate(() => location.search), '');
+  const rid20 = (await roof20()).id, rowSel20 = `[data-bill="${rid20}"]`;
+  // the bill: a percent or dollars on every row, and a figure that cannot be right is not saved
+  need('dollars typed in the percent box', await typeIn20(rowSel20 + ' [data-k=pct]', '9,900'), ['Not saved', 'dollars box']); same('dollars in the percent box change nothing', (await roof20()).billed, 60);
+  need('0x10 is not a number', await typeIn20(rowSel20 + ' [data-k=pct]', '0x10'), ['Type a number']); same('0x10 changes nothing', (await roof20()).billed, 60);
+  await typeIn20(rowSel20 + ' [data-k=amt]', '9905'); same('a bill $5 over, which prints as the same percent, is not flagged', (await roof20()).state, 'match');
+  need('dollars on the Bill tab', await typeIn20(rowSel20 + ' [data-k=amt]', '11,550'), ['Saved: the bill says 70% for Roofing']); same('dollars fill in the percent', await page.inputValue(rowSel20 + ' [data-k=pct]'), '70%');
+  need('more dollars than the budget', await typeIn20(rowSel20 + ' [data-k=amt]', '99999'), ['Not saved']); same('over the budget changes nothing', (await roof20()).billed, 70);
+  await shot('bill-percent-or-dollars');
+  // a part: tapping the word it already reads as answers, and changes nothing
+  await page.evaluate(id => App.openItem(id), rid20); await page.waitForTimeout(300); await page.locator('#words .w').nth(2).click(); await page.waitForTimeout(250);
+  need('tapping the word a part already reads as', await toast(), ['It is marked about half (60%)']);
+  // the photo form: Save and add another stays in the form, on the same part
+  await page.evaluate(() => App.newEntry()); await page.waitForTimeout(300); await page.selectOption('#efItem', rid20); await page.fill('#efNote', 'First of two'); await press('Save and add another'); await page.waitForTimeout(400);
+  same('Save and add another', await page.evaluate(() => ({ screen: App.current(), part: document.getElementById('efItem').value, note: document.getElementById('efNote').value, saved: App.state().projects.find(p => p.id === 'sample').entries.some(e => e.note === 'First of two') })), { screen: 'entryform', part: rid20, note: '', saved: true });
+  await shot('photo-form-next-one'); await press('Cancel'); await page.waitForTimeout(300);
+  // arriving by the landing page's button, then a reload (iOS reloads after the camera): the photo form comes back
+  await fresh20('?s=home&job=sample'); await page.evaluate(() => App.newEntry()); await page.waitForTimeout(300); await page.fill('#efNote', 'Typed after the landing page'); await page.waitForTimeout(600); await page.reload({ waitUntil: 'networkidle' }); await page.waitForTimeout(700);
+  same('a reload after Try the sample job keeps the photo form', await page.evaluate(() => ({ screen: App.current(), note: (document.getElementById('efNote') || {}).value })), { screen: 'entryform', note: 'Typed after the landing page' });
+  await press('Cancel'); await page.waitForTimeout(300);
+  // a job with no dates has no days left and no calendar sentence
+  await page.evaluate(() => { const p = App.state().projects.find(p => p.id === 'sample'); p.start = ''; p.finish = ''; App.go('report'); }); await page.waitForTimeout(400);
+  const noDates20 = await text('#reportPreview'); if (/-\d+/.test(noDates20) || /time used|At this pace/.test(noDates20)) issues.push('a job with no dates still shows days left or the calendar: ' + noDates20.replace(/\s+/g, ' ').slice(0, 160)); await shot('send-no-dates');
+  // Try the sample job after the sample was deleted
+  await fresh20('?s=projects'); await page.evaluate(() => { const S = App.state(); S.projects = S.projects.filter(p => !p.sample); S.projects.push({ id: 'mine', name: 'My own job', items: [], entries: [], cover: { picked: [], layout: 'hero', head: '', note: '', numMode: 'auto', manual: {} } }); S.cur = 'mine'; DB.save(S); });
+  await page.goto(APP + '/?s=home&job=sample', { waitUntil: 'networkidle' }); await page.waitForTimeout(600);
+  same('Try the sample job after the sample was deleted', await page.evaluate(() => ({ screen: App.current(), toast: document.getElementById('toast').innerText.trim() })), { screen: 'projects', toast: 'The sample job was deleted. Tap Bring back the sample job.' });
+  // Send: the sender's own note and name, the sample mark, and what the page rests on
+  await fresh20('?job=sample&s=report'); await typeIn20('#rpMe', 'Pat Example'); await typeIn20('#rpNote', 'Roofers are back Tuesday.');
+  need('the owner update with a name and a note', await text('#reportPreview'), ['Sample job', 'Framing nearly done, roof going on', 'recorded on site by Pat Example', 'Roofers are back Tuesday.', 'A bill can count materials delivered but not yet put in.']); await shot('send-with-name-and-note');
+  if (await page.evaluate(() => !!document.getElementById('fab'))) issues.push('the floating bulb is back');
+  await fresh20('?s=projects');
   await page.setViewportSize({ width: 1280, height: 900 }); await page.goto(APP + '/?s=home', { waitUntil: 'networkidle' }); await shot('desktop-shell', { wait: 1200 }); await at('desktop', 'home', 'home'); need('desktop home', await text('#homeBody'), ['About a third of the work is done.', 'The contractor has billed $3,420 more than you saw.']); await help('desktop');
   await page.goto(BASE + '/mockups/', { waitUntil: 'networkidle' }); await shot('storyboard', { wait: 800, noScan: true });
   fs.writeFileSync(path.join(OUT, '_console.txt'), consoleErrors.join('\n') || '(no console errors)');

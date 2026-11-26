@@ -4,7 +4,7 @@ Source for https://costtooling.com (GitHub Pages).
 
 **Taking over?** Start with [HANDOFF.md](HANDOFF.md): where every piece lives (the database is in another repo), how to run, ship and test the app, and what is open.
 
-**Status: functional mock-up.** The front page is a landing page; the app, at `/app/`, is a working, phone-first app. Jobs, their parts, what the contractor billed, costs, notes and photos are stored on the device (localStorage + IndexedDB). A sample job is included. The yellow bulb collects feature requests and emails them.
+**Status: functional mock-up.** The front page is a landing page; the app, at `/app/`, is a working, phone-first app. Jobs, their parts, what the contractor billed, costs, notes and photos are stored on the device (localStorage + IndexedDB). A sample job is included. Tell us what is confusing, under Help, collects ideas and emails them.
 
 - `index.html` — the landing page, which also passes old links and home-screen apps on to `/app/`
 - `app/index.html` — app shell; `css/app.css`; `js/db.js` (storage), `js/photos.js` (import, downscale, sample photos), `js/data.js` (model, sample job, templates, calc), `js/cover.js` (cover + report canvas renderers, sharing), `js/ui.js` (screens), `js/tour.js` (Show me around: the guided tour over the sample job), `js/app.js` (state, navigation, actions). No build step, no dependencies.

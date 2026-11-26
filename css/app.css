@@ -102,7 +102,7 @@ button.lnk { background:none; border:0; font:inherit; color:var(--blue); cursor:
 .report h4 { margin:0; font-size:18px; } .report .meta { color:var(--muted); font-size:14px; margin:1px 0 0; }
 .report .num4 { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:10px 0; } .report .num4 div { background:var(--paper); border-radius:8px; padding:9px 4px; text-align:center; } .report .num4 b { display:block; font-size:17px; letter-spacing:-.3px; } .report .num4 span { display:block; font-size:14px; line-height:1.2; color:var(--muted); }
 .report p { margin:8px 0; } .report .grid3 .ph { border-radius:6px; }
-.toast { position:absolute; left:16px; right:16px; bottom:calc(100px + env(safe-area-inset-bottom)); background:var(--ink); color:#fff; padding:14px 16px; border-radius:12px; font-size:16px; box-shadow:0 10px 30px rgba(0,0,0,.3); opacity:0; transform:translateY(8px); transition:.2s; pointer-events:none; z-index:30; display:flex; gap:8px; align-items:center; }
+.toast { position:absolute; left:12px; right:12px; top:calc(84px + env(safe-area-inset-top)); background:var(--ink); color:#fff; padding:14px 16px; border-radius:12px; font-size:16px; box-shadow:0 10px 30px rgba(0,0,0,.3); opacity:0; transform:translateY(-8px); transition:.2s; pointer-events:none; z-index:30; display:flex; gap:8px; align-items:center; }
 .toast.show { opacity:1; transform:none; } .toast .ic { color:var(--yellow); }
 .hint { font-size:15px; color:var(--muted); margin:8px 0 0; line-height:1.4; }
 .empty { text-align:center; color:var(--muted); padding:28px 10px; font-size:16px; } .empty .ic { color:#c9c6bc; display:block; margin:0 auto 8px; }
@@ -216,3 +216,14 @@ details.more summary .ic { transition:transform .15s; } details.more[open] summa
 /* sign-in screens: room between the last box and its button, and links large enough to tap */
 .auth .card > .in + .hint.err:empty + .btn, .auth .card > .in + .btn { margin-top:12px; }
 .auth .row .lnk, .auth .hint .lnk { font-size:16px; min-height:48px; display:inline-flex; align-items:center; }
+
+/* after the review by customer type (version 20) */
+.tpl { flex-direction:column; overflow:visible; margin:0; padding:0; } .tpl div { width:auto; min-height:56px; }
+.billline { padding:12px 0; border-bottom:1px solid var(--line); } .billline .l b { display:block; font-size:16px; font-weight:600; } .billline .l small { display:block; font-size:14px; color:var(--muted); }
+.billrow { display:block; }
+.pair { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px; } .pair label { margin:0; font-size:14px; font-weight:600; color:var(--ink2); }
+.pair .in, .billrow .pair .in.amt, .billline .pair .in { display:block; width:100%; min-height:50px; margin-top:3px; text-align:right; font-variant-numeric:tabular-nums; }
+.notice .todo { display:block; margin-top:8px; font-weight:600; }
+.report .basis { color:var(--muted); font-size:14px; border-top:1px solid var(--line); padding-top:8px; margin-top:10px; }
+.sampleTag { background:#fbf4e4; color:#7a4f0d; border:1px solid #ead9b2; border-radius:6px; padding:0 6px; font-weight:700; }
+#tourCard .x { width:auto; min-width:48px; padding:0 12px; font:inherit; font-size:15px; font-weight:700; color:var(--blue); border-radius:10px; } #tourCard h4 { padding-right:64px; }

@@ -53,6 +53,7 @@ h2 { font-size:28px; margin:40px 0 4px; text-wrap:balance; scroll-margin-top:90p
 }
 @media (prefers-reduced-motion: no-preference) { html { scroll-behavior:smooth } }
 footer { margin-top:48px; color:var(--muted); font-size:15px; border-top:1px solid var(--line); padding-top:16px }
+.one-app header .tabs{display:none}.one-app .pick-app{display:none}
 </style>
 </head>
 <body>
@@ -60,7 +61,7 @@ footer { margin-top:48px; color:var(--muted); font-size:15px; border-top:1px sol
 <header>
   <a class="back" href="../app/">&larr; Back to the app</a>
   <h1>How to use the app</h1>
-  <p class="lede">Short steps with a photo of every button. Pick your app, then follow the numbers.</p>
+  <p class="lede">Short steps with a photo of every button. <span class="pick-app">Pick your app, then follow the numbers.</span></p>
   <div class="tabs" role="tablist">
     <button type="button" role="tab" id="tab-costtooling" aria-selected="true" aria-controls="costtooling" data-tab="costtooling"><span class="mark ct">CT</span>CostTooling</button>
     <button type="button" role="tab" id="tab-charitytooling" aria-selected="false" aria-controls="charitytooling" data-tab="charitytooling"><span class="mark ch">♥</span>CharityTooling</button>
@@ -70,7 +71,7 @@ footer { margin-top:48px; color:var(--muted); font-size:15px; border-top:1px sol
 <nav class="toc" aria-label="Sections"><a href="#costtooling-first">Your first day</a><a href="#costtooling-add">Add someone to your team</a><a href="#costtooling-join">Join with a code</a><a href="#costtooling-forgot">Forgot your password</a><a href="#costtooling-locked">Help someone who is locked out</a></nav>
 <h2 id="costtooling-first">Your first day</h2><p class="intro">Thirteen short steps, from opening the app to sending the owner one page. Try them on the sample job first.</p><ol class="steps">
 <li class="step">
-<div class="words"><div class="num">1</div><p>Open <b>costtooling.com</b> on your phone. Tap <b>Let's go</b>.</p>
+<div class="words"><div class="num">1</div><p>Open <b>costtooling.com</b> on your phone. Tap <b>Open the app</b>. Then tap <b>Let's go</b>.</p>
 <figure class="look"><figcaption>Look for this</figcaption><img src="fd-01-welcome-zoom.png" alt="" loading="lazy"></figure>
 <p class="note">Not sure where things are? Tap <b>Show me around</b> instead. The app walks you through every screen on the sample job.</p>
 <p class="note">On an iPhone, the card also shows how to put the app on your home screen. Do that first.</p>
@@ -143,7 +144,7 @@ footer { margin-top:48px; color:var(--muted); font-size:15px; border-top:1px sol
 <div class="phone"><img src="fd-06c-bill-type.png" alt="" loading="lazy"></div>
 </li>
 <li class="step">
-<div class="words"><div class="num">11</div><p>Tap <b>Send</b> at the bottom. This is the page the owner gets. Look it over. Then tap <b>Send it to the owner</b>.</p>
+<div class="words"><div class="num">11</div><p>Tap <b>Send</b> at the bottom. This is the page the owner gets. Look it over. Then tap <b>Choose how to send it</b>. Nothing goes until you pick.</p>
 <figure class="look"><figcaption>Look for this</figcaption><img src="fd-07-report-zoom.png" alt="" loading="lazy"></figure>
 <p class="note">Want one picture instead? Scroll down and tap <b>Make a picture to text instead</b>.</p>
 </div>
@@ -157,7 +158,7 @@ footer { margin-top:48px; color:var(--muted); font-size:15px; border-top:1px sol
 <div class="phone"><img src="fd-08-share.png" alt="" loading="lazy"></div>
 </li>
 <li class="step">
-<div class="words"><div class="num">13</div><p>Want your jobs on every phone? On the job list, tap <b>Sign in</b>. It is below the jobs. The next section shows how.</p>
+<div class="words"><div class="num">13</div><p>Your jobs are saved on this phone. Want them on another phone too? You need an account from your company. On the job list, below the jobs, tap <b>I have an account</b> or <b>I have a code</b>. The next sections show how.</p>
 <figure class="look"><figcaption>Look for this</figcaption><img src="fd-09-signin-zoom.png" alt="" loading="lazy"></figure>
 <p class="note">To get to the job list, tap <b>Home</b> at the bottom, then <b>Jobs</b> at the top.</p>
 <p class="note">Got a code from your company? Tap <b>I have a code</b> instead.</p>
@@ -439,6 +440,8 @@ footer { margin-top:48px; color:var(--muted); font-size:15px; border-top:1px sol
   tabs.forEach(function(t){ t.addEventListener('click', function(){ show(t.dataset.tab, true); window.scrollTo(0, 0); }); });
   document.addEventListener('click', function(e){ var a = e.target.closest('a[href^="#"]'); if (!a) return; var id = a.getAttribute('href').slice(1); var key = id.split('-')[0]; if (key === 'costtooling' || key === 'charitytooling') show(key, false); });
   var h = (location.hash || '').replace('#','').split('-')[0], saved = null;
+  // Opened from one app's Help button: show that app's steps only, without the choice of app.
+  if (h === 'costtooling' || h === 'charitytooling') document.documentElement.classList.add('one-app');
   try { saved = localStorage.getItem('guide-app'); } catch (e) {}
   show(h === 'charitytooling' || h === 'costtooling' ? h : (saved === 'charitytooling' ? 'charitytooling' : 'costtooling'), false);
 })();

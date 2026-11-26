@@ -1,6 +1,6 @@
 # The owner's side: plan and mockups
 
-Chosen Nov 25, 2026. **Two pieces are built:** version 18 of the app has billed against in place and a sample job that shows it, and version 19, on the branch `plain-words` and not yet live, has the plain-words pass. Both are in the app's own layout, not pixel for pixel as drawn here. **The rest is drawn, not built:** see What is built. **The landing page is live:** the owner had it built the same day, with its copy as drawn, as the front page of costtooling.com, and the app moved to costtooling.com/app. **The plain-words pass:** its plan, its two drawn screens and what was built from them are in `plain-words.md`. Open `index.html` in this folder to see every screen, or https://costtooling.com/mockups/owner-side/.
+Chosen Nov 25, 2026. **Two pieces are built:** version 18 of the app has billed against in place and a sample job that shows it, and version 19 has the plain-words pass. Both are in the app's own layout, not pixel for pixel as drawn here. **The rest is drawn, not built:** see What is built. **The landing page is live:** the owner had it built the same day, with its copy as drawn, as the front page of costtooling.com, and the app moved to costtooling.com/app. **The plain-words pass:** its plan, its two drawn screens and what was built from them are in `plain-words.md`. Open `index.html` in this folder to see every screen, or https://costtooling.com/mockups/owner-side/.
 
 Read `HANDOFF.md` at the repo root first. It says how the app is put together, shipped and tested.
 

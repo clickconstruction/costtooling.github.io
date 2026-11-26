@@ -6,7 +6,7 @@ CostTooling is a phone-first web app for the person who walks a construction job
 
 It is a working prototype, built between Oct 12 and Oct 22, 2026. The last two changes made each line item a folder of its photos and notes by day, with Move to… on a photo, after a tester asked to see Day 1, Day 2 under a line item and to move photos between line items, and made Back return to the screen you came from. The open work below was last reviewed Nov 25, 2026. A direction for what comes next was chosen on Nov 25: see Where it is going. The same day its landing page went live on the front page of costtooling.com, ahead of the features it describes, and the app moved to costtooling.com/app. Version 18, also Nov 25, is the first piece of that direction: billed against in place. Version 19 is the second: a plain-words pass that rewrote every screen for the owner's assistant. Plain words, under Data and cloud sync, says what it changed; `mockups/owner-side/plain-words.md` has the plan it was built from.
 
-**Where the latest work is.** `main` and the live site are on version 18, merged Nov 25, 2026. Version 19, the plain-words pass, is on the branch `plain-words`, pushed to GitHub and not merged. Merging it puts version 19 live and changes the words on every screen, so ask the owner first. When it is merged, fix this paragraph. The branch `billed-in-place` holds only commits that are already in `main` and can be deleted.
+**Where the latest work is.** Everything is on `main`, and the live site is on version 19, merged Nov 25, 2026. The branches `billed-in-place` and `plain-words` hold only commits that are already in `main` and can be deleted.
 
 ## Where everything lives
 
@@ -158,7 +158,7 @@ The Edge Functions and the sign-up triggers are shared with CharityTooling. Depl
 
 A push to `main` is live in about a minute. There are no pull requests, no automated tests and no branch protection, so check your change before you push.
 
-1. **Bump the version when you change any file that is not a page:** a stylesheet, a script, an icon or a guide photo. The service worker serves those from its cache first, so phones keep the old ones until the version moves. Three places, all one number up (19 on the branch `plain-words`; `main` is on 18):
+1. **Bump the version when you change any file that is not a page:** a stylesheet, a script, an icon or a guide photo. The service worker serves those from its cache first, so phones keep the old ones until the version moves. Three places, all one number up (today 19):
    - every `?v=19` in `app/index.html`
    - every `?v=19` in the `SHELL` list in `sw.js`
    - `VERSION = 'ct-v19'` in `sw.js`
@@ -202,7 +202,7 @@ The app's history runs from Oct 12 to Oct 22, 2026; the landing page, the move t
 
 | Date | Change | Commit |
 | --- | --- | --- |
-| Nov 25 | The plain-words pass, on the branch `plain-words`: a job opens on one sentence, the bill warning in words and four numbered steps; a part is marked with five words, with an exact percent one tap away, and the sliders are gone; tabs are Home, Photos, Parts, Bill and Send; the Bill tab draws where to find the number on a bill; adding a photo asks three things; Back says where it goes and Help is on every screen; nothing under 14 px or 48 px; one plain name per thing in the app, the tour, the guide, both images and the landing page; saved pictures are named `costtooling-owner-update.jpg` and `costtooling-picture.jpg`; the guide has thirteen first-day steps with new photos; version 19 | 3c32cd2 and the commit after it |
+| Nov 25 | The plain-words pass: a job opens on one sentence, the bill warning in words and four numbered steps; a part is marked with five words, with an exact percent one tap away, and the sliders are gone; tabs are Home, Photos, Parts, Bill and Send; the Bill tab draws where to find the number on a bill; adding a photo asks three things; Back says where it goes and Help is on every screen; nothing under 14 px or 48 px; one plain name per thing in the app, the tour, the guide, both images and the landing page; saved pictures are named `costtooling-owner-update.jpg` and `costtooling-picture.jpg`; the guide has thirteen first-day steps with new photos; version 19 | 3c32cd2, b92ca18 |
 | Nov 25 | Billed against in place: a billed figure on each line item, typed on Progress under Bill or on the line item as a percent or an amount; a job with a bill leads with in place, billed and billed ahead on its home screen, report, cover and email, with a Check before you pay card; the sample job's bill runs $3,420 ahead on Framing; costs fold away in a job with a bill; two tour stops and a guide step; all ten guide photos retaken; version 18 | 23b4ae4 |
 | Nov 25 | The owner's side landing page is the front page of costtooling.com, with its copy as drawn; the app moves to `/app/` and the front page passes on home-screen apps, emailed links and old links; the service worker caches both pages; the manifest starts at `/app/`; `?job=sample`; version 17 | 4941f68 |
 | Oct 22 | Back, Cancel and Delete return to the screen that opened a photo, a line item or the entry form (Home, the log, a folder or a photo) instead of a fixed parent; the untagged save toast says so; a line item with notes only says so; + Add to this day is a button with a wide tap target; a line item or project edit that was saved no longer reopens its form after a reload; a note typed just before the app is backgrounded survives the reload | 9417c98 |
@@ -219,7 +219,7 @@ The app's history runs from Oct 12 to Oct 22, 2026; the landing page, the move t
 
 ## Where it is going
 
-Chosen Nov 25, 2026. Two pieces are built: version 18 has billed against in place and a sample job that shows it, and version 19, on the branch `plain-words`, has the plain-words pass. Pasting a job's lines from the bill, issues, and time and place on photos are drawn or planned, not built. The landing page went live the same day, at the owner's request, with its copy as drawn.
+Chosen Nov 25, 2026. Two pieces are built: version 18 has billed against in place and a sample job that shows it, and version 19 has the plain-words pass. Pasting a job's lines from the bill, issues, and time and place on photos are drawn or planned, not built. The landing page went live the same day, at the owner's request, with its copy as drawn.
 
 The app is being aimed at the person who walks the job for an owner: an owner's rep, or an owner's assistant doing the same job. The promise is "see what's really done before you pay for it". That needed one thing the app could not do, which is compare what the contractor billed with what is in place, per line item. Version 18 does it; Billed against in place, under Data and cloud sync, says how.
 
@@ -228,13 +228,12 @@ The app is being aimed at the person who walks the job for an owner: an owner's 
 - **Still to ask the tester:** when you finish a site visit, who do you send your report to, and what do they decide with it? The owner chose to build billed against in place before that answer. The direction rests on one tester and on reasoning, not on market research.
 - **The order:** that question; then a first release that adds billed against in place and a sample job that shows it (built, version 18), a rewritten welcome card and owner's side wording (built, version 19), and pasting a job's lines from the contractor's bill (not built); then a second release for issues, and time and place on photos. The landing page was to come last and went first instead.
 - **The plain-words pass** is built, as version 19. After reviewing version 18 through the eyes of the owner's assistant, who is often older and not at home on a phone, the owner asked for every screen to be simple enough for a 12-year-old. `mockups/owner-side/plain-words.md` has the findings, the plan in seven steps, the word list, what was decided, what was built and what differs from the plan. Pasting from the bill stays its own piece, and is next.
-- **The landing page and the app now say the same thing.** Version 18 made true that it compares what you saw with what was billed. Version 19 calls the page you send the owner update, calls a line item a part of the job, and replaced the sliders with word buttons, so on the branch the landing page says "tap the words that fit" where it said "drag a slider", its sample card says done where it said in place, and 68 days left where it said 67. Those five phrases are the only changes to its copy.
+- **The landing page and the app now say the same thing.** Version 18 made true that it compares what you saw with what was billed. Version 19 calls the page you send the owner update, calls a line item a part of the job, and replaced the sliders with word buttons, so the landing page says "tap the words that fit" where it said "drag a slider", its sample card says done where it said in place, and 68 days left where it said 67. Those five phrases are the only changes to its copy.
 
 ## Open work
 
 Nothing here is broken for one person on one phone. Merging edits and cleaning up cloud photos matter once teams share jobs.
 
-- [ ] **Merge version 19.** The plain-words pass is on the branch `plain-words`. It changes the words on every screen, so the owner should look at it first: run it locally, or read `mockups/owner-side/plain-words.md` for what differs from the plan.
 - [ ] **Hand the phone to someone who has never seen the app.** The test that matters for version 19, and not done: the sample job and three tasks with no help. Add a photo to Framing; mark Roofing as about half done; say which part the contractor billed too much for. Note every place they stop or ask.
 - [ ] **Plain words on the sign-in, company and team screens.** `js/cloud.js` kept its words and sizes, and the account button on the job list is still an icon with no word.
 - [ ] **Paste a job's lines from the contractor's bill.** Setting up a job is still builder's work: parts, budgets and dates. Drawn in `mockups/owner-side/paste.html`.
@@ -263,4 +262,3 @@ The repo cannot answer these. Settle them in the first conversation.
 3. **Ideas inbox:** should the bulb keep emailing the owner, or you?
 4. **What next:** a direction is written down in Where it is going, and its first two pieces are built. As of Nov 25 the tester had not been asked the question it rests on. Settle the open points in `mockups/owner-side/README.md` (sub folders, numbered bills) and the two left open in `mockups/owner-side/plain-words.md`: whether a part shows the bill's own name for its line, and who sets a job up. The README still calls the app a functional mock-up.
 5. **The shared project:** will CostTooling stay on the CharityTooling Supabase project, or move to its own?
-6. **Version 19:** merge the branch `plain-words` into `main`, which puts the plain-words pass on the live site?

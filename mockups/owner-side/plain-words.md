@@ -1,28 +1,12 @@
 # The plain-words pass: plan and handoff
 
-Written Nov 25, 2026, as a plan. **It is built, as version 19,** on the branch `plain-words`, and not merged: the live site is on version 18. The owner asked for this pass after a review of version 18 through the eyes of the person they most often have to onboard. What was built says what the app does now and where it differs from the plan below; the rest of the page is the plan as it was written, kept for the reasons behind each choice.
+Written Nov 25, 2026, as a plan. **It is built and live, as version 19,** merged on Nov 25, 2026. The owner asked for this pass after a review of version 18 through the eyes of the person they most often have to onboard. What was built says what the app does now and where it differs from the plan below; the rest of the page is the plan as it was written, kept for the reasons behind each choice.
 
 Read [HANDOFF.md](../../HANDOFF.md) first. It says how the app is put together, shipped and tested. The two drawn screens are [plain-home.html](plain-home.html) and [plain-part.html](plain-part.html), also shown with the other mockups in this folder's [index.html](index.html).
 
 ## Where the work is
 
-- **The code:** the branch `plain-words` on GitHub, cut from `main` at version 18. It is not merged. Merging it puts version 19 live and changes the words on every screen, so ask the owner first.
-
-To look at it on another computer:
-
-```bash
-git clone https://github.com/clickconstruction/costtooling.github.io.git
-```
-
-```bash
-cd costtooling.github.io && git checkout plain-words
-```
-
-```bash
-python3 -m http.server 8766 --bind 127.0.0.1
-```
-
-Then open http://127.0.0.1:8766/app/ at a phone size such as 390 × 844. Test it, in HANDOFF.md, says how to install Playwright for the scripts in `qa/`.
+On `main`, and live: version 19 was merged on Nov 25, 2026. HANDOFF.md says how to run it on your machine and how to test it.
 
 ## What was built
 
@@ -172,25 +156,4 @@ Decided Nov 25, 2026, except decision 7 and the second half of decision 1. What 
 
 ## Picking this up with Claude Code
 
-Paste this after cloning the repo:
-
-```text
-I'm reviewing version 19 of CostTooling, the plain-words pass. CostTooling is a phone-first web app at costtooling.com. This folder is its repo.
-
-First run: git checkout plain-words
-
-Read HANDOFF.md, then mockups/owner-side/plain-words.md.
-
-Then tell me, briefly:
-1. Where the app stands, and what is on the branch that is not live yet.
-2. What the plain-words pass changed, and where it differs from its plan.
-3. What is left before it can be merged.
-
-Do not change anything until I answer. Keep these rules for the whole session:
-- The repo is public and every committed file is served on the site. Never commit names, emails, keys or customer data.
-- The database and account functions live in the charitytooling repo. One live Supabase project serves two apps with no staging copy, so make no database change without asking me.
-- One real company syncs a real job. Old jobs must keep working, and nothing may rewrite or drop stored data.
-- A push to main deploys to the live site in about a minute, so ask me before anything goes to main.
-- Bump the version as HANDOFF.md says when a script or stylesheet changes.
-- Keep HANDOFF.md and mockups/owner-side/plain-words.md current when a fact in them changes.
-```
+The pass is built and live, so there is nothing here to pick up. For the next piece, start from HANDOFF.md: Open work and Where it is going.

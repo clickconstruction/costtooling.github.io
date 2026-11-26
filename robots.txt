@@ -1,0 +1,12 @@
+# GitHub Pages serves every file in this repo. These are the ones that are not for search results:
+# the notes for whoever works on the site, the test scripts, and the pictures of old screens.
+#
+# /app/, /admin/ and the pages under /mockups/ are NOT listed here on purpose. Each carries
+# <meta name="robots" content="noindex">, and a crawler has to be allowed to read a page to see that.
+User-agent: *
+Disallow: /*.md$
+Disallow: /qa/
+Disallow: /mockups/screens/
+Disallow: /.claude/
+
+Sitemap: https://costtooling.com/sitemap.xml

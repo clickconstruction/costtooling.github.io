@@ -206,7 +206,7 @@ A push to `main` is live in about a minute. There are no pull requests, no autom
 3. **Commit and push to `main`.** The workflow `.github/workflows/pages.yml` uploads the whole repo and deploys it. The last deploy took 54 seconds. If the deploy step fails with "No artifacts named github-pages were found", as it did on two pushes in a row on Nov 25, do not re-run the failed job, which then finds two artifacts and fails again. Start a fresh run with `gh workflow run pages.yml --ref main`.
 4. **Check it is live.** `gh run list` shows the deploy. Then load the live app and look for the new version number. Phones that had the old version see an **Update ready. Reload** message the next time they open the app.
 
-The repo is public and every file in it is served, including `qa/`, `mockups/` and this file. Never commit keys other than the publishable one already in `js/cloud.js`, and never commit customer data.
+The repo is public and every file in it is served, including `qa/`, `mockups/` and this file. `robots.txt` asks search engines to leave out the `.md` files, `qa/`, `mockups/screens/` and `.claude/`, which keeps them out of search results and does not hide them from anyone with the address. `sitemap.xml` lists the pages meant for search results (the landing page, the guide, Privacy and Terms), so a new public page gets a line there. Never commit keys other than the publishable one already in `js/cloud.js`, and never commit customer data.
 
 The guide page itself always loads fresh. Its photos do not, so a retaken guide photo needs the version bump like any other file.
 

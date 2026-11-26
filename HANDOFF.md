@@ -72,7 +72,8 @@ GitHub Pages: serves the repo files as they are, no build step
 ON THE PHONE, IN THE BROWSER
    index.html      the landing page, on the front page: one file, styles inline. Its one script
                    passes anything headed for the app on to /app/
-   app/index.html  the app: markup for every screen and sheet; loads the scripts in order
+   app/index.html  the app: markup for every screen and sheet; loads the scripts in order. It is marked
+                   noindex, so search engines list the landing page and not the app
    sw.js           service worker: keeps both pages and the app files in a cache so they open offline
    app.js        the controller: app state, navigation, every action a button calls
     ├─ ui.js       draws every screen from the job, plus the icons

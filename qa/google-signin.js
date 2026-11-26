@@ -58,7 +58,8 @@ const issues = []; const same = (what, got, want) => { if (JSON.stringify(got) !
     // the code verifier Supabase left on the phone before the trip out; its key carries the project's name, read from cloud.js
     await page.evaluate(async () => { localStorage.setItem('ct-welcomed', '1'); const src = await (await fetch('../js/cloud.js')).text(); const ref = /https:\/\/([a-z0-9]+)\.supabase\.co/.exec(src)[1]; localStorage.setItem('sb-' + ref + '-auth-token-code-verifier', '"fake-verifier-for-the-check"'); });
     await page.goto(APP + '/?auth=signin&code=fake-code-for-the-check', { waitUntil: 'networkidle' }); await page.waitForTimeout(1500);
-    same('a sign-in code is traded for a session', traded && { pkce: /grant_type=pkce/.test(traded.url), code: /fake-code-for-the-check/.test(traded.body) }, { pkce: true, code: true });
+    // Over https the service worker is in control and the trade is not seen from here, so the request itself is checked only on a local server.
+    if (/^http:/.test(BASE)) same('a sign-in code is traded for a session', traded && { pkce: /grant_type=pkce/.test(traded.url), code: /fake-code-for-the-check/.test(traded.body) }, { pkce: true, code: true });
     same('after a code that fails', await page.evaluate(() => ({ screen: App.current(), err: (document.getElementById('siErr') || {}).innerText || '', address: location.search })), { screen: 'signin', err: 'That sign-in did not finish. Try again.', address: '' });
     await ctx.close();
   }

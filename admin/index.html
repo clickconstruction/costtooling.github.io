@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Accounts · CostTooling admin</title>
+<style>
+  :root { color-scheme: light; --ink: #1c1b19; --soft: #5d5a55; --faint: #8a8680; --line: #e2dfd9; --paper: #faf9f6; --card: #ffffff; --blue: #1d4ed8; --green: #166534; --amber: #92400e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--ink); background: var(--paper); }
+  header, main { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+  header { padding-top: 28px; }
+  .eyebrow { margin: 0; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--soft); }
+  h1 { margin: 2px 0 6px; font-size: 26px; }
+  .lede { margin: 0 0 18px; color: var(--soft); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  button, .press { font: inherit; font-size: 15px; min-height: 44px; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
+  button.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 12px; }
+  input[type=search] { font: inherit; flex: 1 1 220px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
+  .chip { min-height: 36px; padding: 4px 12px; border-radius: 999px; font-size: 14px; }
+  .chip[aria-pressed=true] { background: #e8eefc; border-color: #9db5ee; color: #173a8a; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 13px; font-weight: 600; color: var(--soft); padding: 8px 8px 8px 0; border-bottom: 1px solid var(--line); }
+  td { padding: 10px 8px 10px 0; border-bottom: 1px solid var(--line); vertical-align: top; font-size: 15px; }
+  tr:last-child td { border-bottom: 0; }
+  .sub { display: block; font-size: 13px; color: var(--soft); overflow-wrap: anywhere; }
+  .tag { display: inline-block; margin: 0 4px 4px 0; padding: 1px 9px; border: 1px solid var(--line); border-radius: 999px; font-size: 13px; color: var(--soft); white-space: nowrap; }
+  .tag.off { border-color: #e7c08a; color: var(--amber); }
+  .good { color: var(--green); } .warn { color: var(--amber); } .none { color: var(--faint); }
+  .problem { color: var(--amber); }
+  .foot { margin: 14px 0 40px; font-size: 14px; color: var(--soft); }
+  @media (max-width: 640px) { thead { display: none; } tr { display: block; padding: 10px 0; border-bottom: 1px solid var(--line); } td { display: block; border: 0; padding: 2px 0; } }
+</style>
+</head>
+<body>
+<header>
+  <p class="eyebrow">CostTooling admin</p>
+  <h1>Accounts</h1>
+  <p class="lede">Everyone who has signed up on CostTooling or CaseTooling. This page shows facts about an account. It never opens a job, a case or a photo, and it changes nothing.</p>
+</header>
+<main id="main" aria-live="polite"><p>Checking who is signed in…</p></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+<script>
+(function () {
+  'use strict';
+  var SITE = 'CostTooling';
+  var START = 'cost'; // the list this site opens on
+  var SUPABASE_URL = 'https://cjwybuhogxyayjnuxpem.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_mY04D4GZBph7ss23Hh_FNg_t34i1uZr'; // publishable key: safe to ship. The function behind this page answers the admin only.
+  var main = document.getElementById('main');
+  var state = { accounts: [], filter: START, search: '', email: '' };
+
+  function h(tag, attrs, kids) {
+    var el = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (k) {
+      if (k === 'class') el.className = attrs[k];
+      else if (k.indexOf('on') === 0) el.addEventListener(k.slice(2), attrs[k]);
+      else el.setAttribute(k, attrs[k]);
+    });
+    (kids || []).forEach(function (kid) { if (kid !== null && kid !== undefined && kid !== false) el.appendChild(typeof kid === 'string' ? document.createTextNode(kid) : kid); });
+    return el;
+  }
+  function show() { main.replaceChildren.apply(main, arguments); }
+
+  if (!window.supabase) { show(h('p', { class: 'problem' }, ['This page could not load its sign-in library. Check your connection and load the page again.'])); return; }
+  // The same settings as the app on this site, so a person signed in there is signed in here.
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' } });
+
+  function ago(iso) {
+    if (!iso) return 'never';
+    var days = Math.floor((Date.now() - Date.parse(iso)) / 86400000);
+    if (days <= 0) return 'today';
+    if (days === 1) return 'yesterday';
+    if (days < 60) return days + ' days ago';
+    return Math.floor(days / 30) + ' months ago';
+  }
+  function onNoSite(a) { return a.costtooling.length === 0 && !a.casetooling.on && a.charities === 0; }
+  var FILTERS = [
+    { key: 'everyone', label: 'Everyone', test: function () { return true; } },
+    { key: 'cost', label: 'CostTooling', test: function (a) { return a.costtooling.length > 0; } },
+    { key: 'case', label: 'CaseTooling', test: function (a) { return a.casetooling.on; } },
+    { key: 'none', label: 'On no site yet', test: onNoSite },
+    { key: 'off', label: 'Turned off', test: function (a) { return a.off; } },
+  ];
+
+  function row(a) {
+    var ways = [a.ways_in.password ? h('span', { class: 'tag' }, ['Email and password']) : null, a.ways_in.google ? h('span', { class: 'tag' }, ['Google']) : null];
+    if (!a.ways_in.password && !a.ways_in.google) ways = [h('span', { class: 'none' }, ['none on file'])];
+    var on = [];
+    a.costtooling.forEach(function (c) { on.push(h('span', { class: 'tag' + (c.off ? ' off' : '') }, ['CostTooling · ' + c.role + ' of ' + c.company + (c.off ? ' · turned off there' : '') + ' · ' + c.jobs + (c.jobs === 1 ? ' job' : ' jobs')])); });
+    if (a.casetooling.on) on.push(h('span', { class: 'tag' }, ['CaseTooling · ' + a.casetooling.cases + (a.casetooling.cases === 1 ? ' case' : ' cases')]));
+    if (a.charities > 0) on.push(h('span', { class: 'tag' }, ['CharityTooling · ' + a.charities + (a.charities === 1 ? ' charity' : ' charities')]));
+    if (on.length === 0) on.push(h('span', { class: 'none' }, ['signed up, on no site yet']));
+    var seen = a.off ? h('span', { class: 'warn' }, ['turned off']) : !a.confirmed ? h('span', { class: 'warn' }, ['never, email not confirmed']) : h('span', { class: a.last_sign_in_at && ago(a.last_sign_in_at) === 'today' ? 'good' : '' }, [ago(a.last_sign_in_at)]);
+    return h('tr', {}, [
+      h('td', {}, [a.name || 'No name given', a.admin ? h('span', { class: 'tag' }, ['admin']) : null, h('span', { class: 'sub' }, [a.email || 'no email'])]),
+      h('td', {}, ways),
+      h('td', {}, on),
+      h('td', {}, [seen, h('span', { class: 'sub' }, ['signed up ' + ago(a.signed_up_at)])]),
+    ]);
+  }
+
+  function drawList() {
+    var q = state.search.trim().toLowerCase();
+    var filter = FILTERS.filter(function (f) { return f.key === state.filter; })[0] || FILTERS[0];
+    var shown = state.accounts.filter(function (a) { return filter.test(a) && (!q || ((a.name || '') + ' ' + (a.email || '')).toLowerCase().indexOf(q) !== -1); });
+    var search = h('input', { type: 'search', placeholder: 'Search a name or an email', 'aria-label': 'Search accounts', value: state.search, oninput: function (e) { state.search = e.target.value; drawList(); var box = main.querySelector('input[type=search]'); box.focus(); box.setSelectionRange(box.value.length, box.value.length); } });
+    var chips = FILTERS.map(function (f) {
+      return h('button', { type: 'button', class: 'chip', 'aria-pressed': String(f.key === state.filter), onclick: function () { state.filter = f.key; drawList(); } }, [f.label + ' · ' + state.accounts.filter(f.test).length]);
+    });
+    var body = shown.length
+      ? h('table', {}, [h('thead', {}, [h('tr', {}, [h('th', {}, ['Person']), h('th', {}, ['Ways in']), h('th', {}, ['On']), h('th', {}, ['Last sign-in'])])]), h('tbody', {}, shown.map(row))])
+      : h('p', { class: 'none' }, [q ? 'Nobody matches that search. Clear the box to see everyone.' : 'Nobody is on this list yet.']);
+    show(
+      h('div', { class: 'bar' }, [search].concat(chips)),
+      h('div', { class: 'card' }, [body]),
+      h('p', { class: 'foot' }, ['Signed in as ' + state.email + '. ', h('button', { type: 'button', onclick: load }, ['Read again'])])
+    );
+  }
+
+  function signedOut(problem) {
+    show(h('div', { class: 'card' }, [
+      h('p', {}, ['Sign in to see the accounts. This page is for the admin.']),
+      problem ? h('p', { class: 'problem', role: 'alert' }, [problem]) : null,
+      h('button', { type: 'button', class: 'primary', onclick: function () { sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + '/admin/' } }); } }, ['Continue with Google']),
+      h('p', { class: 'foot' }, ['Signed in with an email and password? Sign in on ', h('a', { href: '/app/' }, ['the ' + SITE + ' app']), ' first, then come back to this page.']),
+    ]));
+  }
+
+  async function reason(error) {
+    try { if (error && error.context && typeof error.context.json === 'function') { var b = await error.context.clone().json(); if (b && b.error) return { status: error.context.status, words: String(b.error) }; } } catch (e) { /* fall through */ }
+    return { status: error && error.context ? error.context.status : 0, words: 'The accounts could not be read. Check your connection and press Read again.' };
+  }
+
+  async function load() {
+    show(h('p', {}, ['Reading the accounts…']));
+    var res = await sb.functions.invoke('admin-accounts', { body: { action: 'list' } });
+    if (res.error) {
+      var why = await reason(res.error);
+      if (why.status === 403) { show(h('div', { class: 'card' }, [h('p', {}, ['This page is for the admin. You are signed in as ' + state.email + ', and that account is not the admin.']), h('a', { class: 'press', href: '/app/' }, ['Go to the ' + SITE + ' app'])])); return; }
+      if (why.status === 401) { signedOut('Your sign-in ran out. Sign in again.'); return; }
+      show(h('div', { class: 'card' }, [h('p', { class: 'problem', role: 'alert' }, [why.words]), h('button', { type: 'button', onclick: load }, ['Read again'])]));
+      return;
+    }
+    state.accounts = (res.data && res.data.accounts) || [];
+    drawList();
+  }
+
+  async function start() {
+    var params = new URLSearchParams(location.search);
+    var hash = new URLSearchParams(location.hash.replace(/^#/, ''));
+    var refused = params.get('error_description') || hash.get('error_description') || '';
+    // getSession waits for the library to use a sign-in code in the address. Only then is the address cleaned.
+    var got = await sb.auth.getSession();
+    if (params.has('code') || params.has('error') || hash.has('error')) history.replaceState(null, '', location.pathname);
+    var session = got.data && got.data.session;
+    if (!session) { signedOut(refused ? 'Google did not sign you in. ' + refused.replace(/\+/g, ' ') : ''); return; }
+    state.email = session.user.email || 'an account with no email';
+    await load();
+  }
+  start();
+})();
+</script>
+</body>
+</html>

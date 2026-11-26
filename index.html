@@ -61,7 +61,7 @@ h1{font-size:clamp(36px,5.4vw,62px);line-height:1.04;letter-spacing:-1.5px;margi
 .report{background:#fff;border:1px solid #e2dfd6;border-radius:16px;padding:22px 20px;box-shadow:0 18px 40px rgba(22,22,23,.12);font-size:14px}
 .report .hd{display:flex;align-items:center;gap:10px;margin-bottom:14px}
 .report .hd .mark{width:32px;height:32px;border-radius:8px;background:#161617;color:#e8c547;font-size:12px}
-.report h2{margin:0;font-size:17px;line-height:1.2}
+.report .ttl{margin:0;font-size:17px;line-height:1.2;font-weight:bold}
 .report .meta{color:#6b6a66;font-size:12.5px;margin:2px 0 0}
 .tag{margin-left:auto;font-size:11px;font-weight:700;border:1px dashed #b8b6ad;color:#6b6a66;border-radius:99px;padding:3px 9px;white-space:nowrap}
 .num4{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
@@ -84,26 +84,26 @@ h1{font-size:clamp(36px,5.4vw,62px);line-height:1.04;letter-spacing:-1.5px;margi
 .band .q em{font-style:normal;color:#e8c547}
 .band p{margin:0;color:#cfcdc6;max-width:38em}
 .sec{padding:72px 0}
-h3.h{font-size:clamp(26px,3.2vw,36px);letter-spacing:-.6px;line-height:1.15;margin:0 0 28px;font-weight:800;max-width:20em;text-wrap:balance}
+h2.h{font-size:clamp(26px,3.2vw,36px);letter-spacing:-.6px;line-height:1.15;margin:0 0 28px;font-weight:800;max-width:20em;text-wrap:balance}
 .cards{display:flex;flex-wrap:wrap;gap:16px}
 .card{flex:1 1 280px;min-width:0;background:#fff;border:1px solid #e2dfd6;border-radius:16px;padding:22px}
 .card .ib{width:44px;height:44px;border-radius:12px;background:#f6f5f1;border:1px solid #e2dfd6;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
-.card h4{margin:0 0 8px;font-size:19px;line-height:1.25;letter-spacing:-.2px}
+.card h3{margin:0 0 8px;font-size:19px;line-height:1.25;letter-spacing:-.2px}
 .card p{margin:0;color:#3a3936;font-size:16px}
 .asst{background:#e8c547;padding:64px 0}
-.asst h3{font-size:clamp(28px,4vw,46px);line-height:1.08;letter-spacing:-1px;margin:0 0 14px;font-weight:800;max-width:16em;text-wrap:balance}
+.asst h2{font-size:clamp(28px,4vw,46px);line-height:1.08;letter-spacing:-1px;margin:0 0 14px;font-weight:800;max-width:16em;text-wrap:balance}
 .asst p{margin:0;font-size:19px;max-width:34em;color:#2b2a26}
 .steps{display:flex;flex-wrap:wrap;gap:16px;counter-reset:s}
 .step{flex:1 1 240px;min-width:0;border-top:3px solid #161617;padding-top:14px}
 .step .n{font-size:13px;font-weight:800;letter-spacing:.06em;color:#6b6a66}
-.step h4{margin:4px 0 6px;font-size:20px}
+.step h3{margin:4px 0 6px;font-size:20px}
 .step p{margin:0;color:#3a3936;font-size:16px}
 .stop{display:flex;flex-wrap:wrap;gap:16px}
 .stop div{flex:1 1 300px;min-width:0;display:flex;gap:12px;align-items:flex-start;font-size:18px;line-height:1.4}
 .stop svg{flex:none;margin-top:3px;color:#6b6a66}
 .stop s{color:#6b6a66}
 .end{background:#161617;color:#fff;padding:72px 0;text-align:center}
-.end h3{font-size:clamp(28px,4vw,44px);letter-spacing:-.8px;line-height:1.1;margin:0 auto 12px;font-weight:800;max-width:18em;text-wrap:balance}
+.end h2{font-size:clamp(28px,4vw,44px);letter-spacing:-.8px;line-height:1.1;margin:0 auto 12px;font-weight:800;max-width:18em;text-wrap:balance}
 .end p{margin:0 auto 26px;color:#cfcdc6;max-width:32em}
 .foot{padding:22px 0;font-size:14px;color:#6b6a66;display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between}
 </style>
@@ -172,7 +172,7 @@ h3.h{font-size:clamp(26px,3.2vw,36px);letter-spacing:-.6px;line-height:1.15;marg
         <div class="report">
           <div class="hd">
             <div class="mark">CT</div>
-            <div><h2>Owner update</h2><p class="meta">Maple St Duplex — Unit B · Tue, Oct 20</p></div>
+            <div><div class="ttl">Owner update</div><p class="meta">Maple St Duplex — Unit B · Tue, Oct 20</p></div>
             <span class="tag">Sample</span>
           </div>
           <div class="num4">
@@ -206,21 +206,21 @@ h3.h{font-size:clamp(26px,3.2vw,36px);letter-spacing:-.6px;line-height:1.15;marg
 
   <section class="sec">
     <div class="wrap">
-      <h3 class="h">What you can do after one site walk</h3>
+      <h2 class="h">What you can do after one site walk</h2>
       <div class="cards">
         <div class="card">
           <div class="ib"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 5L5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></div>
-          <h4>Check the bill against the building</h4>
+          <h3>Check the bill against the building</h3>
           <p>Every line the contractor bills has its own folder of dated photos and your own mark of how far along it is. When the two disagree, it shows.</p>
         </div>
         <div class="card">
           <div class="ib"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div>
-          <h4>Answer "when did that happen?" in ten seconds</h4>
+          <h3>Answer "when did that happen?" in ten seconds</h3>
           <p>Day 1, Day 2, Day 3 under each part of the job, with the weather and how many were on site that day.</p>
         </div>
         <div class="card">
           <div class="ib"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6v20h12V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h4"/></svg></div>
-          <h4>Show the owner without writing a report</h4>
+          <h3>Show the owner without writing a report</h3>
           <p>One page with the numbers, the photos and your note. Text it or email it before you leave the site.</p>
         </div>
       </div>
@@ -229,25 +229,25 @@ h3.h{font-size:clamp(26px,3.2vw,36px);letter-spacing:-.6px;line-height:1.15;marg
 
   <section class="asst">
     <div class="wrap">
-      <h3>You don't have to be a builder to report like one.</h3>
+      <h2>You don't have to be a builder to report like one.</h2>
       <p>The list of parts tells you what to look at. Take the photo, tap the words that fit what you saw, send the page.</p>
     </div>
   </section>
 
   <section class="sec" id="how">
     <div class="wrap">
-      <h3 class="h">How it works</h3>
+      <h2 class="h">How it works</h2>
       <div class="steps">
-        <div class="step"><div class="n">STEP 1</div><h4>Walk the job</h4><p>Take a photo and pick the part of the job it belongs to. Add a note if you like.</p></div>
-        <div class="step"><div class="n">STEP 2</div><h4>Mark what you saw</h4><p>Tap the words that fit each part of the job, like about half or nearly done. Type what the contractor billed beside it.</p></div>
-        <div class="step"><div class="n">STEP 3</div><h4>Send one page</h4><p>The owner update builds itself. Share it by text, email or print.</p></div>
+        <div class="step"><div class="n">STEP 1</div><h3>Walk the job</h3><p>Take a photo and pick the part of the job it belongs to. Add a note if you like.</p></div>
+        <div class="step"><div class="n">STEP 2</div><h3>Mark what you saw</h3><p>Tap the words that fit each part of the job, like about half or nearly done. Type what the contractor billed beside it.</p></div>
+        <div class="step"><div class="n">STEP 3</div><h3>Send one page</h3><p>The owner update builds itself. Share it by text, email or print.</p></div>
       </div>
     </div>
   </section>
 
   <section class="sec" style="padding-top: 0">
     <div class="wrap">
-      <h3 class="h">What you stop doing</h3>
+      <h2 class="h">What you stop doing</h2>
       <div class="stop">
         <div><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg><span><s>Scrolling a camera roll</s> to find the photo that proves it.</span></div>
         <div><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg><span><s>Taking the contractor's word</s> for how far along the work is.</span></div>
@@ -257,7 +257,7 @@ h3.h{font-size:clamp(26px,3.2vw,36px);letter-spacing:-.6px;line-height:1.15;marg
 
   <section class="end">
     <div class="wrap">
-      <h3>Try it on a sample job before your next site walk.</h3>
+      <h2>Try it on a sample job before your next site walk.</h2>
       <p>The sample has a bill that runs ahead of the work. See how it shows up.</p>
       <a class="btn y" href="app/?s=home&amp;job=sample">Try the sample job</a>
     </div>

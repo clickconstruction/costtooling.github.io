@@ -30,6 +30,10 @@
   .tag.off { border-color: #e7c08a; color: var(--amber); }
   .good { color: var(--green); } .warn { color: var(--amber); } .none { color: var(--faint); }
   .problem { color: var(--amber); }
+  .ask { background: #fdf6ea; border: 1px solid #e7c08a; border-radius: 10px; padding: 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .ask p { margin: 0; flex: 1 1 100%; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  button[disabled] { opacity: .6; cursor: default; }
   .foot { margin: 14px 0 40px; font-size: 14px; color: var(--soft); }
   @media (max-width: 640px) { thead { display: none; } tr { display: block; padding: 10px 0; border-bottom: 1px solid var(--line); } td { display: block; border: 0; padding: 2px 0; } }
 </style>
@@ -38,7 +42,7 @@
 <header>
   <p class="eyebrow">CostTooling admin</p>
   <h1>Accounts</h1>
-  <p class="lede">Everyone who has signed up on CostTooling or CaseTooling. This page shows facts about an account. It never opens a job, a case or a photo, and it changes nothing.</p>
+  <p class="lede">Everyone who has signed up on CostTooling or CaseTooling. This page shows facts about an account and never opens a job, a case or a photo. Block stops an account signing in, and removes nothing.</p>
 </header>
 <main id="main" aria-live="polite"><p>Checking who is signed in…</p></main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
@@ -50,11 +54,12 @@
   var SUPABASE_URL = 'https://cjwybuhogxyayjnuxpem.supabase.co';
   var SUPABASE_KEY = 'sb_publishable_mY04D4GZBph7ss23Hh_FNg_t34i1uZr'; // publishable key: safe to ship. The function behind this page answers the admin only.
   var main = document.getElementById('main');
-  var state = { accounts: [], filter: START, search: '', email: '' };
+  var state = { accounts: [], filter: START, search: '', email: '', confirming: '', busy: '', said: '', problem: '' };
 
   function h(tag, attrs, kids) {
     var el = document.createElement(tag);
     Object.keys(attrs || {}).forEach(function (k) {
+      if (attrs[k] === null || attrs[k] === undefined || attrs[k] === false) return; // an attribute that is off is left out
       if (k === 'class') el.className = attrs[k];
       else if (k.indexOf('on') === 0) el.addEventListener(k.slice(2), attrs[k]);
       else el.setAttribute(k, attrs[k]);
@@ -82,7 +87,7 @@
     { key: 'cost', label: 'CostTooling', test: function (a) { return a.costtooling.length > 0; } },
     { key: 'case', label: 'CaseTooling', test: function (a) { return a.casetooling.on; } },
     { key: 'none', label: 'On no site yet', test: onNoSite },
-    { key: 'off', label: 'Turned off', test: function (a) { return a.off; } },
+    { key: 'off', label: 'Blocked', test: function (a) { return a.off; } },
   ];
 
   function row(a) {
@@ -93,13 +98,41 @@
     if (a.casetooling.on) on.push(h('span', { class: 'tag' }, ['CaseTooling · ' + a.casetooling.cases + (a.casetooling.cases === 1 ? ' case' : ' cases')]));
     if (a.charities > 0) on.push(h('span', { class: 'tag' }, ['CharityTooling · ' + a.charities + (a.charities === 1 ? ' charity' : ' charities')]));
     if (on.length === 0) on.push(h('span', { class: 'none' }, ['signed up, on no site yet']));
-    var seen = a.off ? h('span', { class: 'warn' }, ['turned off']) : !a.confirmed ? h('span', { class: 'warn' }, ['never, email not confirmed']) : h('span', { class: a.last_sign_in_at && ago(a.last_sign_in_at) === 'today' ? 'good' : '' }, [ago(a.last_sign_in_at)]);
-    return h('tr', {}, [
+    var seen = a.off ? h('span', { class: 'warn' }, ['blocked']) : !a.confirmed ? h('span', { class: 'warn' }, ['never, email not confirmed']) : h('span', { class: a.last_sign_in_at && ago(a.last_sign_in_at) === 'today' ? 'good' : '' }, [ago(a.last_sign_in_at)]);
+    // An admin's own account, and any admin, is never blocked from here: the page would lose the people who can open it.
+    var mine = !!a.email && a.email === state.email;
+    var press = null;
+    if (!a.admin && !mine) {
+      press = a.off
+        ? h('button', { type: 'button', disabled: state.busy ? 'disabled' : null, 'aria-label': 'Unblock ' + who(a), onclick: function () { act('unblock', a); } }, [state.busy === a.id ? 'Working…' : 'Unblock'])
+        : h('button', { type: 'button', disabled: state.busy ? 'disabled' : null, 'aria-label': 'Block ' + who(a), onclick: function () { state.confirming = a.id; state.said = ''; state.problem = ''; drawList(); } }, ['Block']);
+    }
+    var rows = [h('tr', {}, [
       h('td', {}, [a.name || 'No name given', a.admin ? h('span', { class: 'tag' }, ['admin']) : null, h('span', { class: 'sub' }, [a.email || 'no email'])]),
       h('td', {}, ways),
       h('td', {}, on),
       h('td', {}, [seen, h('span', { class: 'sub' }, ['signed up ' + ago(a.signed_up_at)])]),
-    ]);
+      h('td', {}, [press]),
+    ])];
+    if (state.confirming === a.id) {
+      rows.push(h('tr', {}, [h('td', { colspan: '5' }, [h('div', { class: 'ask', role: 'alertdialog', 'aria-label': 'Block ' + who(a) + '?' }, [
+        h('p', {}, ['Block ' + who(a) + '? They can no longer sign in to CostTooling, CaseTooling or CharityTooling. Nothing of theirs is removed, and you can unblock them here. A session they already have can run for up to an hour.']),
+        h('button', { type: 'button', class: 'primary', disabled: state.busy ? 'disabled' : null, onclick: function () { act('block', a); } }, [state.busy === a.id ? 'Working…' : 'Block the account']),
+        h('button', { type: 'button', onclick: function () { state.confirming = ''; drawList(); } }, ['Cancel']),
+      ])])]));
+    }
+    return rows;
+  }
+  function who(a) { return a.name || a.email || 'this account'; }
+
+  async function act(action, a) {
+    state.busy = a.id; state.said = ''; state.problem = ''; drawList();
+    var res = await sb.functions.invoke('admin-accounts', { body: { action: action, user_id: a.id } });
+    state.busy = ''; state.confirming = '';
+    if (res.error) { state.problem = (await reason(res.error)).words; drawList(); return; }
+    a.off = action === 'block';
+    state.said = who(a) + (a.off ? ' is blocked.' : ' can sign in again.');
+    drawList();
   }
 
   function drawList() {
@@ -111,10 +144,12 @@
       return h('button', { type: 'button', class: 'chip', 'aria-pressed': String(f.key === state.filter), onclick: function () { state.filter = f.key; drawList(); } }, [f.label + ' · ' + state.accounts.filter(f.test).length]);
     });
     var body = shown.length
-      ? h('table', {}, [h('thead', {}, [h('tr', {}, [h('th', {}, ['Person']), h('th', {}, ['Ways in']), h('th', {}, ['On']), h('th', {}, ['Last sign-in'])])]), h('tbody', {}, shown.map(row))])
+      ? h('table', {}, [h('thead', {}, [h('tr', {}, [h('th', {}, ['Person']), h('th', {}, ['Ways in']), h('th', {}, ['On']), h('th', {}, ['Last sign-in']), h('th', {}, [h('span', { class: 'sr' }, ['Block or unblock'])])])]), h('tbody', {}, shown.reduce(function (all, a) { return all.concat(row(a)); }, []))])
       : h('p', { class: 'none' }, [q ? 'Nobody matches that search. Clear the box to see everyone.' : 'Nobody is on this list yet.']);
     show(
       h('div', { class: 'bar' }, [search].concat(chips)),
+      state.said ? h('p', { class: 'good', role: 'status' }, [state.said]) : null,
+      state.problem ? h('p', { class: 'problem', role: 'alert' }, [state.problem]) : null,
       h('div', { class: 'card' }, [body]),
       h('p', { class: 'foot' }, ['Signed in as ' + state.email + '. ', h('button', { type: 'button', onclick: load }, ['Read again'])])
     );
@@ -131,7 +166,7 @@
 
   async function reason(error) {
     try { if (error && error.context && typeof error.context.json === 'function') { var b = await error.context.clone().json(); if (b && b.error) return { status: error.context.status, words: String(b.error) }; } } catch (e) { /* fall through */ }
-    return { status: error && error.context ? error.context.status : 0, words: 'The accounts could not be read. Check your connection and press Read again.' };
+    return { status: error && error.context ? error.context.status : 0, words: 'That did not go through. Check your connection and try again.' };
   }
 
   async function load() {

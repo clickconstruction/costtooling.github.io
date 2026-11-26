@@ -4,9 +4,11 @@ Written Oct 20, 2026, for whoever takes over CostTooling next. When a fact here 
 
 CostTooling is a phone-first web app for the person who walks a construction job for an owner: photos, how far along each part of the job is, what the contractor billed against that, and one page to send the owner. It is plain HTML, CSS and JavaScript with no build step, hosted on GitHub Pages at costtooling.com. It works on one phone with no account, and signing in syncs jobs to a Supabase project shared with CharityTooling.
 
-It is a working prototype, built between Oct 12 and Oct 22, 2026. The last two changes made each line item a folder of its photos and notes by day, with Move to… on a photo, after a tester asked to see Day 1, Day 2 under a line item and to move photos between line items, and made Back return to the screen you came from. The open work below was last reviewed Nov 25, 2026. A direction for what comes next was chosen on Nov 25: see Where it is going. The same day its landing page went live on the front page of costtooling.com, ahead of the features it describes, and the app moved to costtooling.com/app. Version 18, also Nov 25, is the first piece of that direction: billed against in place. Version 19 is the second: a plain-words pass that rewrote every screen for the owner's assistant. Plain words, under Data and cloud sync, says what it changed; `mockups/owner-side/plain-words.md` has the plan it was built from.
+It is a working prototype, built between Oct 12 and Oct 22, 2026. The last two changes made each line item a folder of its photos and notes by day, with Move to… on a photo, after a tester asked to see Day 1, Day 2 under a line item and to move photos between line items, and made Back return to the screen you came from. The open work below was last reviewed Nov 26, 2026. A direction for what comes next was chosen on Nov 25: see Where it is going. The same day its landing page went live on the front page of costtooling.com, ahead of the features it describes, and the app moved to costtooling.com/app. Version 18, also Nov 25, is the first piece of that direction: billed against in place. Version 19 is the second: a plain-words pass that rewrote every screen for the owner's assistant. Plain words, under Data and cloud sync, says what it changed; `mockups/owner-side/plain-words.md` has the plan it was built from.
 
 **Where the latest work is.** Everything is on `main`, and the live site is on version 22, merged Nov 25, 2026. There are no other branches. Google sign-in is switched on and published: see Google sign-in, under Data and cloud sync.
+
+**Picking this up from someone else?** Go to the last section, Picking this up. It has what the owner has already decided, what is waiting on the owner, the one piece of work that was offered and not started, and a prompt to paste into Claude Code.
 
 ## Where everything lives
 
@@ -20,6 +22,8 @@ The app is one repo, but its database and account functions live in the CharityT
 | Cloud backend | Supabase project `cjwybuhogxyayjnuxpem` ("charity-tooling"), shared with CharityTooling | Owner's Supabase organization |
 | Database migrations and account functions | [charitytooling/charitytooling.github.io](https://github.com/charitytooling/charitytooling.github.io): `supabase/migrations/20261013010000_costtooling_tenancy.sql`, the shared Edge Functions, and `docs/multi-app-tenancy.md` | Owner adds you as a collaborator |
 | Sign-in and invite emails | The `auth-email` Edge Function, sending through Resend | Owner's Resend account |
+| Google sign-in | Google Cloud project `costtooling`, in the owner's Google Workspace organization: the consent screen and one OAuth client. Its client ID and secret are in Supabase, Authentication, Providers, Google | Owner's Google Cloud account |
+| Support address | help@clickconstruction.com, a Google Group in the owner's Google Workspace, shown on Google's sign-in screen and on the Privacy and Terms pages | Owner's Google Workspace admin |
 | User guide | [costtooling.com/guide](https://costtooling.com/guide/), from `guide/index.html` in the app repo | Same as app code |
 | Ideas from users | Tell us what is confusing, under Help, saves ideas on the phone, and its Email all ideas sends them to the address in `FEEDBACK_EMAIL`, near the top of `js/app.js` | Change that line to receive them yourself |
 
@@ -147,6 +151,16 @@ CostTooling's own tables all start with `ct_` and have row-level security keyed 
 - The app calls four database functions (`ct_create_company`, `ct_create_invite_code`, `ct_rotate_join_code`, `ct_list_members`) and three shared Edge Functions (`invite-user`, `join-with-code`, `admin-reset`), sending `app: 'ct'` so they use the CostTooling tables.
 - People sign in with email and password, or with an emailed sign-in link. New passwords need 10 characters.
 
+### Who can manage what
+
+There are two levels, and nothing between them.
+
+- **A company's admin.** `ct_company_members.role` is `admin` or `member`. An admin uses the Team screen on their own company: invite by email, a join code, change a role, deactivate a member, reset a password. Deactivating is the only "remove": nothing deletes an account.
+- **The super admin.** `profiles.is_super_admin` is one switch for the whole Supabase project. `private.is_super_admin()` makes every company check pass in every app on the project, CharityTooling included: read and change every company, member, invite, job and photo, and delete companies. The account functions (`invite-user`, `admin-reset`) accept a super admin for any company.
+- **Who is the super admin.** `private.handle_new_user()` gives the flag to one address, written into the init migration in the CharityTooling repo and changeable with the database setting `app.bootstrap_admin_email`. A read of the live `profiles` table on Nov 26, 2026 found exactly one super admin, that address, which belongs to the owner. So the owner's wish for a global admin who can add and remove people needed no change to the data.
+- **What the app does not have.** The Team screen works only on a company the signed-in person belongs to (`company()` in `js/cloud.js` comes from their own memberships), so a super admin has the rights for every company and no screen to pick one. There is no way to delete an account. There is no narrower level, such as someone who may manage people and may not read every job.
+- **The live project on Nov 26, 2026:** 9 accounts, 2 CostTooling companies, 3 memberships in them, 1 charity. One of the two companies is the one `cloud-e2e.js` left behind.
+
 ### Google sign-in
 
 Continue with Google is on the sign-in screen since version 21. It was switched on in Supabase, and the Google app was published, on Nov 25, 2026, so anyone with a Google account can reach Google's screen. The first real sign-in, the same day, came back signed out on version 21; version 22 fixed it, and it works on the live site: see The sign-in code and Tried for real, below.
@@ -206,11 +220,11 @@ mkdir -p ~/pw && cd ~/pw && npm i playwright && npx playwright install chromium 
 
 | Script in `qa/` | What it checks | Run it with |
 | --- | --- | --- |
-| `walkthrough.js` | Every screen of the app at iPhone size, as a fresh user, screenshots into `qa/shots/` (`qa/shots-webkit/` with WebKit). It checks which screen and tab each tap lands on, reads every screen for the words version 19 retired, and checks the sample job's bill, the word buttons and the exact percent, the Bill tab, Help on 13 screens, a job with no bill, a job saved before bills existed, old links and the tour's stops. It ends with a count of issues, and with notes for behaviour nobody has decided. Last run Nov 25, 2026 on version 21, in WebKit, against a local server and then against the live site: 122 screens, no issues. Chromium was not installed on that machine, and WebKit fires no download event, so the backup file and the two saved pictures were checked only by their messages | `NODE_PATH=~/pw/node_modules node qa/walkthrough.js <url>`; add `ENGINE=webkit` for Safari's engine |
+| `walkthrough.js` | Every screen of the app at iPhone size, as a fresh user, screenshots into `qa/shots/` (`qa/shots-webkit/` with WebKit). It checks which screen and tab each tap lands on, reads every screen for the words version 19 retired, and checks the sample job's bill, the word buttons and the exact percent, the Bill tab, Help on 13 screens, a job with no bill, a job saved before bills existed, old links and the tour's stops. It ends with a count of issues, and with notes for behaviour nobody has decided. Last run Nov 25, 2026 on version 22, in WebKit, against a local server and then against the live site: 122 screens, no issues. Chromium was not installed on that machine, and WebKit fires no download event, so the backup file and the two saved pictures were checked only by their messages | `NODE_PATH=~/pw/node_modules node qa/walkthrough.js <url>`; add `ENGINE=webkit` for Safari's engine |
 | `plain-check.js` | Text under 14 px and tap targets under 48 px on 15 screens and sheets of the sample job. It changes nothing and fails nothing. Last run Nov 25, 2026 on version 19, in WebKit: none of either on any screen. The numbers from version 18 are in `mockups/owner-side/plain-words.md` | `node qa/plain-check.js http://127.0.0.1:8766`; add `ENGINE=webkit` for Safari's engine |
-| `offline.js` | The app, at `/app/`, opens from the service worker with the network off. Passed against the live site on Nov 25, 2026, on version 17. Not run on versions 19 to 21: it needs Chromium, which was not installed on that machine, and with WebKit the offline reload fails inside Playwright. On version 19 the live site's service worker was seen in control, with every file of the app in its `ct-v19` cache. It needs HTTPS, so run it against the live site; against a local server it never finishes | `node qa/offline.js <url>` |
+| `offline.js` | The app, at `/app/`, opens from the service worker with the network off. Passed against the live site on Nov 25, 2026, on version 17. Not run on versions 19 to 22: it needs Chromium, which was not installed on that machine, and with WebKit the offline reload fails inside Playwright. On version 19 the live site's service worker was seen in control, with every file of the app in its `ct-v19` cache. It needs HTTPS, so run it against the live site; against a local server it never finishes | `node qa/offline.js <url>` |
 | `cloud-e2e.js` | Sign in, create a company, sync a job with a photo, mint codes, then see it all arrive in a second browser | `E2E_EMAIL=… E2E_PASSWORD=… node qa/cloud-e2e.js <url>` |
-| `google-signin.js` | Continue with Google with the provider off, on with sign-ups open, on with sign-ups closed, the trip to Google's address, coming back with an error, coming back with a sign-in code, and that the account button stays on the job list when the sync status repaints. It fakes Supabase's settings answer and stops the trip to Google, so it touches neither. Passed Nov 25, 2026 on version 21, in WebKit, against a local server and against the live site | `ENGINE=webkit node qa/google-signin.js http://127.0.0.1:8766` |
+| `google-signin.js` | Continue with Google with the provider off, on with sign-ups open, on with sign-ups closed, the trip to Google's address, coming back with an error, coming back with a sign-in code, and that the account button stays on the job list when the sync status repaints. It fakes Supabase's settings answer and stops the trip to Google, so it touches neither. Passed Nov 25, 2026 on version 22, in WebKit, against a local server and against the live site | `ENGINE=webkit node qa/google-signin.js http://127.0.0.1:8766` |
 | `guide-shots.js` | Retakes the thirteen "Your first day" photos in `guide/`, each with its close-up. For the two steps that show a photo in the form it hands one of the sample's drawn photos to the app's own photo picker, then cancels, so the sample job is unchanged. Last run Nov 25, 2026 on version 19, in WebKit | `ENGINE=webkit node qa/guide-shots.js http://127.0.0.1:8766` |
 
 Give each script the site's address without `/app`; it adds that itself. Leave out the URL and `walkthrough.js`, `offline.js` and `guide-shots.js` run against the live site, while `cloud-e2e.js` and `plain-check.js` run against http://127.0.0.1:8766. The screenshot folders are git-ignored.
@@ -259,6 +273,22 @@ The app is being aimed at the person who walks the job for an owner: an owner's 
 - **The plain-words pass** is built, as version 19. After reviewing version 18 through the eyes of the owner's assistant, who is often older and not at home on a phone, the owner asked for every screen to be simple enough for a 12-year-old. `mockups/owner-side/plain-words.md` has the findings, the plan in seven steps, the word list, what was decided, what was built and what differs from the plan. Pasting from the bill stays its own piece, and is next.
 - **The landing page and the app now say the same thing.** Version 18 made true that it compares what you saw with what was billed. Version 19 calls the page you send the owner update, calls a line item a part of the job, and replaced the sliders with word buttons, so the landing page says "tap the words that fit" where it said "drag a slider", its sample card says done where it said in place, and 68 days left where it said 67. Those five phrases are the only changes to its copy.
 
+### One dashboard for the suite
+
+Asked for by the owner on Nov 26, 2026, and only planned. CostTooling is one of several Click Construction apps, and the owner wants one site to manage all of them from. The Supabase project already serves several apps with one sign-in (`docs/multi-app-tenancy.md` in the CharityTooling repo), which is most of the foundation. What to plan, in the order to do it:
+
+1. **Inventory.** List every app in the suite and which Supabase project each one uses. Apps on this project can share a dashboard cheaply; an app on another project needs moving, or a bridge. Only this project was looked at.
+2. **Scoped platform roles,** in place of the one super admin switch: owner, user manager, support, each optionally per app, with every action written to the `audit_log` table that already exists.
+3. **A customer above the companies.** Each app has its own tenants (`ct_companies`, `charities`), so a firm that uses two apps is two unrelated rows. The dashboard needs one organization that links them.
+4. **An admin API:** Edge Functions that list companies and people across apps, and add, deactivate, delete and reset. The dashboard calls these and never the tables.
+5. **An app registry in the database.** The list of apps is the `APPS` object in `supabase/functions/_shared/supabase.ts`. A table lets the dashboard find apps without a code change.
+6. **The same shape in every app:** the membership columns CostTooling has, a summary function per app (counts, last activity), and delete and export functions per app. The Privacy page already promises deletion and a copy on request, so those two are owed whatever happens to the dashboard.
+7. **One name for sign-in.** Google's screen names the Supabase address and the Google app is called CostTooling. A custom domain for the Supabase project and a name for the suite fix both for every app.
+8. **A staging copy.** There is one live database and no test copy. Admin tools that reach across apps should not be built against live data.
+9. **The dashboard,** as its own site on the same sign-in: Sites, Companies, People, Invites, Audit log; billing later. Adding a site to the project follows Adding a third app in `docs/multi-app-tenancy.md`.
+
+Start with 1, 2 and 4, then a dashboard that only reads, then the actions that write. All of the database work belongs in the CharityTooling repo.
+
 ## Open work
 
 Nothing here is broken for one person on one phone. Merging edits and cleaning up cloud photos matter once teams share jobs.
@@ -267,6 +297,9 @@ Nothing here is broken for one person on one phone. Merging edits and cleaning u
 - [ ] **The owner update for a contractor who pushes back.** Still missing, by an owner's rep's standard: the bill's number and date, retainage, the date each percent was marked beside its part (version 20 stores `pctAt` and prints only the latest), and the flagged part's own photo under its flag. The tile says billed ahead where the app says billed more than you saw.
 - [ ] **A bill that is one total, and bills over time.** The Bill tab takes a percent or dollars per part; a one-page invoice with one total has nowhere to go. Each new bill still overwrites the last.
 - [ ] **Setting up and getting out.** Parts are typed one form at a time, with no paste and no reorder; budgets from a template are a guess. The backup is JSON without photos and cannot be loaded back; Print it prints a picture, and there is no spreadsheet export.
+- [ ] **An All companies screen for the super admin.** Offered to the owner on Nov 26, 2026 and not started; wait for a yes. A list of every company, shown only when `profile.is_super_admin`, that opens any company's Team screen. The database already allows it, so it is front-end work in `js/cloud.js`: read `ct_companies` without the membership filter, and let `company()` and `companyId` point at a company the person does not belong to. Check what sync does once a company is picked that way, so the super admin's phone does not pull every job of a company they only meant to look at. Version bump, `qa/google-signin.js` and the walkthrough as usual.
+- [ ] **Deleting an account, and a level between admin and super admin.** Neither exists: see Who can manage what. Both are database and Edge Function work in the CharityTooling repo, and both are steps in One dashboard for the suite.
+- [ ] **Two-step verification on the super admin's Google account.** That account can now sign in with Google, so Google's sign-in is what protects every company's data.
 - [ ] **Finish trying sign-in for real.** Google works on the live site for an address that already had an account. Still to try: a Google address with no account; an emailed sign-in link and a password link, which were broken the same way; and an iPhone Home Screen app. Google sign-in, under Data and cloud sync, says what was tried and what to look for.
 - [ ] **Google's screen names the Supabase address, not CostTooling.** See What Google shows, under Google sign-in.
 - [ ] **Desktop and assistive use.** The browser's own Back leaves the app; Enter submits no form; photo rows and template choices are not reachable by keyboard; sheets do not take focus. Escape now closes a sheet, messages are announced, and the lit tab is exposed.
@@ -298,4 +331,60 @@ The repo cannot answer these. Settle them in the first conversation.
 2. **Users:** one real company is syncing: the tester's, with one job, last synced Oct 20, 2026 (checked Nov 19). Treat `ct_projects` as real data from here on, and ask whether more companies are coming. The only other company is the one `cloud-e2e.js` left behind on Oct 13, with no jobs; delete it as Test it describes.
 3. **Ideas inbox:** should the ideas form keep emailing the owner, or you?
 4. **What next:** a direction is written down in Where it is going, and its first two pieces are built. As of Nov 25 the tester had not been asked the question it rests on. Settle the open points in `mockups/owner-side/README.md` (sub folders, numbered bills) and the two left open in `mockups/owner-side/plain-words.md`: whether a part shows the bill's own name for its line, and who sets a job up. The README still calls the app a functional mock-up.
-5. **The shared project:** will CostTooling stay on the CharityTooling Supabase project, or move to its own?
+5. **The shared project:** will CostTooling stay on the CharityTooling Supabase project, or move to its own? The dashboard plan assumes it stays.
+6. **The All companies screen:** build it? It was offered and not answered.
+7. **The suite:** which other apps are in it, and which Supabase project is each on? Step 1 of One dashboard for the suite.
+8. **Who runs it:** the Privacy and Terms pages say Click Construction. The owner approved that; confirm it is the legal name, and whether the terms should name a state's law.
+
+## Picking this up
+
+For whoever continues from another computer. Everything is pushed: `main` is the only branch, and the live site matches it.
+
+### What happened on Nov 25 and 26, 2026
+
+Versions 18 to 22 all went live in one long session with the owner: billed against in place (18), the plain-words pass (19), fixes from a review by six kinds of customer (20), Continue with Google and a fix to the account button (21), and a fix that makes coming back from Google sign in (22). The Privacy and Terms pages went live, and Google sign-in was set up in the owner's Google Cloud, Google Workspace and Supabase accounts and tried for real. Recent changes has each one with its commit.
+
+### What the owner has already decided
+
+Do not ask these again.
+
+- **How work reaches the live site.** Build on a branch, test, tell the owner what changed, and merge to `main` only on a yes. After a merge, delete the branch.
+- **The plain-words pass** was built to its plan's proposals, with the builder's cost numbers on the Parts tab only.
+- **Google sign-in is open to anyone.** New sign-ups stay allowed in Supabase. The Google app is named CostTooling, its support address is help@clickconstruction.com, and it was published without a logo so that Google asks for no review.
+- **The Privacy and Terms pages** are approved as written, naming Click Construction.
+- **Left open on purpose,** after the review by customer type: what a tapped word tells the owner, the wording at the top of the landing page, and the larger features. Open work has each.
+
+### What is waiting on the owner
+
+Questions 6, 7 and 8 under Questions for the owner, and the open decisions in Open work. The first thing to ask is question 6.
+
+### What the next person needs
+
+- **To change the app:** this repo, and Playwright for the scripts (Test it). Nothing else.
+- **To change the database or an account function:** the CharityTooling repo, and the owner's Supabase access. There is no test copy of the database.
+- **To change Google sign-in:** the owner signed in to Google Cloud and Supabase. A password, a key or a client secret is always typed by the owner, never by a helper.
+- **The test scripts take an engine.** `ENGINE=webkit` or the default, Chromium. The last session had only WebKit, so `offline.js` has not been run since version 17 and the file checks in the walkthrough were skipped.
+
+### A prompt to paste into Claude Code
+
+After cloning the repo and opening its folder:
+
+```text
+I'm taking over CostTooling, a phone-first web app at costtooling.com. This folder is its repo, and main is the only branch.
+
+Read HANDOFF.md from top to bottom, then its last section, Picking this up, a second time.
+
+Then tell me, briefly:
+1. Where the app stands and which version is live.
+2. What was offered or planned and not started.
+3. What is waiting on the owner, and which question you would ask first.
+
+Do not change anything until I answer. Keep these rules for the whole session:
+- The repo is public and every committed file is served on the site. Never commit names, personal emails, keys or customer data.
+- The database and the account functions live in the charitytooling repo. One live Supabase project serves several apps with no staging copy, so make no database change without asking me.
+- Real companies sync real jobs. Old jobs must keep working, and nothing may rewrite or drop stored data.
+- Build on a branch and test it. A push to main deploys to the live site in about a minute, so ask me before anything goes to main, and delete the branch after it is merged.
+- Bump the version as HANDOFF.md says when a script or stylesheet changes, and run qa/walkthrough.js, qa/plain-check.js and qa/google-signin.js before asking to merge.
+- Never type a password, a key or a client secret into any site. Ask me to do it.
+- Keep HANDOFF.md current: when a fact in it changes, fix the sentence that holds it.
+```

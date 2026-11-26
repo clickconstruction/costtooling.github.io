@@ -27,6 +27,26 @@ const Cloud = (() => {
     if (window.supabase) sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' } });
   } catch (e) { console.warn('cloud unavailable', e); }
   const enabled = () => !!sb;
+  // App is a top-level const, so it is not on window: window.App is always undefined. Reach it through this instead.
+  const app = () => { try { return App; } catch (e) { return null; } };
+  // ---------- Continue with Google ----------
+  // The button shows only when the Supabase project has the Google provider switched on, so nothing in the app changes
+  // until the owner turns it on in the Supabase dashboard (HANDOFF.md, Google sign-in). /auth/v1/settings is public: it
+  // lists which sign-in methods are on and whether new people may sign up. Asked once per visit, in the background.
+  let authSettings = null;
+  const googleOn = () => !!(authSettings && authSettings.external && authSettings.external.google);
+  const signupOpen = () => !!(authSettings && authSettings.disable_signup === false);
+  async function loadAuthSettings() {
+    try { const r = await fetch(SUPABASE_URL + '/auth/v1/settings', { headers: { apikey: SUPABASE_KEY } }); if (!r.ok) return; authSettings = await r.json(); }
+    catch (e) { return; }
+    if (!googleOn()) return;
+    if (app() && App.current() === 'signin') render('signin'); else if (app()) App.refreshAfterSync();
+  }
+  /** Leaves the app for Google and comes back through the front page, like an emailed sign-in link. */
+  async function signInGoogle() {
+    const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: SITE + '?auth=signin' } });
+    if (error) throw new Error('Could not open Google. Try again, or sign in with your email.');
+  }
   const signedIn = () => !!session;
   const company = () => memberships.find(m => m.company_id === companyId) || null;
   const isAdmin = () => { const m = company(); return !!(m && m.role === 'admin') || !!(profile && profile.is_super_admin); };
@@ -35,8 +55,12 @@ const Cloud = (() => {
   // ---------- boot ----------
   async function init() {
     const q = new URLSearchParams(location.search); authIntent = q.get('auth');
-    if (q.get('auth') || q.get('code')) { try { history.replaceState(null, '', location.pathname); } catch (e) {} }
+    // Google sends people back with an error, not a session, when sign-in did not finish: say why on the sign-in screen.
+    const oauthErr = q.get('error_description') || q.get('error') || new URLSearchParams(location.hash.replace(/^#/, '')).get('error_description');
+    if (q.get('auth') || q.get('code') || oauthErr) { try { history.replaceState(null, '', location.pathname); } catch (e) {} }
     if (!enabled()) { setStatus('off'); return; }
+    loadAuthSettings();
+    if (oauthErr) { authIntent = null; setTimeout(() => { App.go('signin'); showErr('siErr', /sign-?ups? not allowed/i.test(oauthErr) ? 'No CostTooling account uses that Google address yet. Ask your company for a code, then try again.' : 'Google sign-in did not finish. Try again, or sign in with your email.'); }, 300); }
     setStatus('out');
     const { data } = await sb.auth.getSession(); session = data.session; user = session ? session.user : null;
     sb.auth.onAuthStateChange((event, s) => {
@@ -172,7 +196,7 @@ const Cloud = (() => {
   // ---------- status button ----------
   function paintStatus() {
     const b = $('cloudBtn'); if (!b) return;
-    b.style.display = enabled() && window.App && App.current() === 'projects' ? '' : 'none';
+    b.style.display = enabled() && app() && App.current() === 'projects' ? '' : 'none';
     const dot = { off: '', out: '#b8b6ad', syncing: 'var(--yellow)', synced: 'var(--green)', error: 'var(--red)' }[status] || '';
     b.innerHTML = ic('cloud', 18) + (dot ? `<i class="dot" style="background:${dot}"></i>` : '');
     b.title = status === 'out' ? 'Sign in to save to the cloud' : detail;
@@ -190,6 +214,7 @@ const Cloud = (() => {
     const body = $('cloudBody_' + s); if (!body) return;
     if (!enabled()) { body.innerHTML = shell('Cloud unavailable', 'Could not load the sign-in library. Check your connection and reload.', `<button class="btn q" onclick="App.go('projects')">Back</button>`); return; }
     if (s === 'signin') body.innerHTML = shell('Sign in to CostTooling', 'Your jobs and photos save to the cloud and follow you to any device.', `
+      ${googleOn() ? `<div class="card"><button class="btn" id="siGoogle" onclick="Cloud.ui.google()">Continue with Google</button><p class="hint">${signupOpen() ? 'New here? This also makes your account.' : 'Works when your company has already added your Google address.'}</p></div><p class="hint" style="text-align:center;margin:0 0 10px">or use your email</p>` : ''}
       <div class="card"><label>Email</label><input class="in" id="siEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com">
       <label>Password</label><input class="in" id="siPwd" type="password" autocomplete="current-password">
       ${err('siErr')}
@@ -256,6 +281,7 @@ const Cloud = (() => {
 
   // ---------- UI handlers ----------
   const ui = {
+    async google() { const b = $('siGoogle'); showErr('siErr'); busy(b, true, 'Opening Google…'); try { await signInGoogle(); } catch (e) { showErr('siErr', e.message); busy(b, false, 'Continue with Google'); } },
     async signIn() { const b = $('siBtn'); showErr('siErr'); busy(b, true, 'Signing in…'); try { await signInPassword($('siEmail').value.trim().toLowerCase(), $('siPwd').value); } catch (e) { showErr('siErr', e.message); } finally { busy(b, false, 'Sign in'); } },
     async magic() { const b = $('siLink'); const email = $('siEmail').value.trim().toLowerCase(); if (!email) return showErr('siErr', 'Enter your email first.'); showErr('siErr'); busy(b, true, 'Sending…'); try { await sendMagicLink(email); App.toast('Check your email for the link'); } catch (e) { showErr('siErr', e.message); } finally { busy(b, false, 'Email me a sign-in link'); } },
     async forgot() { const b = $('fpBtn'); const email = $('fpEmail').value.trim().toLowerCase(); if (!email) return showErr('fpErr', 'Enter your email.'); busy(b, true, 'Sending…'); try { await forgot(email); $('cloudBody_forgot').innerHTML = shell('Check your email', `If there is an account for <b>${esc(email)}</b>, a reset link is on its way. It works for one hour.`, `<button class="btn q" onclick="App.go('signin')">Back to sign in</button>`); } catch (e) { showErr('fpErr', e.message); busy(b, false, 'Send reset link'); } },
@@ -281,7 +307,7 @@ const Cloud = (() => {
   function promoHtml() {
     if (!enabled()) return '';
     if (signedIn()) return companyId ? '' : `<div class="card" id="cloudPromo" style="border-color:var(--yellow)"><h3>Finish setting up</h3><p class="hint" style="margin:0 0 10px">Your jobs aren't saving to the cloud yet. Start a company or join one with a code.</p><button class="btn sm" onclick="App.go('company')">${ic('users')}Set up my company</button></div>`;
-    return `<div class="card" id="cloudPromo"><h3>Your jobs are saved on this phone</h3><p class="hint" style="margin:0 0 10px">No sign-in needed. To see them on another phone too, sign in with an account from your company.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn q sm" onclick="App.go('signin')">${ic('cloud')}I have an account</button><button class="btn q sm" onclick="App.go('join')">${ic('key')}I have a code</button></div></div>`;
+    return `<div class="card" id="cloudPromo"><h3>Your jobs are saved on this phone</h3><p class="hint" style="margin:0 0 10px">${googleOn() && signupOpen() ? 'No sign-in needed. To see them on another phone too, sign in with Google.' : 'No sign-in needed. To see them on another phone too, sign in with an account from your company.'}</p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn q sm" onclick="App.go('signin')">${ic('cloud')}${googleOn() && signupOpen() ? 'Sign in' : 'I have an account'}</button><button class="btn q sm" onclick="App.go('join')">${ic('key')}I have a code</button></div></div>`;
   }
 
   return { init, render, ui, SCREENS, promoHtml, schedulePush, push, pull, deleteProject, fetchPhoto, onStatusTap, paintStatus, signedIn, enabled, state: () => ({ status, detail, companyId, memberships, user }) };

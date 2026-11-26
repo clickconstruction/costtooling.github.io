@@ -1,9 +1,9 @@
 /* CostTooling service worker: cache-first for the app's files, network-first for the two pages so updates land.
    The app lives at ./app/ and the landing page at ./ (the site's front page). Both are cached: a home-screen app
    installed before the app moved still opens ./, and the landing page passes it on to ./app/. */
-const VERSION = 'ct-v20';
+const VERSION = 'ct-v21';
 const APP = './app/', FRONT = './';
-const SHELL = [FRONT, APP, './css/app.css?v=20', './js/db.js?v=20', './js/photos.js?v=20', './js/data.js?v=20', './js/cover.js?v=20', './js/ui.js?v=20', './js/cloud.js?v=20', './js/tour.js?v=20', './js/app.js?v=20', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
+const SHELL = [FRONT, APP, './css/app.css?v=21', './js/db.js?v=21', './js/photos.js?v=21', './js/data.js?v=21', './js/cover.js?v=21', './js/ui.js?v=21', './js/cloud.js?v=21', './js/tour.js?v=21', './js/app.js?v=21', './manifest.webmanifest', './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', e => {

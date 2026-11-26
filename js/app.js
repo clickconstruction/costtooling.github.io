@@ -296,7 +296,7 @@ const App = (() => {
   // The address's one-time switches have done their work. Drop them, so a reload restores what was open instead of replaying them:
   // iOS reloads the page after the camera, and a visitor who came by the landing page's button would lose the photo form.
   try { const u = new URL(location.href); ['s', 'job', 'new', 'm', 'welcome', 'tour', 'help', 'ideas', 'sheet', 'layout'].forEach(k => u.searchParams.delete(k)); if (u.href !== location.href) history.replaceState(null, '', u.pathname + u.search + u.hash); } catch (e) {}
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !(window.Tour && Tour.active())) closeSheet(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !Tour.active()) closeSheet(); });
   renderIdeas(); if (Q.get('tour')) setTimeout(() => Tour.start(), 500); else if (!DB.get('ct-welcomed') || Q.get('welcome')) setTimeout(openWelcome, 400);
   if (Q.get('ideas')) setTimeout(openIdeas, 300); if (Q.get('help')) setTimeout(openHelp, 300); if (Q.get('sheet')) setTimeout(() => openShare(Q.get('sheet')), 300);
   if (Q.get('s') === 'photo' && P() && P().entries[0]) openPhoto(P().entries[0].id);

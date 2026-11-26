@@ -75,6 +75,8 @@ ON THE PHONE, IN THE BROWSER
    app/index.html  the app: markup for every screen and sheet; loads the scripts in order. It is marked
                    noindex, so search engines list the landing page and not the app
    sw.js           service worker: keeps both pages and the app files in a cache so they open offline
+   404.html        what GitHub Pages shows for an address with no page: three links back in, each
+                   starting from the root, since it can be shown at any depth
    app.js        the controller: app state, navigation, every action a button calls
     ├─ ui.js       draws every screen from the job, plus the icons
     ├─ data.js     the job model, templates, the sample job and the sums

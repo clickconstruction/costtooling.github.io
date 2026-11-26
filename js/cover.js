@@ -19,8 +19,8 @@ const Render = (() => {
     g.fillStyle = '#f6f5f1'; g.fillRect(0, 0, W, H);
     g.fillStyle = '#161617'; g.fillRect(0, 0, W, 220);
     g.fillStyle = '#e8c547'; g.fillRect(60, 56, 58, 58); txt(g, 'CT', 89, 95, '900 26px ' + F, '#161617', 'center');
-    txt(g, 'PROGRESS UPDATE', 140, 72, '700 24px ' + F, '#e8c547');
-    txt(g, p.name || 'Untitled project', 140, 120, '700 44px ' + F, '#fff', 'left', W - 200);
+    txt(g, 'OWNER UPDATE', 140, 72, '700 24px ' + F, '#e8c547');
+    txt(g, p.name || 'Untitled job', 140, 120, '700 44px ' + F, '#fff', 'left', W - 200);
     txt(g, [cv.date || Data.mdy(Data.iso(Data.today())), p.client, p.addr].filter(Boolean).join('  ·  '), 60, 185, '400 28px ' + F, '#b9b7af', 'left', W - 120);
     const area = { x: 60, y: 250, w: W - 120, h: 710 }, gap = 16;
     const lbl = s => s ? Data.md(s.e.d) + (s.item ? ' · ' + s.item : '') : '';
@@ -29,9 +29,9 @@ const Render = (() => {
     else if (L === 'grid') { const w = (area.w - gap) / 2, h = (area.h - gap) / 2; [0, 1, 2, 3].forEach(i => coverPhoto(g, imgs[i], area.x + (i % 2) * (w + gap), area.y + Math.floor(i / 2) * (h + gap), w, h, lbl(sel[i]))); }
     else { const w = (area.w - gap) * 0.62, w2 = area.w - gap - w, h = (area.h - gap) / 2; coverPhoto(g, imgs[0], area.x, area.y, w, area.h, lbl(sel[0])); coverPhoto(g, imgs[1], area.x + w + gap, area.y, w2, h, lbl(sel[1])); coverPhoto(g, imgs[2], area.x + w + gap, area.y + h + gap, w2, h, lbl(sel[2])); }
     // A job with a bill shows billed against in place, the same four numbers as its home screen.
-    const nums = cv.numMode === 'manual' ? [[(cv.manual.pct ?? 0) + '%', 'complete'], [Data.fmt$(cv.manual.toGo || 0), 'to finish'], [cv.manual.days ?? 0, 'days left'], [(cv.date || '').split(',')[0] || Data.md(Data.iso(Data.today())), 'as of']]
+    const nums = cv.numMode === 'manual' ? [[(cv.manual.pct ?? 0) + '%', 'done'], [Data.fmt$(cv.manual.toGo || 0), 'to finish'], [cv.manual.days ?? 0, 'days left'], [(cv.date || '').split(',')[0] || Data.md(Data.iso(Data.today())), 'as of']]
                : k.hasBill ? Data.billNums(k)
-                                         : [[Math.round(k.pct * 100) + '%', 'complete'], [Data.fmt$(k.cost), 'cost so far'], [Data.fmt$(k.toGo), 'to finish'], [k.daysLeft, 'days left']];
+                                         : [[Math.round(k.pct * 100) + '%', 'done'], [Data.fmt$(k.cost), 'cost so far'], [Data.fmt$(k.toGo), 'to finish'], [k.daysLeft, 'days left']];
     const warnAt = cv.numMode !== 'manual' && k.hasBill && k.aheadItems.length ? 2 : -1;
     const by = 990; g.fillStyle = '#fff'; g.fillRect(60, by, W - 120, 180); g.strokeStyle = '#e2dfd6'; g.lineWidth = 3; g.strokeRect(60, by, W - 120, 180);
     nums.forEach(([v, l], i) => { const cx = 60 + (W - 120) / 8 + i * (W - 120) / 4; if (i) { g.fillStyle = '#e2dfd6'; g.fillRect(60 + i * (W - 120) / 4, by + 30, 2, 120); } if (i === warnAt) { g.fillStyle = '#fbf4e4'; g.fillRect(60 + i * (W - 120) / 4 + 3, by + 3, (W - 120) / 4 - 5, 174); } txt(g, v, cx, by + 88, '800 50px ' + F, i === warnAt ? '#7a4f0d' : '#161617', 'center', (W - 120) / 4 - 24); txt(g, l.toUpperCase(), cx, by + 135, '600 20px ' + F, i === warnAt ? '#7a4f0d' : '#6b6a66', 'center'); });
@@ -46,11 +46,11 @@ const Render = (() => {
     g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
     g.fillStyle = '#161617'; g.fillRect(0, 0, W, 16);
     g.fillStyle = '#161617'; g.fillRect(60, 60, 64, 64); txt(g, 'CT', 92, 103, '900 26px ' + F, '#e8c547', 'center');
-    txt(g, p.name || 'Untitled project', 150, 92, '700 40px ' + F, '#161617', 'left', W - 210);
-    txt(g, 'Progress report · ' + Data.mdy(Data.iso(Data.today())) + (p.client ? ' · for ' + p.client : ''), 150, 128, '400 24px ' + F, '#6b6a66', 'left', W - 210);
+    txt(g, p.name || 'Untitled job', 150, 92, '700 40px ' + F, '#161617', 'left', W - 210);
+    txt(g, 'Owner update · ' + Data.mdy(Data.iso(Data.today())) + (p.client ? ' · for ' + p.client : ''), 150, 128, '400 24px ' + F, '#6b6a66', 'left', W - 210);
     // With a bill the page leads with billed against in place and names each line billed ahead; without one it is unchanged.
     const bill = k.hasBill, AMBER = '#7a4f0d';
-    const nums = bill ? Data.billNums(k) : [[Math.round(k.pct * 100) + '%', 'complete'], [Data.fmtK(k.cost), 'cost so far'], [Data.fmtK(k.toGo), 'to finish'], [k.daysLeft, 'days left']];
+    const nums = bill ? Data.billNums(k) : [[Math.round(k.pct * 100) + '%', 'done'], [Data.fmtK(k.cost), 'cost so far'], [Data.fmtK(k.toGo), 'to finish'], [k.daysLeft, 'days left']];
     nums.forEach(([v, l], i) => { const x = 60 + i * 245, y = 180, warn = bill && i === 2 && k.aheadItems.length; g.fillStyle = warn ? '#fbf4e4' : '#f6f5f1'; g.fillRect(x, y, 225, 130); txt(g, v, x + 112, y + 72, '800 44px ' + F, warn ? AMBER : '#161617', 'center', 200); txt(g, l.toUpperCase(), x + 112, y + 108, '600 18px ' + F, warn ? AMBER : '#6b6a66', 'center'); });
     let y = 370;
     if (bill && k.aheadItems.length) {
@@ -59,18 +59,18 @@ const Render = (() => {
       if (more > 0) { txt(g, 'And ' + more + ' more billed ahead, marked below.', 60, y, '600 24px ' + F, AMBER); y += 40; }
       y += 22;
     }
-    const pace = k.pct > 0 ? ' At the current pace the job finishes ' + Data.md(Data.iso(k.paceFinish)) + '.' : '';
-    const summary = bill ? `${p.cover?.head ? p.cover.head + '. ' : ''}${k.total ? `${k.ahead ? 'Work is ahead of the calendar' : 'Work is behind the calendar'} (${Math.round(k.pct * 100)}% in place with ${Math.round(k.schedPct * 100)}% of the schedule used). ` : ''}${Data.billSentence(k)}${pace}`
-      : !k.total ? `${p.cover?.head ? p.cover.head + '. ' : ''}No line items yet. Add budgets on the Progress screen and this report fills itself in.` : `${p.cover?.head ? p.cover.head + '. ' : ''}${k.ahead ? 'Work is ahead of the calendar' : 'Work is behind the calendar'} (${Math.round(k.pct * 100)}% done with ${Math.round(k.schedPct * 100)}% of the schedule used). Costs are ${k.cost > k.earned ? 'running ' + Data.fmt$(k.cost - k.earned) + ' over earned value' : 'tracking ' + Data.fmt$(k.earned - k.cost) + ' under earned value'}.${k.pct > 0 ? ' At the current pace the job finishes ' + Data.md(Data.iso(k.paceFinish)) + '.' : ''}`;
+    const pace = k.pct > 0 ? ' At this pace the job finishes ' + Data.md(Data.iso(k.paceFinish)) + '.' : '';
+    const summary = bill ? `${p.cover?.head ? p.cover.head + '. ' : ''}${k.total ? `${k.ahead ? 'Work is ahead of the calendar' : 'Work is behind the calendar'} (${Math.round(k.pct * 100)}% done with ${Math.round(k.schedPct * 100)}% of the time used). ` : ''}${Data.billSentence(k)}${pace}`
+      : !k.total ? `${p.cover?.head ? p.cover.head + '. ' : ''}This job has no parts with a budget yet. Add them on the Parts tab and this page fills itself in.` : `${p.cover?.head ? p.cover.head + '. ' : ''}${k.ahead ? 'Work is ahead of the calendar' : 'Work is behind the calendar'} (${Math.round(k.pct * 100)}% done with ${Math.round(k.schedPct * 100)}% of the time used). ${Data.costSentence(k)}${k.pct > 0 ? ' At this pace the job finishes ' + Data.md(Data.iso(k.paceFinish)) + '.' : ''}`;
     y = wrap(g, summary, 60, y, W - 120, 36, '400 26px ' + F, '#161617', bill ? 7 : 5) + 10;
     const cols = bill ? [60, 600, 800, 1020] : [60, 620, 760, 1020];
     const last = i => bill ? (Data.hasBill(i) ? Data.fmtPct(Data.itemBilledPct(i)) : '—') : Data.fmt$(Data.itemCost(i));
     g.fillStyle = '#161617'; g.fillRect(60, y, W - 120, 2); y += 36;
-    txt(g, 'Line item', cols[0], y, '700 24px ' + F, '#161617'); txt(g, 'Budget', cols[1], y, '700 24px ' + F, '#161617', 'right'); txt(g, bill ? 'In place' : '%', cols[2], y, '700 24px ' + F, '#161617', 'right'); txt(g, bill ? 'Billed' : 'Cost', cols[3], y, '700 24px ' + F, '#161617', 'right'); y += 14;
+    txt(g, 'Part of the job', cols[0], y, '700 24px ' + F, '#161617'); txt(g, 'Budget', cols[1], y, '700 24px ' + F, '#161617', 'right'); txt(g, 'Done', cols[2], y, '700 24px ' + F, '#161617', 'right'); txt(g, bill ? 'Billed' : 'Cost', cols[3], y, '700 24px ' + F, '#161617', 'right'); y += 14;
     (p.items || []).forEach(i => { y += 46; g.fillStyle = '#e2dfd6'; g.fillRect(60, y - 32, W - 120, 1); txt(g, i.n, cols[0], y, '400 24px ' + F, '#161617', 'left', 520); txt(g, Data.fmt$(i.b), cols[1], y, '400 24px ' + F, '#161617', 'right'); txt(g, (i.pct || 0) + '%', cols[2], y, '400 24px ' + F, '#161617', 'right'); const hot = bill && Data.billState(i) === 'ahead'; txt(g, last(i), cols[3], y, (hot ? '700' : '400') + ' 24px ' + F, hot ? AMBER : '#161617', 'right'); });
     y += 50; g.fillStyle = '#161617'; g.fillRect(60, y - 36, W - 120, 2);
     txt(g, 'Total', cols[0], y, '700 24px ' + F, '#161617'); txt(g, Data.fmt$(k.total), cols[1], y, '700 24px ' + F, '#161617', 'right'); txt(g, Math.round(k.pct * 100) + '%', cols[2], y, '700 24px ' + F, '#161617', 'right'); txt(g, bill ? (k.total ? Math.round(k.billedPct * 100) + '%' : '—') : Data.fmt$(k.cost), cols[3], y, '700 24px ' + F, '#161617', 'right');
-    if (photos.length) { y += 60; txt(g, 'Recent photos', 60, y, '700 26px ' + F, '#161617'); y += 20; imgs.forEach((im, i) => coverPhoto(g, im, 60 + i * 330, y, 300, 300, Data.md(photos[i].e.d))); y += 320; }
+    if (photos.length) { y += 60; txt(g, 'Latest photos', 60, y, '700 26px ' + F, '#161617'); y += 20; imgs.forEach((im, i) => coverPhoto(g, im, 60 + i * 330, y, 300, 300, Data.md(photos[i].e.d))); y += 320; }
     y += 50; if (p.cover?.note) y = wrap(g, p.cover.note, 60, y, W - 120, 32, '400 24px ' + F, '#6b6a66', 3);
     const endY = Math.ceil(y + 40); c.width = W; c.height = endY; const out = c.getContext('2d'); out.drawImage(tmp, 0, 0, W, endY, 0, 0, W, endY); out.fillStyle = '#e8c547'; out.fillRect(0, endY - 12, W, 12);
   }

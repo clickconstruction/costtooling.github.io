@@ -1,22 +1,22 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>CostTooling</title>
-<meta name="description" content="CostTooling: track a job from the site. Photos, progress, costs, schedule, and the one-page report that comes out of them.">
+<meta name="description" content="CostTooling: walk the job, take photos, mark what you saw, and send the owner one page.">
 <meta name="theme-color" content="#161617">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><meta name="apple-mobile-web-app-title" content="CostTooling">
 <script>if (new URLSearchParams(location.search).get("shot")) document.documentElement.classList.add("shot");</script>
 <link rel="manifest" href="../manifest.webmanifest"><link rel="apple-touch-icon" href="../icons/apple-touch-icon.png"><link rel="icon" href="../icons/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="../css/app.css?v=18">
+<link rel="stylesheet" href="../css/app.css?v=19">
 </head>
 <body>
 <div class="shell">
   <div class="phone"><div class="app">
     <div class="top">
-      <button class="ibtn back" id="back" aria-label="Back"><i data-ic="chevl"></i></button>
-      <div class="mark" id="mark" onclick="App.openWelcome()">CT</div>
-      <div class="sp"><b id="ttl">Projects</b><span id="sub">CostTooling</span></div>
+      <button class="wbtn back" id="back" aria-label="Back"><i data-ic="chevl" data-size="20"></i><span id="backLbl">Back</span></button>
+      <div class="mark" id="mark">CT</div>
+      <div class="sp"><b id="ttl">Your jobs</b><span id="sub">CostTooling</span></div>
       <button class="ibtn" id="cloudBtn" style="display:none;position:relative" onclick="Cloud.onStatusTap()" aria-label="Account"></button>
-      <button class="ibtn y" id="topAct" style="display:none"></button>
+      <button class="wbtn y" id="helpBtn" onclick="App.openHelp()">Help</button>
     </div>
 
     <section class="screen on" data-s="projects"><div id="projectsBody"></div></section>
@@ -30,6 +30,7 @@
       <div id="coverBody"></div>
     </section>
     <section class="screen" data-s="sov"><div id="sovBody"></div></section>
+    <section class="screen" data-s="bill"><div id="billBody"></div></section>
     <section class="screen" data-s="item"><div id="itemBody"></div></section>
     <section class="screen" data-s="itemform"><div id="itemformBody"></div></section>
     <section class="screen" data-s="report"><div id="reportBody"></div></section>
@@ -42,41 +43,55 @@
     <section class="screen" data-s="team"><div id="cloudBody_team"></div></section>
 
     <div class="tabs" id="tabs">
-      <button data-t="home" onclick="App.go('home')"><span class="pill"><i data-ic="home" data-size="21"></i></span>Home</button>
-      <button data-t="log" onclick="App.go('log')"><span class="pill"><i data-ic="camera" data-size="21"></i></span>Log</button>
-      <button data-t="cover" onclick="App.go('cover')"><span class="pill"><i data-ic="image" data-size="21"></i></span>Cover</button>
-      <button data-t="sov" onclick="App.go('sov')"><span class="pill"><i data-ic="percent" data-size="21"></i></span>Progress</button>
-      <button data-t="report" onclick="App.go('report')"><span class="pill"><i data-ic="file" data-size="21"></i></span>Report</button>
+      <button data-t="home" onclick="App.go('home')"><span class="pill"><i data-ic="home" data-size="22"></i></span>Home</button>
+      <button data-t="log" onclick="App.go('log')"><span class="pill"><i data-ic="camera" data-size="22"></i></span>Photos</button>
+      <button data-t="sov" onclick="App.go('sov')"><span class="pill"><i data-ic="list" data-size="22"></i></span>Parts</button>
+      <button data-t="bill" onclick="App.go('bill')"><span class="pill"><i data-ic="bill" data-size="22"></i></span>Bill</button>
+      <button data-t="send" onclick="App.go('report')"><span class="pill"><i data-ic="send" data-size="22"></i></span>Send</button>
     </div>
-    <button class="fab" id="fab" onclick="App.openIdeas()" aria-label="Suggest an idea"><i data-ic="bulb" data-size="26"></i><span class="n" id="fabN"></span></button>
+    <button class="fab" id="fab" onclick="App.openIdeas()" aria-label="Tell us an idea"><i data-ic="bulb" data-size="26"></i><span class="n" id="fabN"></span></button>
     <div class="toast" id="toast"></div>
     <div class="sheet-bg" id="sheetBg" onclick="App.closeSheet()"></div>
 
     <div class="sheet" id="shareSheet">
       <div class="grab"></div>
-      <h4 id="shareTitle">Share</h4>
-      <div class="opts">
-        <div onclick="App.shareDo('share')"><div class="ib y"><i data-ic="share" data-size="24"></i></div>Share…</div>
-        <div onclick="App.shareDo('save')"><div class="ib"><i data-ic="download" data-size="24"></i></div>Save image</div>
-        <div onclick="App.shareDo('print')"><div class="ib"><i data-ic="file" data-size="24"></i></div>Print / PDF</div>
-        <div onclick="App.shareDo('mail')"><div class="ib"><i data-ic="mail" data-size="24"></i></div>Email</div>
-      </div>
+      <h4 id="shareTitle">Send the owner update</h4>
+      <button class="hrow" onclick="App.shareDo('share')"><b>Text it or send it</b><small>Opens your phone’s share menu.</small></button>
+      <button class="hrow" onclick="App.shareDo('save')"><b>Save it as a picture</b><small>It goes with your photos.</small></button>
+      <button class="hrow" onclick="App.shareDo('print')"><b>Print it</b><small>Or save it as a PDF.</small></button>
+      <button class="hrow" onclick="App.shareDo('mail')"><b>Email the numbers</b><small>Starts an email with the numbers typed in.</small></button>
+      <button class="btn q" onclick="App.closeSheet()">Cancel</button>
+    </div>
+    <div class="sheet" id="helpSheet">
+      <div class="grab"></div>
+      <h4>Help</h4>
+      <button class="hrow" onclick="Tour.start()"><b>Show me around</b><small>A short walk through the app, step by step.</small></button>
+      <a class="hrow" href="../guide/"><b>How do I…</b><small>Pictures of each step.</small></a>
+      <button class="hrow" onclick="App.openIdeas()"><b>Tell us what is confusing</b><small>Send a question or an idea.</small></button>
+      <details class="more"><summary>More<i data-ic="chevr" data-size="18"></i></summary>
+        <button class="hrow" onclick="App.openWelcome()"><b>About CostTooling</b></button>
+        <button class="hrow" onclick="App.exportData()"><b>Back up my data</b><small>Saves your jobs to a file. Photos are not in it yet.</small></button>
+        <button class="hrow" onclick="App.resetAll()"><b>Start over</b><small>Removes everything from this phone.</small></button>
+      </details>
+      <button class="btn q" onclick="App.closeSheet()">Close</button>
     </div>
     <div class="sheet" id="ideaSheet">
       <div class="grab"></div>
       <h4>What would you want here?</h4>
-      <p class="hint" style="margin:0 0 8px">You're on <b id="ideaScreen"></b>. Say what's missing, confusing, or would make this worth using.</p>
-      <textarea class="in" id="ideaText" placeholder="e.g. I'd want to text the cover page straight to the owner"></textarea>
+      <p class="hint" style="margin:0 0 8px">You are on <b id="ideaScreen"></b>. Say what is missing or confusing.</p>
+      <textarea class="in" id="ideaText" placeholder="e.g. I could not find where to type the bill"></textarea>
       <div class="imp" id="ideaImp"><button data-i="nice">Nice to have</button><button class="on" data-i="want">I'd use this</button><button data-i="must">Must have</button></div>
       <div style="display:flex;gap:8px;margin-top:10px"><button class="btn sm" onclick="App.saveIdea()"><i data-ic="check"></i>Save idea</button><button class="btn q sm" onclick="App.sendIdeas()"><i data-ic="send"></i>Email all ideas</button></div>
       <div class="ideas" id="ideaList"></div>
-      <div class="foot"><a onclick="Tour.start()">Show me around</a><a href="../guide/">How do I…</a><a onclick="App.openWelcome()">About</a><a onclick="App.exportData()">Back up my data</a><a onclick="App.resetAll()">Start over</a></div>
     </div>
     <div class="sheet welcome" id="welcomeSheet">
       <div class="grab"></div>
       <div class="mark">CT</div>
-      <h4 id="welcomeTitle">Welcome to CostTooling</h4>
-      <p>Take photos on the job.<br>See how far along it is.<br>Send a one-page report.</p>
+      <h4 id="welcomeTitle">CostTooling</h4>
+      <p class="tag">The owner’s eyes on the job</p>
+      <p><b>See what’s done before you pay for it.</b></p>
+      <ol><li><i>1</i>Walk the job and take photos.</li><li><i>2</i>Mark what you saw, part by part.</li><li><i>3</i>Send the owner one page.</li></ol>
+      <p><b>Not a builder?</b> The list tells you what to look at.</p>
       <p id="installTip" style="display:none"><b>On an iPhone?</b> Tap Share <span style="display:inline-block;vertical-align:-3px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 12v8h14v-8"/></svg></span> in Safari, then <b>Add to Home Screen</b>. Do this before you add real jobs.</p>
       <div class="two" id="welcomeBtns"><button class="btn" id="welcomeTour" onclick="Tour.start()">Show me around</button><button class="btn q" id="welcomeGo" onclick="App.closeSheet()"><i data-ic="check"></i>Let's go</button></div>
     </div>
@@ -88,9 +103,9 @@
     </div>
     <div class="sheet" id="moveSheet">
       <div class="grab"></div>
-      <h4>Move to another line item</h4>
-      <p id="moveHint" style="font-size:13px;color:var(--muted)"></p>
-      <div class="seg" id="moveMode" style="margin-bottom:6px"><button data-m="entry" onclick="App.setMoveMode('entry')">This whole entry</button><button data-m="photo" onclick="App.setMoveMode('photo')">Just this photo</button></div>
+      <h4>Move to another part</h4>
+      <p id="moveHint" style="font-size:15px;color:var(--muted)"></p>
+      <div class="seg" id="moveMode" style="margin-bottom:6px"><button data-m="entry" onclick="App.setMoveMode('entry')">Everything here</button><button data-m="photo" onclick="App.setMoveMode('photo')">Just this photo</button></div>
       <div id="moveList"></div>
       <button class="btn q" style="margin-top:12px" onclick="App.closeSheet()">Cancel</button>
     </div>
@@ -100,15 +115,15 @@
   </div></div>
 </div>
 <div id="printArea" hidden></div>
-<script src="../js/db.js?v=18"></script>
-<script src="../js/photos.js?v=18"></script>
-<script src="../js/data.js?v=18"></script>
-<script src="../js/cover.js?v=18"></script>
-<script src="../js/ui.js?v=18"></script>
+<script src="../js/db.js?v=19"></script>
+<script src="../js/photos.js?v=19"></script>
+<script src="../js/data.js?v=19"></script>
+<script src="../js/cover.js?v=19"></script>
+<script src="../js/ui.js?v=19"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
-<script src="../js/cloud.js?v=18"></script>
-<script src="../js/tour.js?v=18"></script>
-<script src="../js/app.js?v=18"></script>
+<script src="../js/cloud.js?v=19"></script>
+<script src="../js/tour.js?v=19"></script>
+<script src="../js/app.js?v=19"></script>
 <script>
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
   navigator.serviceWorker.register('../sw.js').then(reg => {

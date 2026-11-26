@@ -172,7 +172,7 @@ const Cloud = (() => {
   // ---------- status button ----------
   function paintStatus() {
     const b = $('cloudBtn'); if (!b) return;
-    b.style.display = enabled() ? '' : 'none';
+    b.style.display = enabled() && window.App && App.current() === 'projects' ? '' : 'none';
     const dot = { off: '', out: '#b8b6ad', syncing: 'var(--yellow)', synced: 'var(--green)', error: 'var(--red)' }[status] || '';
     b.innerHTML = ic('cloud', 18) + (dot ? `<i class="dot" style="background:${dot}"></i>` : '');
     b.title = status === 'out' ? 'Sign in to save to the cloud' : detail;

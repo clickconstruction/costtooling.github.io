@@ -14,10 +14,10 @@ const Data = (() => {
   const nowTime = () => new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
   const TEMPLATES = {
-    remodel: { name: 'Residential remodel', note: '10 items · demo → finishes', items: [['Demolition', 5, 0, 7], ['Foundation repair', 8, 6, 22], ['Framing', 13, 16, 39], ['Roofing', 10, 30, 44], ['Plumbing rough-in', 7, 35, 51], ['Electrical rough-in', 7, 37, 53], ['HVAC', 9, 42, 58], ['Insulation & drywall', 11, 56, 74], ['Interior finishes', 18, 70, 98], ['Exterior & site', 11, 77, 102]] },
-    garage: { name: 'New garage / ADU', note: '8 items · slab → siding', items: [['Site prep & footings', 10, 0, 10], ['Slab', 12, 8, 18], ['Framing', 20, 16, 34], ['Roofing', 12, 30, 40], ['Electrical', 9, 36, 48], ['Windows & doors', 10, 40, 50], ['Siding & trim', 15, 46, 62], ['Finish & cleanup', 12, 58, 70]] },
-    kitchen: { name: 'Kitchen + bath', note: '7 items', items: [['Demolition', 8, 0, 4], ['Plumbing', 14, 3, 12], ['Electrical', 12, 5, 14], ['Drywall & paint', 12, 12, 22], ['Cabinets & counters', 28, 20, 34], ['Tile & flooring', 16, 24, 38], ['Fixtures & finish', 10, 34, 42]] },
-    blank: { name: 'Blank', note: 'add your own', items: [] },
+    remodel: { name: 'Residential remodel', note: '10 parts, from demolition to finishes', items: [['Demolition', 5, 0, 7], ['Foundation repair', 8, 6, 22], ['Framing', 13, 16, 39], ['Roofing', 10, 30, 44], ['Plumbing rough-in', 7, 35, 51], ['Electrical rough-in', 7, 37, 53], ['HVAC', 9, 42, 58], ['Insulation & drywall', 11, 56, 74], ['Interior finishes', 18, 70, 98], ['Exterior & site', 11, 77, 102]] },
+    garage: { name: 'New garage / ADU', note: '8 parts, from slab to siding', items: [['Site prep & footings', 10, 0, 10], ['Slab', 12, 8, 18], ['Framing', 20, 16, 34], ['Roofing', 12, 30, 40], ['Electrical', 9, 36, 48], ['Windows & doors', 10, 40, 50], ['Siding & trim', 15, 46, 62], ['Finish & cleanup', 12, 58, 70]] },
+    kitchen: { name: 'Kitchen + bath', note: '7 parts', items: [['Demolition', 8, 0, 4], ['Plumbing', 14, 3, 12], ['Electrical', 12, 5, 14], ['Drywall & paint', 12, 12, 22], ['Cabinets & counters', 28, 20, 34], ['Tile & flooring', 16, 24, 38], ['Fixtures & finish', 10, 34, 42]] },
+    blank: { name: 'Blank', note: 'add your own parts', items: [] },
   };
 
   function itemsFromTemplate(key, start, finish, contract) {
@@ -95,9 +95,19 @@ const Data = (() => {
   /** One sentence for the page the owner reads: "Framing is billed at 100%. On site it is 85%." */
   const aheadLine = i => `${i.n} is billed at ${fmtPct(itemBilledPct(i))}. On site it is ${i.pct || 0}%.`;
   /** The report's sentence about the bill as a whole. */
-  const billSentence = k => { const n = k.aheadItems.length; return (k.total ? `The contractor has billed ${fmt$(k.billed)}, ${Math.round(k.billedPct * 100)}% of the contract. ` : '') + (!n ? 'Nothing is billed ahead of the work in place.' : k.billedAhead > 0 ? `${fmt$(k.billedAhead)} of that is ahead of the work in place.` : `${n} line item${n === 1 ? ' is' : 's are'} billed ahead of the work in place.`); };
+  const billSentence = k => { const n = k.aheadItems.length; return (k.total ? `The contractor has billed ${fmt$(k.billed)}, ${Math.round(k.billedPct * 100)}% of the job. ` : '') + (!n ? 'Nothing is billed ahead of the work done so far.' : k.billedAhead > 0 ? `${fmt$(k.billedAhead)} of that is ahead of the work done so far.` : `${n} part${n === 1 ? ' is' : 's are'} billed ahead of the work done so far.`); };
   /** The four numbers a job with a bill leads with, on the home screen, the report and the cover. */
-  const billNums = k => [[Math.round(k.pct * 100) + '%', 'in place'], [k.total ? Math.round(k.billedPct * 100) + '%' : '—', 'billed'], [k.total || !k.aheadItems.length ? fmt$(k.billedAhead) : k.aheadItems.length, k.total || !k.aheadItems.length ? 'billed ahead' : 'lines billed ahead'], [k.daysLeft, 'days left']];
+  const billNums = k => [[Math.round(k.pct * 100) + '%', 'done'], [k.total ? Math.round(k.billedPct * 100) + '%' : '—', 'billed'], [k.total || !k.aheadItems.length ? fmt$(k.billedAhead) : k.aheadItems.length, k.total || !k.aheadItems.length ? 'billed ahead' : 'parts billed ahead'], [k.daysLeft, 'days left']];
+  /** The owner update's sentence about costs, in a job with no bill. */
+  const costSentence = k => `Costs are ${fmt$(Math.abs(k.cost - k.earned))} ${k.cost > k.earned ? 'more' : 'less'} than the value of the work done.`;
+  // ---------- plain words ----------
+  // How far along a part is, as five words. Tapping a word stores its percent; a stored percent reads as the word for its range:
+  // 0 is Not started, 1 to 34 Just started, 35 to 65 About half, 66 to 99 Nearly done, 100 Done. Nothing stored changes shape.
+  const WORDS = [['Not started', 0], ['Just started', 10], ['About half', 50], ['Nearly done', 90], ['Done', 100]];
+  const wordIdx = pct => { const v = +pct || 0; return v <= 0 ? 0 : v < 35 ? 1 : v <= 65 ? 2 : v < 100 ? 3 : 4; };
+  const word = pct => WORDS[wordIdx(pct)][0];
+  /** One sentence for how much of the whole job is done, from a fraction 0 to 1: "About a third of the work is done." */
+  const doneSentence = f => { const v = Math.round((+f || 0) * 100); return v <= 0 ? 'No work is marked done yet.' : v >= 100 ? 'All of the work is done.' : v < 10 ? 'The work has just started.' : v < 20 ? 'A little of the work is done.' : v < 30 ? 'About a quarter of the work is done.' : v < 42 ? 'About a third of the work is done.' : v < 58 ? 'About half of the work is done.' : v < 71 ? 'About two thirds of the work is done.' : v < 85 ? 'About three quarters of the work is done.' : 'Nearly all of the work is done.'; };
   const itemCost = i => (i.costs || []).reduce((a, c) => a + (+c.amt || 0), 0);
   const itemEarned = i => (+i.b || 0) * (i.pct || 0) / 100;
   const allPhotos = p => (p.entries || []).flatMap(e => (e.photos || []).map(ph => ({ ph, e })));
@@ -108,5 +118,5 @@ const Data = (() => {
   /** Which day of the job a date is, the start date being Day 1; 0 when the job has no start or the date is before it. */
   const jobDay = (p, d) => { if (!p.start || !d) return 0; const n = Math.round((parse(d) - parse(p.start)) / DAY) + 1; return n >= 1 ? n : 0; };
 
-  return { DAY, uid, iso, parse, today, addDays, md, mdy, wd, fmt$, fmtK, nowTime, TEMPLATES, itemsFromTemplate, sampleProject, SAMPLE_BILL, calc, hasBill, itemBilledPct, itemBilled, billState, aheadPts, itemAhead, fmtPct, aheadLabel, aheadLine, billSentence, billNums, itemCost, itemEarned, allPhotos, photoKey, itemDays, itemDay, jobDay };
+  return { DAY, uid, iso, parse, today, addDays, md, mdy, wd, fmt$, fmtK, nowTime, TEMPLATES, itemsFromTemplate, sampleProject, SAMPLE_BILL, calc, hasBill, itemBilledPct, itemBilled, billState, aheadPts, itemAhead, fmtPct, aheadLabel, aheadLine, billSentence, billNums, costSentence, WORDS, wordIdx, word, doneSentence, itemCost, itemEarned, allPhotos, photoKey, itemDays, itemDay, jobDay };
 })();

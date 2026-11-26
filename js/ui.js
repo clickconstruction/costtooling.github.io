@@ -36,23 +36,27 @@ const UI = (() => {
     hardhat:'<path d="M4 16a8 8 0 0 1 16 0"/><path d="M2 16h20v3H2z"/><path d="M10 7.5V13M14 7.5V13"/>',
     alert:'<path d="M12 3.5l9.5 17h-19z"/><path d="M12 10v5M12 17.8v.4"/>',
     bill:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+    list:'<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/>',
   };
   const ic = (n, s = 18) => `<svg class="ic" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n] || ''}</svg>`;
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const { fmt$, md, wd } = Data;
-  const WX = { sun: 'Sunny', cloud: 'Overcast', rain: 'Rain', wind: 'Windy' };
+  const WX = { sun: 'Sunny', cloud: 'Cloudy', rain: 'Rain', wind: 'Windy' };
   const itemOf = (p, id) => (p.items || []).find(i => i.id === id);
   const itemName = (p, id) => (itemOf(p, id) || {}).n || '';
-  const condChips = e => { const out = []; if (e.wx) out.push(`<span class="chip">${ic(e.wx, 13)}${e.temp !== '' && e.temp != null ? esc(e.temp) + '°' : WX[e.wx]}</span>`); if (e.crew) out.push(`<span class="chip">${ic('users', 13)}${esc(e.crew)} on site</span>`); return out.join(''); };
+  const condChips = e => { const out = []; if (e.wx) out.push(`<span class="chip">${ic(e.wx, 14)}${e.temp !== '' && e.temp != null ? esc(e.temp) + '°' : WX[e.wx]}</span>`); if (e.crew) out.push(`<span class="chip">${ic('users', 14)}${esc(e.crew)} on site</span>`); return out.join(''); };
   const sortedEntries = p => (p.entries || []).slice().sort((a, b) => (b.d + (b.ts || 0)).localeCompare(a.d + (a.ts || 0)) || (b.ts || 0) - (a.ts || 0));
   const photoPh = (ph, key, extra, attrs) => `<div class="ph ${extra || ''}" data-ph="${esc(key)}" ${attrs || ''}></div>`;
-  // Has the job on screen a bill on any line item? Set whenever Progress or a line item is drawn. In such a job the
-  // line items speak of what was billed, and the cost figures (spent, running over) stay inside the folded Costs card.
-  let jobBill = false;
-  const statusChips = i => { const over = !jobBill && i.pct > 0 && Data.itemCost(i) > Data.itemEarned(i); return (i.pct === 100 ? '<span class="chip g">' + ic('check', 13) + 'complete</span>' : i.pct > 0 ? '<span class="chip a">in progress</span>' : '<span class="chip">not started</span>') + (over ? '<span class="chip r">' + ic('trend', 13) + 'running over</span>' : '') + (Data.billState(i) === 'ahead' ? '<span class="chip w">' + ic('alert', 13) + 'billed ' + Data.aheadLabel(i) + '</span>' : ''); };
-  /** A tick on the slider's track at the percent the contractor billed. It sits behind the slider, so the thumb covers it when the two agree. */
-  const tick = i => Data.hasBill(i) ? `<i class="tick" style="--b:${Data.itemBilledPct(i)}"></i>` : '';
-  const slider = i => `<div class="rng">${tick(i)}<input type="range" min="0" max="100" step="5" value="${i.pct || 0}" style="--v:${i.pct || 0}%" oninput="App.setPct('${i.id}', this.value, false)" onchange="App.setPct('${i.id}', this.value, true)"></div><div class="quick">${[0, 25, 50, 75, 100].map(v => `<button class="${(i.pct || 0) === v ? 'on' : ''}" data-v="${v}" onclick="App.quickPct('${i.id}', ${v})">${v}%</button>`).join('')}</div>`;
+  // ---------- plain words: one name per thing, on every screen ----------
+  const plural = (n, one, many) => n + ' ' + (n === 1 ? one : (many || one + 's'));
+  /** "today", "yesterday" or "on Nov 21". */
+  const when = d => { const n = Math.round((Data.today() - Data.parse(d)) / Data.DAY); return n === 0 ? 'today' : n === 1 ? 'yesterday' : 'on ' + md(d); };
+  const pctOf = i => +i.pct || 0;
+  /** How far along a part is, in words, with the exact percent when it is between the ends: "Nearly done · 85%". */
+  const wordPct = i => { const v = pctOf(i); return Data.word(v) + (v > 0 && v < 100 ? ' · ' + v + '%' : ''); };
+  const photoCount = (p, itemId) => (p.entries || []).filter(e => (e.itemId || '') === itemId).reduce((a, e) => a + e.photos.length, 0);
+  /** How much of the whole job is done, 0 to 1: by budget, or by a plain average when no part has a budget. */
+  const doneFrac = (p, k) => { const items = p.items || []; return k.total ? k.pct : items.length ? items.reduce((a, i) => a + pctOf(i), 0) / items.length / 100 : 0; };
 
   /** Fill photo placeholders with real elements. */
   function hydrate(root, p, extra) {
@@ -60,156 +64,156 @@ const UI = (() => {
     root.querySelectorAll('[data-ph]').forEach(el => { const ph = map[el.dataset.ph]; if (!ph) return; el.prepend(Photos.el(ph, el.dataset.size || 'thumb')); });
   }
 
+  /** The schedule. The full one puts each part's name on its own line above its bar, so the words stay large on a phone. */
   function gantt(p, mini) {
     const items = (p.items || []).filter(i => i.s && i.e); if (!items.length) return '';
     const T = Data.today(), start = Data.parse(p.start), finish = Data.parse(p.finish);
-    const L = mini ? 4 : 118, R = mini ? 336 : 312, Tp = mini ? 14 : 22, rowH = mini ? 4.2 : 24;
+    const L = 4, R = 336, Tp = mini ? 22 : 28, rowH = mini ? 4.2 : 46;
     const x = dt => L + (R - L) * Math.min(1, Math.max(0, (dt - start) / Math.max(1, finish - start)));
     let s = '';
-    for (let m = new Date(start.getFullYear(), start.getMonth() + 1, 1); m < finish; m = new Date(m.getFullYear(), m.getMonth() + 1, 1)) s += `<line x1="${x(m)}" y1="${Tp - 6}" x2="${x(m)}" y2="${Tp + rowH * items.length}" stroke="#e2dfd6"/><text x="${x(m) + 3}" y="${Tp - 8}" font-size="9" fill="#6b6a66">${m.toLocaleDateString('en-US', { month: 'short' })}</text>`;
+    for (let m = new Date(start.getFullYear(), start.getMonth() + 1, 1); m < finish; m = new Date(m.getFullYear(), m.getMonth() + 1, 1)) s += `<line x1="${x(m)}" y1="${Tp - 6}" x2="${x(m)}" y2="${Tp + rowH * items.length}" stroke="#e2dfd6"/><text x="${x(m) + 3}" y="${Tp - 9}" font-size="15" fill="#57564f">${m.toLocaleDateString('en-US', { month: 'short' })}</text>`;
     items.forEach((i, r) => { const y = Tp + r * rowH, s0 = Data.parse(i.s), e0 = Data.parse(i.e); const late = i.pct < 100 && e0 < T; const col = i.pct === 100 ? '#2f7d4f' : late ? '#b3261e' : i.pct > 0 ? '#e8c547' : '#d9d6cc';
-      if (!mini) s += `<text x="${L - 6}" y="${y + 14}" font-size="10" text-anchor="end" fill="#161617">${esc(i.n.length > 20 ? i.n.slice(0, 19) + '…' : i.n)}</text>`;
-      const bh = mini ? 3 : 14, by = mini ? y : y + 4;
+      if (!mini) s += `<text x="${L}" y="${y + 18}" font-size="15" fill="#161617" stroke="#fff" stroke-width="4" paint-order="stroke">${esc(i.n.length > 24 ? i.n.slice(0, 23) + '…' : i.n)}</text><text x="${R}" y="${y + 18}" font-size="15" text-anchor="end" fill="#57564f" stroke="#fff" stroke-width="4" paint-order="stroke">${esc(Data.word(i.pct))}</text>`;
+      const bh = mini ? 3 : 12, by = mini ? y : y + 26;
       s += `<rect x="${x(s0)}" y="${by}" width="${Math.max(2, x(e0) - x(s0))}" height="${bh}" rx="${mini ? 1 : 3}" fill="#d9d6cc"/>`;
-      if (i.pct > 0) s += `<rect x="${x(s0)}" y="${by}" width="${Math.max(2, (x(e0) - x(s0)) * i.pct / 100)}" height="${bh}" rx="${mini ? 1 : 3}" fill="${col}"/>`;
-      if (!mini) s += `<text x="${x(e0) + 4}" y="${y + 15}" font-size="9" fill="#6b6a66">${i.pct || 0}%</text>`; });
-    if (T >= start && T <= finish) s += `<line x1="${x(T)}" y1="${Tp - 4}" x2="${x(T)}" y2="${Tp + rowH * items.length}" stroke="#161617" stroke-width="1.5" stroke-dasharray="3 2"/><text x="${x(T) - 2}" y="${Tp + rowH * items.length + 12}" font-size="9" text-anchor="end" fill="#161617" font-weight="700">today</text>`;
-    return `<svg class="gantt" viewBox="0 0 340 ${Tp + rowH * items.length + 18}">${s}</svg>`;
+      if (i.pct > 0) s += `<rect x="${x(s0)}" y="${by}" width="${Math.max(2, (x(e0) - x(s0)) * i.pct / 100)}" height="${bh}" rx="${mini ? 1 : 3}" fill="${col}"/>`; });
+    const end = Tp + rowH * items.length;
+    if (T >= start && T <= finish) s += `<line x1="${x(T)}" y1="${Tp - 4}" x2="${x(T)}" y2="${end}" stroke="#161617" stroke-width="1.5" stroke-dasharray="3 2"/><text x="${Math.max(44, x(T) - 2)}" y="${end + 17}" font-size="15" text-anchor="end" fill="#161617" font-weight="700">today</text>`;
+    return `<svg class="gantt" viewBox="0 0 340 ${end + 24}" role="img" aria-label="Schedule">${s}</svg>`;
   }
 
   // ---------- screens ----------
+  /** The job list: the jobs first, then a new job, then saving to the cloud. */
   function projects(S) {
     const list = S.projects.map(p => ({ p, k: Data.calc(p) }));
-    const active = list.filter(o => o.k.pct < 1).length, toGo = list.reduce((a, o) => a + o.k.toGo, 0);
-    const html = (window.Cloud ? Cloud.promoHtml() : '') + `<div class="stat2"><div><b>${list.length}</b><span>project${list.length === 1 ? '' : 's'}</span></div><div><b>${active}</b><span>active</span></div><div><b>${Data.fmtK(toGo)}</b><span>to finish, all</span></div></div>` +
-      (list.length ? list.map(({ p, k }) => `<div class="card tap ${p.sample ? 'sample' : ''}" onclick="App.openProject('${p.id}')">
-        <h3>${esc(p.name || 'Untitled project')} <small>${p.sample ? 'Sample job' : esc(p.client || '')}</small></h3>
-        <div class="row" style="border:0;padding:0 0 8px"><div class="l"><small>${p.start ? 'Started ' + md(p.start) : ''}${p.finish ? ' · due ' + md(p.finish) : ''}</small></div><div class="r"><b>${Math.round(k.pct * 100)}%</b></div></div>
-        <div class="bar"><i style="width:${Math.round(k.pct * 100)}%"></i></div>
-        <div class="hint">${!k.total ? 'No line items yet' : k.hasBill ? Math.round(k.pct * 100) + '% in place · ' + Math.round(k.billedPct * 100) + '% billed · ' + k.daysLeft + ' days' : fmt$(k.toGo) + ' to finish · ' + k.daysLeft + ' days'}</div></div>`).join('')
-      : `<div class="empty">${ic('folder', 36)}No projects yet.</div>`) +
-      `<button class="btn q" onclick="App.newProject()">${ic('plus')}New project</button>` +
-      (S.projects.some(p => p.sample) ? '' : `<p class="hint" style="text-align:center"><a class="lnk" onclick="App.restoreSample()">Bring back the sample job</a></p>`);
+    const html = (list.length ? `<p class="lead">Tap a job to open it.</p>` + list.map(({ p, k }) => { const frac = doneFrac(p, k); return `<button class="card tap job ${p.sample ? 'sample' : ''}" onclick="App.openProject('${p.id}')">
+        <b class="name">${esc(p.name || 'Untitled job')}</b>
+        <small>${p.sample ? 'A sample job to practise on' : esc(p.client || '')}</small>
+        <span class="bar"><i style="width:${Math.round(frac * 100)}%"></i></span>
+        <small>${!(p.items || []).length ? 'No parts yet.' : Data.doneSentence(frac)}${k.hasBill && k.aheadItems.length ? ' <span class="aheadTxt">The bill says more than you saw.</span>' : ''}</small></button>`; }).join('')
+      : `<div class="empty">${ic('folder', 36)}No jobs yet.</div>`) +
+      `<button class="btn q" onclick="App.newProject()">${ic('plus')}Start a new job</button>` +
+      (S.projects.some(p => p.sample) ? '' : `<button class="btn q" style="margin-top:10px" onclick="App.restoreSample()">Bring back the sample job</button>`) +
+      (window.Cloud ? `<div style="margin-top:14px">${Cloud.promoHtml()}</div>` : '');
     projectsBody.innerHTML = html;
   }
 
   function projform(p, tpl) {
     const isNew = !p.id; const T = Data.iso(Data.today());
     projformBody.innerHTML = `<div class="card">
-      <label>Project name</label><input class="in" id="pfName" value="${esc(p.name || '')}" placeholder="e.g. Oak St — porch rebuild">
-      <label>Client</label><input class="in" id="pfClient" value="${esc(p.client || '')}" placeholder="Who is this for?">
-      <label>Address</label><input class="in" id="pfAddr" value="${esc(p.addr || '')}" placeholder="Site address">
-      <div class="in2"><div><label>Start</label><input class="in" type="date" id="pfStart" value="${esc(p.start || T)}"></div><div><label>Finish</label><input class="in" type="date" id="pfFinish" value="${esc(p.finish || Data.iso(Data.addDays(Data.today(), 60)))}"></div></div>
-      ${isNew ? `<label>Contract amount <span style="font-weight:400">· splits across the template</span></label><input class="in" type="number" inputmode="decimal" id="pfContract" placeholder="$">` : ''}
-    </div>` + (isNew ? `<div class="card"><h3>Start from a template <small>line items you can edit</small></h3><div class="tpl">${Object.entries(Data.TEMPLATES).map(([k, t]) => `<div class="${k === tpl ? 'on' : ''}" onclick="App.pickTemplate('${k}')"><b>${esc(t.name)}</b><span>${esc(t.note)}</span></div>`).join('')}</div></div>` : '') +
-      `<button class="btn" onclick="App.saveProject()">${ic('check')}${isNew ? 'Create project' : 'Save changes'}</button>` +
-      (isNew ? '' : `<button class="btn danger" style="margin-top:10px" onclick="App.deleteProject()">${ic('trash')}Delete this project</button>`);
+      <label for="pfName">Name of the job</label><input class="in" id="pfName" value="${esc(p.name || '')}" placeholder="e.g. Oak St porch">
+      <label for="pfClient">Who is it for?</label><input class="in" id="pfClient" value="${esc(p.client || '')}" placeholder="The owner’s name">
+      <label for="pfAddr">Address</label><input class="in" id="pfAddr" value="${esc(p.addr || '')}" placeholder="Where the job is">
+      <div class="in2"><div><label for="pfStart">Start</label><input class="in" type="date" id="pfStart" value="${esc(p.start || T)}"></div><div><label for="pfFinish">Finish</label><input class="in" type="date" id="pfFinish" value="${esc(p.finish || Data.iso(Data.addDays(Data.today(), 60)))}"></div></div>
+      ${isNew ? `<label for="pfContract">Total price of the job, if you know it</label><input class="in" type="number" inputmode="decimal" id="pfContract" placeholder="$">` : ''}
+    </div>` + (isNew ? `<div class="card"><h3>Start with a list of parts</h3><p class="hint" style="margin:-4px 0 10px">You can change them later.</p><div class="tpl">${Object.entries(Data.TEMPLATES).map(([k, t]) => `<div class="${k === tpl ? 'on' : ''}" onclick="App.pickTemplate('${k}')"><b>${esc(t.name)}</b><span>${esc(t.note)}</span></div>`).join('')}</div></div>` : '') +
+      `<button class="btn" onclick="App.saveProject()">${ic('check')}${isNew ? 'Create this job' : 'Save'}</button>` +
+      (isNew ? '' : `<button class="btn danger" style="margin-top:10px" onclick="App.deleteProject()">${ic('trash')}Delete this job</button>`);
   }
 
+  /** A job's first screen: one sentence on how it is going, the bill warning in words, then four steps in the order of a site visit. */
   function home(p, k) {
-    const items = p.items || [], inProg = items.filter(i => i.pct > 0 && i.pct < 100);
-    const latest = sortedEntries(p).flatMap(e => e.photos.map(ph => ({ ph, e }))).slice(0, 8);
-    const sched = `${Math.round(k.schedPct * 100)}% of schedule used · ${k.total ? (k.ahead ? 'ahead' : 'behind') : 'no budget yet'}`;
-    // A job with a bill leads with billed against in place. A job without one keeps the four numbers it always had.
-    const n = k.aheadItems.length, lines = n + ' line item' + (n === 1 ? '' : 's');
-    const kpis = k.hasBill ? `
-      <div class="kpi">${ic('trend')}<b>${Math.round(k.pct * 100)}%</b><span>in place</span><em>${sched}</em></div>
-      <div class="kpi light">${ic('bill')}<b>${k.total ? Math.round(k.billedPct * 100) + '%' : '—'}</b><span>billed</span><em>${k.total ? fmt$(k.billed) + ' of ' + fmt$(k.total) : 'no budgets yet'}</em></div>
-      <div class="kpi ${n ? 'warn' : 'light'}">${ic(n ? 'alert' : 'check')}<b>${k.total || !n ? fmt$(k.billedAhead) : n}</b><span>${k.total || !n ? 'billed ahead of the work' : 'line item' + (n === 1 ? '' : 's') + ' billed ahead'}</span><em>${n ? lines + ' to check' : 'nothing to check'}</em></div>
-      <div class="kpi light">${ic('clock')}<b>${k.daysLeft}</b><span>days to finish</span><em>planned finish ${p.finish ? md(p.finish) : '—'}</em></div>` : `
-      <div class="kpi">${ic('trend')}<b>${Math.round(k.pct * 100)}%</b><span>complete (earned value)</span><em>${sched}</em></div>
-      <div class="kpi">${ic('clock')}<b>${k.daysLeft}</b><span>days to finish</span><em>planned finish ${p.finish ? md(p.finish) : '—'}</em></div>
-      <div class="kpi light">${ic('dollar')}<b>${fmt$(k.cost)}</b><span>cost so far</span><em>${fmt$(k.earned)} earned · ${k.cost > k.earned ? fmt$(k.cost - k.earned) + ' over' : fmt$(k.earned - k.cost) + ' under'}</em></div>
-      <div class="kpi light">${ic('flag')}<b>${fmt$(k.toGo)}</b><span>to finish (forecast)</span><em>of ${fmt$(k.total)} contract</em></div>`;
-    const counts = [k.matchN && k.matchN + (k.matchN === 1 ? ' matches' : ' match') + ' the bill', k.underN && k.underN + ' billed under the work', k.unbilledN && k.unbilledN + ' not billed yet'].filter(Boolean).join(' · ');
-    const check = !k.hasBill ? '' : `<div class="card" id="checkCard"><h3>Check before you pay <small>${n ? n + ' of ' + items.length + ' line items' : 'nothing billed ahead'}</small></h3>
-      ${n ? k.aheadItems.map(i => `<div class="row tap" onclick="App.openItem('${i.id}')"><div class="l"><b>${esc(i.n)}</b><small>billed ${Data.fmtPct(Data.itemBilledPct(i))} · in place ${i.pct || 0}%</small></div><span class="chip w">${Data.aheadLabel(i)}</span><span class="chev">${ic('chevr', 16)}</span></div>`).join('') : `<p class="hint" style="margin:0">No line item is billed past what is in place.</p>`}
-      <p class="hint between"><span>${counts}</span><a class="lnk" onclick="App.openBill()">Enter a new bill ›</a></p></div>`;
-    const rowSub = i => (k.hasBill ? (Data.hasBill(i) ? 'billed ' + Data.fmtPct(Data.itemBilledPct(i)) : 'not billed yet') : `${fmt$(Data.itemCost(i))} of ${fmt$(i.b)}`) + (i.e ? ' · due ' + md(i.e) : '');
-    homeBody.innerHTML = `<div class="kpis">${kpis}</div>
-      <div class="actions">
-        <button class="btn" onclick="App.newEntry()">${ic('camera')}Add photo</button>
-        <button class="btn" onclick="App.go('cover')">${ic('image')}Cover page</button>
-        <button class="btn q" onclick="App.go('sov')">${ic('percent')}Update progress</button>
-        <button class="btn q" onclick="App.openShare('report')">${ic('share')}Share report</button></div>
-      ${check}
-      <div class="card"><h3>Latest photos <small class="lnk" onclick="App.go('log')">see log ›</small></h3>${latest.length ? `<div class="strip">${latest.map(({ ph, e }) => photoPh(ph, Data.photoKey(ph), '', `onclick="App.openPhoto('${e.id}','${Data.photoKey(ph)}')"`)).join('')}</div>` : `<p class="hint" style="margin:0">No photos yet. Tap Add photo to start the log.</p>`}</div>
-      <div class="card"><h3>In progress now <small class="lnk" onclick="App.go('sov')">all items ›</small></h3>${inProg.length ? inProg.map(i => `<div class="row tap" onclick="App.openItem('${i.id}')"><div class="l"><b>${esc(i.n)}</b><small>${rowSub(i)}</small><div class="mini"><i style="width:${i.pct}%"></i></div></div><div class="r"><b>${i.pct}%</b></div><span class="chev">${ic('chevr', 16)}</span></div>`).join('') : `<p class="hint" style="margin:0">${items.length ? 'Nothing started yet. Drag a slider on Progress.' : 'No line items yet. Add some on Progress.'}</p>`}</div>
-      ${items.length ? `<div class="card tap" onclick="App.openGantt()"><h3>Schedule <small>${k.total && k.pct > 0 ? 'finishes ' + md(Data.iso(k.paceFinish)) + ' at this pace' : ''}</small></h3>${gantt(p, true)}</div>` : ''}`;
+    const items = p.items || [], sorted = sortedEntries(p), nPhotos = Data.allPhotos(p).length;
+    const latest = sorted.flatMap(e => e.photos.map(ph => ({ ph, e }))).slice(0, 8);
+    const lastPhoto = sorted.find(e => e.photos.length), started = items.filter(i => pctOf(i) > 0).length;
+    const n = k.aheadItems.length, billedAt = items.map(i => (Data.hasBill(i) && i.billedAt) || '').sort().pop();
+    const frac = doneFrac(p, k);
+    const notice = !n ? '' : `<button class="notice" id="checkCard" onclick="${n === 1 ? `App.openItem('${k.aheadItems[0].id}')` : `App.go('bill')`}">${k.total && k.billedAhead > 0 ? `The contractor has billed ${fmt$(k.billedAhead)} more than you saw.` : `The contractor has billed more than you saw on ${plural(n, 'part')}.`}<b>${n === 1 ? 'See which part' : 'See which parts'}${ic('chevr', 18)}</b></button>`;
+    const step = (num, title, sub, act) => `<button class="step" onclick="${act}"><i>${num}</i><span><b>${title}</b><small>${sub}</small></span>${ic('chevr', 20)}</button>`;
+    const day = `Day ${Math.max(1, Math.round(k.elapsed))} of ${Math.round(k.span)}`;
+    // The numbers are one tap away. The builder's cost numbers are not here: they are on the Parts tab.
+    const tiles = `<div class="kpi">${ic('trend')}<b>${Math.round(frac * 100)}%</b><span>of the work is done</span><em>${day}</em></div>` +
+      (k.hasBill ? `<div class="kpi light">${ic('bill')}<b>${k.total ? Math.round(k.billedPct * 100) + '%' : '—'}</b><span>is what the bill says</span><em>${k.total ? fmt$(k.billed) + ' of ' + fmt$(k.total) : 'no budgets yet'}</em></div>
+      <div class="kpi ${n ? 'warn' : 'light'}">${ic(n ? 'alert' : 'check')}<b>${k.total || !n ? fmt$(k.billedAhead) : n}</b><span>${k.total || !n ? 'billed more than you saw' : 'part' + (n === 1 ? '' : 's') + ' billed more than you saw'}</span><em>${n ? plural(n, 'part') + ' to check' : 'nothing to check'}</em></div>` : '') +
+      `<div class="kpi light">${ic('clock')}<b>${k.daysLeft}</b><span>days left</span><em>${p.finish ? 'due ' + md(p.finish) : 'no finish date'}</em></div>`;
+    homeBody.innerHTML = `<div class="say">${!items.length ? 'This job has no parts yet.' : Data.doneSentence(frac)}</div>${notice}
+      <div class="steps">
+        ${step(1, 'Take photos', nPhotos ? `${nPhotos} so far. The last one was ${when(lastPhoto.d)}.` : 'None yet. Start here.', 'App.newEntry()')}
+        ${step(2, 'Mark what you saw', items.length ? `${started} of ${plural(items.length, 'part')} started.` : 'No parts yet. Add them here.', "App.go('sov')")}
+        ${step(3, 'Type in the bill', billedAt ? `Last typed ${when(billedAt)}.` : 'Nothing typed in yet.', "App.go('bill')")}
+        ${step(4, 'Send the owner one page', 'Photos and numbers, ready to text.', "App.go('report')")}
+      </div>
+      <div class="card"><h3>Latest photos</h3>${latest.length ? `<div class="strip">${latest.map(({ ph, e }) => photoPh(ph, Data.photoKey(ph), '', `onclick="App.openPhoto('${e.id}','${Data.photoKey(ph)}')"`)).join('')}</div>` : `<p class="hint" style="margin:0">No photos yet. Tap Take photos to add the first one.</p>`}</div>
+      <details class="card fold" id="numbers"><summary><h3>The numbers</h3>${ic('chevr', 18)}</summary><div class="foldBody"><div class="kpis">${tiles}</div>${items.length ? `<button class="btn q" onclick="App.openGantt()">${ic('calendar')}See the schedule</button>` : ''}</div></details>
+      <button class="btn q" onclick="App.editProject()">${ic('edit')}Change this job’s name or dates</button>`;
     hydrate(homeBody, p);
   }
 
-  /** A log day header: the job day when the date is on or after the start, then the date. */
+  /** A day header on the Photos tab: the job day when the date is on or after the start, then the date. */
   const dayLabel = (p, d) => { const n = Data.jobDay(p, d); return (n ? 'Day ' + n + ' · ' : '') + wd(d); };
-  /** Is an entry under a log filter? 'all' takes every entry, 'none' the untagged ones, anything else is a line item id. */
+  const dayCount = n => n ? plural(n, 'photo') : 'note only';
+  /** Is a photo under the Photos tab's filter? 'all' takes every one, 'none' the ones with no part, anything else is a part's id. */
   const inFilter = (itemId, filter) => filter === 'all' || (filter === 'none' ? !itemId : itemId === filter);
   function log(p, filter) {
     const items = p.items || [], every = p.entries || [];
-    const count = id => every.filter(e => (e.itemId || '') === id).length;
-    const untagged = count('');
-    // Every line item gets a chip with its entry count, so a new item is visible here before its first photo.
-    const chip = (id, name, n) => `<span class="chip ${filter === id ? 'on' : ''}${n ? '' : ' z'}" data-filter="${id}" data-name="${esc(name)}" onclick="App.filterLog('${id}')">${esc(name)}<b class="n">${n}</b></span>`;
-    let html = `<div class="chips wrap" id="logChips">${chip('all', 'All', every.length)}${items.map(i => chip(i.id, i.n, count(i.id))).join('')}${untagged && items.length ? chip('none', 'No line item', untagged) : ''}</div>`;
+    // Every part is in the list with its photo count, so a new part is visible here before its first photo.
+    const opt = (id, name, n) => `<option value="${id}" data-name="${esc(name)}" ${filter === id ? 'selected' : ''}>${esc(name)} (${n})</option>`;
+    let html = `<button class="btn" id="logAdd" onclick="App.newEntry()">${ic('camera')}Add a photo</button>` +
+      (items.length ? `<label for="logPick" style="margin-top:12px">Show photos of</label><select class="in" id="logPick" onchange="App.filterLog(this.value)">${opt('all', 'Every part', Data.allPhotos(p).length)}${items.map(i => opt(i.id, i.n, photoCount(p, i.id))).join('')}${every.some(e => !e.itemId) ? opt('none', 'No part picked', photoCount(p, '')) : ''}</select>` : '');
     html += `<div class="empty" id="logEmpty" style="display:none">${ic('camera', 36)}<span id="logEmptyText"></span><br><button class="btn sm" id="logEmptyBtn" style="margin-top:12px"></button></div>`;
     const all = sortedEntries(p); let lastDay = '';
     all.forEach(e => {
       const show = inFilter(e.itemId, filter);
-      if (e.d !== lastDay) { lastDay = e.d; const n = all.filter(x => x.d === e.d).length; html += `<div class="day" data-day="${e.d}"><span>${dayLabel(p, e.d)}</span><span class="dayN">${n} entr${n > 1 ? 'ies' : 'y'}</span></div>`; }
+      if (e.d !== lastDay) { lastDay = e.d; html += `<div class="day" data-day="${e.d}"><span>${dayLabel(p, e.d)}</span><span class="dayN"></span></div>`; }
       const ph = e.photos[0];
-      html += `<div class="entry ${ph ? '' : 'nophoto'}" data-day="${e.d}" data-item="${esc(e.itemId || '')}" style="display:${show ? '' : 'none'}" onclick="App.openPhoto('${e.id}')">${ph ? photoPh(ph, Data.photoKey(ph), '', e.photos.length > 1 ? `data-n="${e.photos.length}"` : '') : ''}<div>${e.itemId ? `<span class="chip k">${esc(itemName(p, e.itemId))}</span>` : '<span class="chip z">No line item</span>'}<span class="chip" style="border:0;padding-left:2px">${esc(e.time || '')}</span><p>${esc(e.note) || '<i style="color:var(--muted)">No note</i>'}</p>${condChips(e)}</div></div>`;
+      html += `<div class="entry ${ph ? '' : 'nophoto'}" data-day="${e.d}" data-item="${esc(e.itemId || '')}" data-photos="${e.photos.length}" style="display:${show ? '' : 'none'}" onclick="App.openPhoto('${e.id}')">${ph ? photoPh(ph, Data.photoKey(ph), '', e.photos.length > 1 ? `data-n="${e.photos.length}"` : '') : ''}<div>${e.itemId ? `<span class="chip k">${esc(itemName(p, e.itemId))}</span>` : '<span class="chip z">No part picked</span>'}<span class="time">${esc(e.time || '')}</span><p>${esc(e.note) || '<i style="color:var(--muted)">No note</i>'}</p>${condChips(e)}</div></div>`;
     });
     logBody.innerHTML = html; hydrate(logBody, p);
     logBody.querySelectorAll('.ph[data-n]').forEach(el => { const b = document.createElement('span'); b.className = 'n'; b.textContent = '+' + (el.dataset.n - 1); el.appendChild(b); });
     applyLogFilter(filter);
   }
-  /** Show/hide entries and day headers in place. */
+  /** Show and hide photos and day headers in place. */
   function applyLogFilter(filter) {
-    logBody.querySelectorAll('#logChips .chip').forEach(c => c.classList.toggle('on', c.dataset.filter === filter));
-    let visible = 0; const perDay = {};
-    logBody.querySelectorAll('.entry').forEach(e => { const show = inFilter(e.dataset.item, filter); e.style.display = show ? '' : 'none'; if (show) { visible++; perDay[e.dataset.day] = (perDay[e.dataset.day] || 0) + 1; } });
-    logBody.querySelectorAll('.day').forEach(h => { const n = perDay[h.dataset.day] || 0; h.style.display = n ? '' : 'none'; h.querySelector('.dayN').textContent = n + ' entr' + (n > 1 ? 'ies' : 'y'); });
+    const pick = document.getElementById('logPick'); if (pick && pick.value !== filter) pick.value = filter;
+    let visible = 0; const perDay = {}, shown = {};
+    logBody.querySelectorAll('.entry').forEach(e => { const show = inFilter(e.dataset.item, filter); e.style.display = show ? '' : 'none'; if (show) { visible++; shown[e.dataset.day] = 1; perDay[e.dataset.day] = (perDay[e.dataset.day] || 0) + (+e.dataset.photos || 0); } });
+    logBody.querySelectorAll('.day').forEach(h => { h.style.display = shown[h.dataset.day] ? '' : 'none'; h.querySelector('.dayN').textContent = dayCount(perDay[h.dataset.day] || 0); });
     const empty = document.getElementById('logEmpty'); if (!empty) return;
     empty.style.display = visible ? 'none' : '';
     if (visible) return;
-    // A line item with no photos yet offers one that is already tagged to it.
-    const chip = logBody.querySelector(`#logChips .chip[data-filter="${filter}"]`), name = chip ? chip.dataset.name : '';
-    const item = filter !== 'all' && filter !== 'none' ? filter : '';
-    document.getElementById('logEmptyText').textContent = item ? `No photos for ${name} yet.` : 'No entries yet.';
-    const btn = document.getElementById('logEmptyBtn'); btn.innerHTML = ic('camera') + (item ? `Add a photo to ${esc(name)}` : 'Add the first photo'); btn.onclick = () => App.newEntry(item);
+    // A part with no photos yet offers one that already belongs to it.
+    const o = pick && pick.selectedOptions[0], item = filter !== 'all' && filter !== 'none' ? filter : '', name = item && o ? o.dataset.name : '';
+    document.getElementById('logEmptyText').textContent = item ? `No photos of ${name} yet.` : 'No photos yet.';
+    const btn = document.getElementById('logEmptyBtn'); btn.innerHTML = ic('camera') + (item ? `Add a photo of ${esc(name)}` : 'Add the first photo'); btn.onclick = () => App.newEntry(item);
   }
 
+  /** Saving a photo asks three things: the photo, which part, and a note. The weather, the people on site and the date fold under More details. */
   function entryform(p, f) {
-    const items = p.items || [];
+    const items = p.items || [], more = !!(f.wx || (f.temp !== '' && f.temp != null) || f.crew);
     entryBody.innerHTML = `<div class="card">
-      <h3>${f.id ? 'Edit entry' : 'New entry'} <small>${wd(f.d)}${f.time ? ' · ' + esc(f.time) : ''}</small></h3>
+      <h3>${f.id ? 'Change this photo or note' : 'Add a photo'} <small>${wd(f.d)}${f.time ? ' · ' + esc(f.time) : ''}</small></h3>
       <div class="pend" id="pendGrid">${entryPhotosHtml(f)}</div>
       <p class="hint" style="margin:0 0 6px" id="pendHint">Take a photo, or pick ones you were texted.</p>
-      <label>Line item</label>${items.length
-        ? `<select class="in${f.itemId ? '' : ' pick'}" id="efItem" onchange="this.classList.toggle('pick', !this.value)"><option value="">Pick a line item…</option>${items.map(i => `<option value="${i.id}" ${i.id === f.itemId ? 'selected' : ''}>${esc(i.n)}</option>`).join('')}</select>`
-        : `<p class="hint" style="margin:0 0 4px">No line items yet. Add them on the Progress tab, then tag photos to them here.</p>`}
-      <label>Note</label><textarea class="in" id="efNote" placeholder="What happened today?">${esc(f.note)}</textarea>
-      <label>Conditions</label>
-      <div class="seg" id="efWx">${['sun', 'cloud', 'rain', 'wind'].map(w => `<button class="${f.wx === w ? 'on' : ''}" onclick="App.setWx('${w}')">${ic(w, 15)}${WX[w]}</button>`).join('')}</div>
-      <div class="in3" style="margin-top:8px"><div><label>Temp °F</label><input class="in" type="number" inputmode="numeric" id="efTemp" value="${esc(f.temp)}" placeholder="—"></div><div><label>On site</label><input class="in" type="number" inputmode="numeric" id="efCrew" value="${esc(f.crew)}" placeholder="—"></div><div><label>Date</label><input class="in" type="date" id="efDate" value="${esc(f.d)}"></div></div>
+      <label for="efItem">Which part of the job is it?</label>${items.length
+        ? `<select class="in${f.itemId ? '' : ' pick'}" id="efItem" onchange="this.classList.toggle('pick', !this.value)"><option value="">Pick a part…</option>${items.map(i => `<option value="${i.id}" ${i.id === f.itemId ? 'selected' : ''}>${esc(i.n)}</option>`).join('')}</select>`
+        : `<p class="hint" style="margin:0 0 4px">This job has no parts yet. Add them on the Parts tab, then pick one here.</p>`}
+      <label for="efNote">A note, if you like</label><textarea class="in" id="efNote" placeholder="What does the photo show?">${esc(f.note)}</textarea>
+      <details class="more" id="efMore" ${more ? 'open' : ''}><summary>More details${ic('chevr', 18)}</summary>
+        <label>Weather</label>
+        <div class="seg" id="efWx">${['sun', 'cloud', 'rain', 'wind'].map(w => `<button class="${f.wx === w ? 'on' : ''}" onclick="App.setWx('${w}')">${ic(w, 16)}${WX[w]}</button>`).join('')}</div>
+        <div class="in2" style="margin-top:8px"><div><label for="efTemp">Temperature °F</label><input class="in" type="number" inputmode="numeric" id="efTemp" value="${esc(f.temp)}" placeholder="—"></div><div><label for="efCrew">People on site</label><input class="in" type="number" inputmode="numeric" id="efCrew" value="${esc(f.crew)}" placeholder="—"></div></div>
+        <label for="efDate">Date</label><input class="in" type="date" id="efDate" value="${esc(f.d)}">
+      </details>
     </div>
-    <div style="display:flex;gap:8px"><button class="btn" onclick="App.saveEntry()">${ic('check')}Save entry</button><button class="btn q" style="width:auto" onclick="App.cancelEntry()">Cancel</button></div>`;
+    <div style="display:flex;gap:8px"><button class="btn" onclick="App.saveEntry()">${ic('check')}Save</button><button class="btn q" style="width:auto" onclick="App.cancelEntry()">Cancel</button></div>`;
     hydrate(entryBody, p, f.photos);
   }
 
-  const entryPhotosHtml = f => f.photos.map((ph, i) => `<div class="ph" data-ph="${esc(Data.photoKey(ph))}"><button class="x" aria-label="Remove photo" onclick="event.stopPropagation(); App.removeFormPhoto(${i})"><i>${ic('x', 12)}</i></button></div>`).join('') + `<div class="ph add cam" onclick="App.cam()">${ic('camera', 26)}Camera</div><div class="ph add gal" onclick="App.gal()">${ic('image', 24)}Photos</div>`;
+  const entryPhotosHtml = f => f.photos.map((ph, i) => `<div class="ph" data-ph="${esc(Data.photoKey(ph))}"><button class="x" aria-label="Remove this photo" onclick="event.stopPropagation(); App.removeFormPhoto(${i})"><i>${ic('x', 14)}</i></button></div>`).join('') + `<div class="ph add cam" role="button" onclick="App.cam()">${ic('camera', 26)}Take a photo</div><div class="ph add gal" role="button" onclick="App.gal()">${ic('image', 24)}Pick photos</div>`;
   function entryPhotos(p, f) { const g = document.getElementById('pendGrid'); if (!g) return; g.innerHTML = entryPhotosHtml(f); hydrate(g, p, f.photos); }
 
   function photo(p, e, idx) {
-    const ph = e.photos[idx], it = itemOf(p, e.itemId);
+    const ph = e.photos[idx], it = itemOf(p, e.itemId), n = e.photos.length;
     photoBody.innerHTML = `${ph ? `<div class="photo-big" id="photoBig" data-ph="${esc(Data.photoKey(ph))}" data-size="full"><div class="stamp">${wd(e.d)}${e.time ? ' · ' + esc(e.time) : ''}</div></div>` : ''}
-      ${e.photos.length > 1 ? `<div class="strip" id="photoStrip" style="margin-bottom:12px">${e.photos.map((q, i) => photoPh(q, Data.photoKey(q), i === idx ? 'sel' : '', `data-idx="${i}" onclick="App.photoIdx(${i})"`)).join('')}</div>` : ''}
-      <div class="card"><p style="margin:0 0 8px;font-size:15px">${esc(e.note) || '<i style="color:var(--muted)">No note</i>'}</p>
-        ${it ? `<div class="row tap" onclick="App.openItem('${it.id}')"><div class="l"><b>${esc(it.n)}</b><small>line item · ${it.pct || 0}% complete</small></div><span class="chev">${ic('chevr', 16)}</span></div>` : ''}
-        ${e.wx || e.crew ? `<div class="row" style="border:0"><div class="l"><small>Conditions</small><div>${condChips(e)}</div></div></div>` : ''}
-        ${p.addr ? `<div class="row" style="border:0;padding-top:0"><div class="l"><small>Location</small><div><span class="chip">${ic('pin', 13)}${esc(p.addr)}</span></div></div></div>` : ''}</div>
-      <div class="actions"><button class="btn" onclick="App.openMove()">${ic('move')}Move to…</button><button class="btn q" onclick="App.editEntry('${e.id}')">${ic('edit')}Edit</button></div>
-      ${ph ? `<button class="btn q" style="margin-bottom:12px" onclick="App.usePhotoOnCover()">${ic('image')}Use on cover</button>` : ''}
-      <button class="btn danger" onclick="App.deleteEntry('${e.id}')">${ic('trash')}Delete entry</button>`;
+      ${n > 1 ? `<div class="strip" id="photoStrip" style="margin-bottom:12px">${e.photos.map((q, i) => photoPh(q, Data.photoKey(q), i === idx ? 'sel' : '', `data-idx="${i}" onclick="App.photoIdx(${i})"`)).join('')}</div>` : ''}
+      <div class="card"><p style="margin:0 0 8px;font-size:17px">${esc(e.note) || '<i style="color:var(--muted)">No note</i>'}</p>
+        ${it ? `<div class="row tap" onclick="App.openItem('${it.id}')"><div class="l"><b>${esc(it.n)}</b><small>part of the job · ${wordPct(it).toLowerCase()}</small></div><span class="chev">${ic('chevr', 18)}</span></div>` : ''}
+        ${e.wx || e.crew ? `<div class="row" style="border:0"><div class="l"><small>Weather and people</small><div>${condChips(e)}</div></div></div>` : ''}
+        ${p.addr ? `<div class="row" style="border:0;padding-top:0"><div class="l"><small>Place</small><div><span class="chip">${ic('pin', 14)}${esc(p.addr)}</span></div></div></div>` : ''}</div>
+      <div class="stack"><button class="btn" onclick="App.openMove()">${ic('move')}Move it to another part</button>
+        <button class="btn q" onclick="App.editEntry('${e.id}')">${ic('edit')}Change the note</button>
+        ${ph ? `<button class="btn q" onclick="App.usePhotoOnCover()">${ic('image')}Use it in the picture to text</button>` : ''}
+        <button class="btn danger" onclick="App.deleteEntry('${e.id}')">${ic('trash')}${n > 1 ? `Delete these ${n} photos` : n ? 'Delete this photo' : 'Delete this note'}</button></div>`;
     hydrate(photoBody, p);
   }
   function photoSwap(p, e, idx) {
@@ -218,6 +222,7 @@ const UI = (() => {
     document.querySelectorAll('#photoStrip .ph').forEach(el => el.classList.toggle('sel', +el.dataset.idx === idx));
   }
 
+  // ---------- a picture to text: one image with up to four photos, reached from Send ----------
   const allPhotosSorted = p => Data.allPhotos(p).sort((a, b) => (b.e.d + (b.e.ts || 0)).localeCompare(a.e.d + (a.e.ts || 0)));
   function coverSelection(p) {
     const cv = p.cover, all = allPhotosSorted(p); const picked = cv.picked.filter(key => all.some(a => Data.photoKey(a.ph) === key));
@@ -228,161 +233,160 @@ const UI = (() => {
   function cover(p, k) {
     const cv = p.cover, all = allPhotosSorted(p);
     const picked = cv.picked.filter(key => all.some(a => Data.photoKey(a.ph) === key));
-    coverBody.innerHTML = `<div class="actions" style="margin-bottom:4px"><button class="btn" onclick="App.saveCover()">${ic('download')}Save to Photos</button><button class="btn q" onclick="App.openShare('cover')">${ic('share')}Share</button></div>
-      <p class="hint">Saves a 1080×1350 image. On a phone the share sheet lands it in the camera roll, a text or an email.</p>
-      <div class="card" style="margin-top:12px"><h3>Photos <small>tap to pick up to 4</small></h3>${all.length ? `<div class="grid3" id="coverGrid">${all.map(({ ph, e }) => photoPh(ph, Data.photoKey(ph), picked.includes(Data.photoKey(ph)) ? 'sel' : '', `onclick="App.coverPick('${Data.photoKey(ph)}')"`)).join('')}</div>` : `<p class="hint" style="margin:0">No photos yet. Add some in the log and they show up here.</p>`}</div>
+    coverBody.innerHTML = `<div class="stack"><button class="btn" onclick="App.openShare('cover')">${ic('send')}Send this picture</button><button class="btn q" onclick="App.saveCover()">${ic('download')}Save it to my photos</button></div>
+      <p class="hint">One picture you can text to the owner.</p>
+      <div class="card" style="margin-top:12px"><h3>Photos <small>tap to pick up to 4</small></h3>${all.length ? `<div class="grid3" id="coverGrid">${all.map(({ ph, e }) => photoPh(ph, Data.photoKey(ph), picked.includes(Data.photoKey(ph)) ? 'sel' : '', `onclick="App.coverPick('${Data.photoKey(ph)}')"`)).join('')}</div>` : `<p class="hint" style="margin:0">No photos yet. Add some and they show up here.</p>`}</div>
       <div class="card" id="coverCtl">${coverCtlHtml(cv)}</div>`;
     hydrate(coverBody, p);
     return coverSelection(p);
   }
-  const coverCtlHtml = cv => `<label>Layout</label><div class="seg" id="coverLayoutSeg">${[['hero', 'One big'], ['grid', '2 × 2'], ['split', 'Big + 2']].map(([l, n]) => `<button class="${cv.layout === l ? 'on' : ''}" data-l="${l}" onclick="App.coverLayout('${l}')">${n}</button>`).join('')}</div>
-        <label>Headline</label><input class="in" value="${esc(cv.head)}" oninput="App.coverField('head', this.value)">
-        <label>Date on cover</label><input class="in" value="${esc(cv.date || Data.mdy(Data.iso(Data.today())))}" oninput="App.coverField('date', this.value)">
-        <label>Numbers shown</label><div class="seg"><button class="${cv.numMode !== 'manual' ? 'on' : ''}" onclick="App.coverNum('auto')">From progress</button><button class="${cv.numMode === 'manual' ? 'on' : ''}" onclick="App.coverNum('manual')">Type my own</button></div>
-        ${cv.numMode === 'manual' ? `<div class="in2"><div><label>% complete</label><input class="in" type="number" inputmode="numeric" value="${esc(cv.manual.pct)}" oninput="App.coverManual('pct', this.value)"></div><div><label>Days to finish</label><input class="in" type="number" inputmode="numeric" value="${esc(cv.manual.days)}" oninput="App.coverManual('days', this.value)"></div></div><label>$ to finish</label><input class="in" type="number" inputmode="decimal" value="${esc(cv.manual.toGo)}" oninput="App.coverManual('toGo', this.value)">` : ''}
-        <label>Note at the bottom</label><input class="in" value="${esc(cv.note)}" oninput="App.coverField('note', this.value)">`;
+  const coverCtlHtml = cv => `<label>How many photos</label><div class="seg" id="coverLayoutSeg">${[['hero', 'One'], ['split', 'Three'], ['grid', 'Four']].map(([l, n]) => `<button class="${cv.layout === l ? 'on' : ''}" data-l="${l}" onclick="App.coverLayout('${l}')">${n}</button>`).join('')}</div>
+        <label for="cvHead">Words at the top</label><input class="in" id="cvHead" value="${esc(cv.head)}" oninput="App.coverField('head', this.value)">
+        <label for="cvDate">Date</label><input class="in" id="cvDate" value="${esc(cv.date || Data.mdy(Data.iso(Data.today())))}" oninput="App.coverField('date', this.value)">
+        <label>Numbers</label><div class="seg"><button class="${cv.numMode !== 'manual' ? 'on' : ''}" onclick="App.coverNum('auto')">From this job</button><button class="${cv.numMode === 'manual' ? 'on' : ''}" onclick="App.coverNum('manual')">Type my own</button></div>
+        ${cv.numMode === 'manual' ? `<div class="in2"><div><label for="cvPct">% done</label><input class="in" id="cvPct" type="number" inputmode="numeric" value="${esc(cv.manual.pct)}" oninput="App.coverManual('pct', this.value)"></div><div><label for="cvDays">Days left</label><input class="in" id="cvDays" type="number" inputmode="numeric" value="${esc(cv.manual.days)}" oninput="App.coverManual('days', this.value)"></div></div><label for="cvToGo">$ to finish</label><input class="in" id="cvToGo" type="number" inputmode="decimal" value="${esc(cv.manual.toGo)}" oninput="App.coverManual('toGo', this.value)">` : ''}
+        <label for="cvNote">A note at the bottom</label><input class="in" id="cvNote" value="${esc(cv.note)}" oninput="App.coverField('note', this.value)">`;
   function coverCtl(cv) { const c = document.getElementById('coverCtl'); if (c) c.innerHTML = coverCtlHtml(cv); }
 
-  const sumRow = (label, val, cls) => `<div class="row" style="border:0;padding:4px 0 0"><div class="l"><small${cls ? ` class="${cls}"` : ''}>${label}</small></div><div class="r${cls ? ' ' + cls : ''}">${val}</div></div>`;
-  const sovSummaryHtml = (p, k) => { const n = (p.items || []).length; return `<div class="row" style="border:0;padding:0"><div class="l"><b>Contract</b><small>${n} line item${n === 1 ? '' : 's'}</small></div><div class="r"><b>${fmt$(k.total)}</b></div></div>` + (k.hasBill
-    ? sumRow('In place', `${fmt$(k.earned)} (${Math.round(k.pct * 100)}%)`) + sumRow('Billed to date', `${fmt$(k.billed)} (${Math.round(k.billedPct * 100)}%)`) + (k.aheadItems.length ? sumRow('Billed ahead of the work', k.total ? fmt$(k.billedAhead) : k.aheadItems.length + ' line item' + (k.aheadItems.length === 1 ? '' : 's'), 'aheadTxt') : '')
-    : sumRow('Earned to date', `${fmt$(k.earned)} (${Math.round(k.pct * 100)}%)`) + sumRow('Cost to date', fmt$(k.cost))); };
-  /** The small figure beside a line item's percent: what was spent, or, in a job with a bill, what was billed. */
-  const sideLbl = (i, bill) => !bill ? `${fmt$(Data.itemCost(i))} spent` : !Data.hasBill(i) ? 'not billed' : `<span class="${Data.billState(i) === 'ahead' ? 'aheadTxt' : ''}">billed ${Data.fmtPct(Data.itemBilledPct(i))}</span>`;
-  // ---------- the bill: one percent per line item, typed from the contractor's latest bill ----------
+  // ---------- Parts: the list of parts, each a door to its own screen; the builder's numbers sit under the list ----------
+  const sumRow = (label, val, cls) => `<div class="row" style="border:0;padding:6px 0 0"><div class="l"><small${cls ? ` class="${cls}"` : ''}>${label}</small></div><div class="r${cls ? ' ' + cls : ''}">${val}</div></div>`;
+  const sovSummaryHtml = (p, k) => { const n = (p.items || []).length, pc = Math.round(k.pct * 100); return `<h3>The numbers</h3><div class="row" style="border:0;padding:0"><div class="l"><b>The whole job</b><small>${plural(n, 'part')}</small></div><div class="r"><b>${fmt$(k.total)}</b></div></div>` + (k.hasBill
+    ? sumRow('What you saw done', `${fmt$(k.earned)} (${pc}%)`) + sumRow('What the bill says', `${fmt$(k.billed)} (${Math.round(k.billedPct * 100)}%)`) + (k.aheadItems.length ? sumRow('Billed more than you saw', k.total ? fmt$(k.billedAhead) : plural(k.aheadItems.length, 'part'), 'aheadTxt') : '')
+    : sumRow('Work done so far', `${fmt$(k.earned)} (${pc}%)`) + sumRow('Cost so far', fmt$(k.cost)) + sumRow('Cost to finish', fmt$(k.toGo))); };
+  const partRowHtml = (p, i) => { const c = photoCount(p, i.id); return `<button class="card tap part" data-item="${i.id}" onclick="App.openItem('${i.id}')"><span class="l"><b>${esc(i.n)}</b><small>${wordPct(i)} · ${c ? plural(c, 'photo') : 'no photos yet'}</small>${Data.billState(i) === 'ahead' ? `<small class="aheadTxt">The bill says ${Data.fmtPct(Data.itemBilledPct(i))}</small>` : ''}<span class="mini"><i style="width:${pctOf(i)}%"></i></span></span>${ic('chevr', 20)}</button>`; };
+  const sovItemsHtml = (p, k) => { const items = p.items || []; return items.length
+    ? `<p class="lead">Tap a part. Then tap the words that fit what you saw.</p>` + items.map(i => partRowHtml(p, i)).join('') + `<button class="btn q" onclick="App.newItem()">${ic('plus')}Add a part</button><div class="card" id="sovSummary" style="margin-top:12px">${sovSummaryHtml(p, k)}</div>`
+    : `<div class="empty">${ic('folder', 36)}This job has no parts yet.<br><button class="btn sm" style="margin-top:12px" onclick="App.newItem()">${ic('plus')}Add a part</button></div>`; };
+  const ganttHtml = (p, k) => { const items = p.items || []; const diff = Math.round((k.paceFinish - Data.parse(p.finish)) / Data.DAY); return `<div class="card"><h3>Schedule <small>${p.start ? md(p.start) + ' to ' + md(p.finish) : ''}</small></h3>${items.length ? gantt(p, false) : '<p class="hint" style="margin:0">Add parts with dates to see a schedule.</p>'}<div class="legend"><span><i style="background:#d9d6cc"></i>planned</span><span><i style="background:var(--green)"></i>done</span><span><i style="background:var(--yellow)"></i>started</span><span><i style="background:var(--red)"></i>late</span></div></div>
+        <div class="card"><h3>When it will finish</h3><div class="row"><div class="l"><b>The plan says</b></div><div class="r">${p.finish ? md(p.finish) : '—'}</div></div><div class="row"><div class="l"><b>At this pace</b><small>${k.pct > 0 ? (diff > 0 ? diff + ' days late' : diff < 0 ? Math.abs(diff) + ' days early' : 'on time') : 'nothing marked done yet'}</small></div><div class="r">${k.pct > 0 ? md(Data.iso(k.paceFinish)) : '—'}</div></div><div class="row"><div class="l"><b>Days used</b></div><div class="r">${Math.round(k.elapsed)} of ${Math.round(k.span)}</div></div></div>`; };
+  function sov(p, k, mode) {
+    const show = m => `style="display:${mode === m ? '' : 'none'}"`;
+    sovBody.innerHTML = `<div class="seg big" id="modeSeg">${[['items', 'Parts'], ['gantt', 'Schedule']].map(([m, n]) => `<button class="${mode === m ? 'on' : ''}" data-m="${m}" onclick="App.setMode('${m}')">${n}</button>`).join('')}</div>
+      <div id="modeItems" ${show('items')}>${sovItemsHtml(p, k)}</div><div id="modeGantt" ${show('gantt')}>${ganttHtml(p, k)}</div>`;
+  }
+
+  // ---------- Bill: where to find the number on the contractor's bill, then one percent per part ----------
   const billVal = i => Data.hasBill(i) ? Data.fmtPct(Data.itemBilledPct(i)) : '';
   const billAmt = i => Data.hasBill(i) && (+i.b || 0) ? fmt$(Data.itemBilled(i)) : '';
-  const billSubHtml = i => `in place ${i.pct || 0}%` + (Data.billState(i) === 'ahead' ? ` · <span class="aheadTxt">${Data.aheadLabel(i)}</span>` : (+i.b || 0) ? ' · budget ' + fmt$(i.b) : '');
-  const billTotalHtml = k => `<div class="l"><b>Billed to date</b><small>${Math.round(k.pct * 100)}% in place${k.aheadItems.length ? ` · <span class="aheadTxt">${k.total ? fmt$(k.billedAhead) : k.aheadItems.length + ' line item' + (k.aheadItems.length === 1 ? '' : 's')} ahead of the work</span>` : ''}</small></div><div class="r"><b>${k.total ? Math.round(k.billedPct * 100) + '%' : '—'}</b><small>${fmt$(k.billed)} of ${fmt$(k.total)}</small></div>`;
-  const sovBillHtml = (p, k) => { const items = p.items || []; return items.length ? `<div class="card" id="billCard"><h3>What the contractor billed <small>to date</small></h3>
-        <p class="hint" style="margin:0 0 4px">Type the percent complete the latest bill shows for each line item. Leave a line empty until it is billed.</p>
-        ${items.map(i => `<div class="row billline" data-bill="${i.id}"><div class="l"><b>${esc(i.n)}</b><small class="billSub">${billSubHtml(i)}</small></div><input class="in" type="text" inputmode="decimal" autocomplete="off" aria-label="Percent billed for ${esc(i.n)}" placeholder="%" value="${billVal(i)}" onchange="App.setBilled('${i.id}', 'pct', this.value)"></div>`).join('')}
+  const billSubHtml = i => `You saw: ${wordPct(i).toLowerCase()}` + (Data.billState(i) === 'ahead' ? `<span class="aheadTxt">The bill says more than you saw${(+i.b || 0) ? ', by ' + fmt$(Data.itemAhead(i)) : ''}.</span>` : '');
+  const billTotalHtml = k => `<div class="l"><b>The whole bill</b><small>You saw ${Math.round(k.pct * 100)}% done${k.aheadItems.length ? `<span class="aheadTxt">${k.total ? fmt$(k.billedAhead) : plural(k.aheadItems.length, 'part')} billed more than you saw</span>` : ''}</small></div><div class="r"><b>${k.total ? Math.round(k.billedPct * 100) + '%' : '—'}</b><small>${fmt$(k.billed)} of ${fmt$(k.total)}</small></div>`;
+  /** A drawing of a contractor's bill with the column to copy ringed. Most bills follow the AIA G703 form. */
+  const billPicHtml = `<div class="billpic" role="img" aria-label="A sample bill. The last column, marked percent, is ringed."><div class="bp h"><span>Item</span><span>Total completed and stored to date</span><span>% (G ÷ C)</span></div><div class="bp"><span>Framing</span><span>$22,800</span><span>100%</span></div><div class="bp"><span>Roofing</span><span>$9,900</span><span>60%</span></div><i class="ring"></i></div>`;
+  function bill(p, k) {
+    const items = p.items || [];
+    billBody.innerHTML = items.length ? `<div class="card" id="billHow"><h3>Find this on the contractor’s bill</h3>${billPicHtml}
+        <p class="cap">Look for the column marked <b>%</b>. On most bills it is called “% (G ÷ C)” and sits beside “total completed and stored to date”. Copy that number for each part.</p>
+        <p class="hint">That number also counts materials that are on site but not put in yet. So the bill can say a little more than you saw.</p></div>
+      <div class="card" id="billCard"><h3>What the bill says</h3>
+        <p class="hint" style="margin:0 0 4px">Leave a part empty until the contractor bills for it.</p>
+        ${items.map(i => `<div class="row billline" data-bill="${i.id}"><div class="l"><b>${esc(i.n)}</b><small class="billSub">${billSubHtml(i)}</small></div><input class="in" type="text" inputmode="decimal" autocomplete="off" aria-label="Percent the bill says for ${esc(i.n)}" placeholder="%" value="${billVal(i)}" onchange="App.setBilled('${i.id}', 'pct', this.value)"></div>`).join('')}
         <div class="row billtot" id="billTotal">${billTotalHtml(k)}</div></div>
-        <p class="hint">Each new bill replaces the last: these are the totals billed so far, not this month's amount.</p>`
-      : `<div class="empty">${ic('bill', 36)}No line items yet.<br>Add them under Line items, then type the bill here.</div>`; };
-  const ganttHtml = (p, k) => { const items = p.items || []; const diff = Math.round((k.paceFinish - Data.parse(p.finish)) / Data.DAY); return `<div class="card"><h3>Schedule <small>${p.start ? md(p.start) + ' → ' + md(p.finish) : ''}</small></h3>${items.length ? gantt(p, false) : '<p class="hint" style="margin:0">Add line items with dates to see a schedule.</p>'}<div class="legend"><span><i style="background:#d9d6cc"></i>planned</span><span><i style="background:var(--green)"></i>done</span><span><i style="background:var(--yellow)"></i>in progress</span><span><i style="background:var(--red)"></i>behind</span></div></div>
-        <div class="card"><h3>Finish forecast</h3><div class="row"><div class="l"><b>Planned finish</b></div><div class="r">${p.finish ? md(p.finish) : '—'}</div></div><div class="row"><div class="l"><b>At current pace</b><small>${k.pct > 0 ? (diff > 0 ? diff + ' days late' : diff < 0 ? Math.abs(diff) + ' days early' : 'on time') : 'no progress logged yet'}</small></div><div class="r">${k.pct > 0 ? md(Data.iso(k.paceFinish)) : '—'}</div></div><div class="row"><div class="l"><b>Schedule used</b><small>calendar days elapsed</small></div><div class="r">${Math.round(k.schedPct * 100)}% · ${Math.round(k.elapsed)} of ${Math.round(k.span)} days</div></div></div>`; };
-  const sovItemsHtml = (p, k) => { const items = p.items || []; return `<div class="card" id="sovSummary">${sovSummaryHtml(p, k)}</div>` +
-      (items.length ? `<p class="hint" style="margin:0 0 10px">Drag a slider or tap a percent. Every number on every screen follows. Tap a name for its photos by day, its bill and its costs.</p>` : `<div class="empty">${ic('percent', 36)}No line items yet.<br><button class="btn sm" style="margin-top:12px" onclick="App.newItem()">${ic('plus')}Add a line item</button></div>`) +
-      items.map(i => `<div class="card" style="padding:12px 14px 10px" data-item="${i.id}">
-        <div class="row tap" style="border:0;padding:0" onclick="App.openItem('${i.id}')"><div class="l"><b>${esc(i.n)}</b><small>${i.s ? md(i.s) + ' – ' + md(i.e) + ' · ' : ''}budget ${fmt$(i.b)}</small></div><div class="r"><b class="pctLbl">${i.pct || 0}%</b><small class="sideLbl">${sideLbl(i, k.hasBill)}</small></div><span class="chev">${ic('chevr', 16)}</span></div>
-        ${slider(i)}
-        <div class="status">${statusChips(i)}</div></div>`).join('') +
-      (items.length ? `<button class="btn q" onclick="App.newItem()">${ic('plus')}Add a line item</button>` : ''); };
-  function sov(p, k, mode) {
-    jobBill = k.hasBill;
-    const show = m => `style="display:${mode === m ? '' : 'none'}"`;
-    sovBody.innerHTML = `<div class="seg big" id="modeSeg">${[['items', 'Line items'], ['bill', 'Bill'], ['gantt', 'Schedule']].map(([m, n]) => `<button class="${mode === m ? 'on' : ''}" data-m="${m}" onclick="App.setMode('${m}')">${n}</button>`).join('')}</div>
-      <div id="modeItems" ${show('items')}>${sovItemsHtml(p, k)}</div><div id="modeBill" ${show('bill')}>${sovBillHtml(p, k)}</div><div id="modeGantt" ${show('gantt')}>${ganttHtml(p, k)}</div>`;
-  }
-  /** Redraw the parts of Progress that are not on screen, after a figure changed in the part that is. */
-  function sovPart(p, k, part) { jobBill = k.hasBill; const el = document.getElementById(part === 'bill' ? 'modeBill' : 'modeItems'); if (el) el.innerHTML = part === 'bill' ? sovBillHtml(p, k) : sovItemsHtml(p, k); }
-  function sovSummary(p, k) { const c = document.getElementById('sovSummary'); if (c) c.innerHTML = sovSummaryHtml(p, k); const g = document.getElementById('modeGantt'); if (g) g.innerHTML = ganttHtml(p, k); }
-  /** Update one item's slider card (on Progress or Line item screen) in place. */
-  function itemSlider(i) {
-    document.querySelectorAll(`[data-item="${i.id}"]`).forEach(card => {
-      const lbl = card.querySelector('.pctLbl'); if (lbl) lbl.textContent = (i.pct || 0) + '%';
-      const r = card.querySelector('input[type=range]'); if (r) { if (+r.value !== i.pct) r.value = i.pct; r.style.setProperty('--v', (i.pct || 0) + '%'); }
-      card.querySelectorAll('.quick button').forEach(b => b.classList.toggle('on', +b.dataset.v === (i.pct || 0)));
-      const st = card.querySelector('.status'); if (st) st.innerHTML = statusChips(i);
-    });
-    itemBill(i);
-  }
-  /** Update every place one line item's billed figure shows, in place: no field is redrawn, so the one being typed in keeps its focus. */
-  function itemBill(i, k) {
-    if (k) jobBill = k.hasBill;
-    document.querySelectorAll(`[data-item="${i.id}"]`).forEach(card => {
-      const rng = card.querySelector('.rng'); if (rng) { const old = rng.querySelector('.tick'); if (old) old.remove(); if (Data.hasBill(i)) rng.insertAdjacentHTML('afterbegin', tick(i)); }
-      const side = card.querySelector('.sideLbl'); if (side) side.innerHTML = sideLbl(i, jobBill);
-      const st = card.querySelector('.status'); if (st) st.innerHTML = statusChips(i);
-    });
-    document.querySelectorAll(`[data-billrow="${i.id}"]`).forEach(row => { row.querySelector('[data-k=pct]').value = billVal(i); row.querySelector('[data-k=amt]').value = billAmt(i); row.querySelector('.billNote').innerHTML = billNoteHtml(i); });
-    document.querySelectorAll(`[data-bill="${i.id}"]`).forEach(row => { row.querySelector('input').value = billVal(i); row.querySelector('.billSub').innerHTML = billSubHtml(i); });
-    const tot = document.getElementById('billTotal'); if (tot && k) tot.innerHTML = billTotalHtml(k);
+      <p class="hint">When a new bill comes, type over the old numbers. These are the totals so far, not this month’s amount.</p>`
+      : `<div class="empty">${ic('bill', 36)}This job has no parts yet.<br>Add them on the Parts tab, then type the bill here.</div>`;
   }
 
-  const itemKpisHtml = (i, bill) => { const earned = Data.itemEarned(i), cost = Data.itemCost(i), over = i.pct > 0 && cost > earned, st = Data.billState(i), gap = Math.abs(Data.itemBilled(i) - earned);
-    const first = `<div class="kpi">${ic('percent')}<b>${i.pct || 0}%</b><span>${bill ? 'in place' : 'complete'}</span><em>${i.s ? md(i.s) + ' – ' + md(i.e) : 'no dates'}</em></div>`;
-    if (!bill) return first + `<div class="kpi light">${ic('dollar')}<b>${fmt$(cost)}</b><span>cost so far</span><em>${over ? fmt$(cost - earned) + ' over earned' : fmt$(earned - cost) + ' under earned'}</em></div>`;
-    return first + `<div class="kpi ${st === 'ahead' ? 'warn' : 'light'}">${ic(st === 'ahead' ? 'alert' : 'bill')}<b>${st === 'none' ? '—' : Data.fmtPct(Data.itemBilledPct(i))}</b><span>billed</span><em>${st === 'none' ? 'not billed yet' : st === 'ahead' ? Data.aheadLabel(i) + ' of the work' : st === 'match' ? 'matches what is in place' : (+i.b || 0) ? fmt$(gap) + ' under what is in place' : 'under what is in place'}</em></div>`; };
-  const billNoteHtml = i => { const st = Data.billState(i); return (st === 'none' ? 'from the contractor’s latest bill' : st === 'ahead' ? `<span class="aheadTxt">${Data.aheadLabel(i)} of what is in place</span>` : st === 'match' ? 'matches what is in place' : 'under what is in place') + (st !== 'none' && i.billedAt ? ' · entered ' + md(i.billedAt) : ''); };
-  /** The billed figure beside the slider: a percent or an amount, whichever the bill shows. Each fills in the other. */
-  const billRowHtml = i => { const b = +i.b || 0; return `<div class="billrow" data-billrow="${i.id}"><div class="l"><b>Billed to date</b><small class="billNote">${billNoteHtml(i)}</small></div>
-        <input class="in" type="text" inputmode="decimal" autocomplete="off" data-k="pct" aria-label="Percent billed" placeholder="%" value="${billVal(i)}" onchange="App.setBilled('${i.id}', 'pct', this.value)">
-        <input class="in amt" type="text" inputmode="decimal" autocomplete="off" data-k="amt" aria-label="Amount billed" placeholder="${b ? '$' : 'no budget'}" value="${billAmt(i)}" ${b ? '' : 'disabled'} onchange="App.setBilled('${i.id}', 'amt', this.value)"></div>`; };
-  const itemCostsHtml = i => { const cost = Data.itemCost(i); return `<div id="costRows">${(i.costs || []).map(c => `<div class="row"><div class="l"><b>${esc(c.desc)}</b><small>${c.date ? md(c.date) : ''}</small></div><div class="r">${fmt$(c.amt)}</div><button class="del" aria-label="Remove cost" onclick="App.deleteCost('${i.id}','${c.id}')">${ic('x', 16)}</button></div>`).join('') || '<p class="hint" style="margin:0 0 8px">No costs logged yet.</p>'}
+  // ---------- one part: how far along it is in words, what the bill says, its photos by day, its costs ----------
+  const wordsHtml = i => { const v = pctOf(i), x = Data.wordIdx(v); return Data.WORDS.map((w, n) => `<button class="w${n === x ? ' on' : ''}" aria-pressed="${n === x}" onclick="App.setWord('${i.id}', ${n})">${w[0]}${n === x && v > 0 && v < 100 ? `<small>${v}%</small>` : ''}</button>`).join(''); };
+  /** What to make of the bill against what was seen, in a sentence. Nothing until the part is billed. */
+  const partNoteHtml = i => { const st = Data.billState(i), v = pctOf(i), b = Data.itemBilledPct(i);
+    if (st === 'none') return '';
+    if (st === 'ahead') return `<div class="notice flat">The bill says this part is ${b >= 100 ? 'finished' : Data.fmtPct(b) + ' done'}. You marked it ${Data.word(v).toLowerCase()}${v > 0 && v < 100 ? ' (' + v + '%)' : ''}.${(+i.b || 0) ? ' That is ' + fmt$(Data.itemAhead(i)) + ' more than you saw.' : ''}</div>`;
+    return `<p class="hint ok">${st === 'match' ? 'The bill matches what you saw.' : 'The bill says less than you saw. Nothing to check.'}</p>`; };
+  const billNoteHtml = i => Data.hasBill(i) ? 'typed in' + (i.billedAt ? ' ' + when(i.billedAt) : '') : 'from the contractor’s bill';
+  /** What the bill says, beside the words: a percent or an amount, whichever the bill shows. Each fills in the other. */
+  const billRowHtml = i => { const b = +i.b || 0; return `<div class="billrow" data-billrow="${i.id}"><div class="l"><b>The bill says</b><small class="billNote">${billNoteHtml(i)}</small></div>
+        <input class="in" type="text" inputmode="decimal" autocomplete="off" data-k="pct" aria-label="Percent the bill says" placeholder="%" value="${billVal(i)}" onchange="App.setBilled('${i.id}', 'pct', this.value)">
+        <input class="in amt" type="text" inputmode="decimal" autocomplete="off" data-k="amt" aria-label="Dollars the bill says" placeholder="${b ? '$' : 'no budget'}" value="${billAmt(i)}" ${b ? '' : 'disabled'} onchange="App.setBilled('${i.id}', 'amt', this.value)"></div>`; };
+  const itemCostsHtml = i => { const cost = Data.itemCost(i); return `<div id="costRows">${(i.costs || []).map(c => `<div class="row"><div class="l"><b>${esc(c.desc)}</b><small>${c.date ? md(c.date) : ''}</small></div><div class="r">${fmt$(c.amt)}</div><button class="del" aria-label="Remove this cost" onclick="App.deleteCost('${i.id}','${c.id}')">${ic('x', 18)}</button></div>`).join('') || '<p class="hint" style="margin:0 0 8px">No costs typed in yet.</p>'}
         ${(i.costs || []).length ? `<div class="row" style="border:0"><div class="l"><b>Total</b></div><div class="r"><b>${fmt$(cost)}</b></div></div>` : ''}</div>
-        <div style="border-top:1px solid var(--line);padding-top:10px;margin-top:6px"><div class="in2"><div><label>What</label><input class="in" id="cfDesc" placeholder="e.g. Lumber"></div><div><label>Amount</label><input class="in" type="number" inputmode="decimal" id="cfAmt" placeholder="$"></div></div><label>Date</label><input class="in" type="date" id="cfDate" value="${Data.iso(Data.today())}"><button class="btn q sm" style="margin-top:10px" onclick="App.addCost('${i.id}')">${ic('plus')}Add cost</button></div>`; };
+        <div style="border-top:1px solid var(--line);padding-top:10px;margin-top:6px"><div class="in2"><div><label for="cfDesc">What it was</label><input class="in" id="cfDesc" placeholder="e.g. Lumber"></div><div><label for="cfAmt">How much</label><input class="in" type="number" inputmode="decimal" id="cfAmt" placeholder="$"></div></div><label for="cfDate">Date</label><input class="in" type="date" id="cfDate" value="${Data.iso(Data.today())}"><button class="btn q sm" style="margin-top:10px" onclick="App.addCost('${i.id}')">${ic('plus')}Add cost</button></div>`; };
   /** Costs are what a builder spent. In a job with a bill they fold to one row at the bottom; in any other job the card is open, as it always was. */
-  const costsCardHtml = (i, fold) => { const head = `Costs <small id="costTotal">${fmt$(Data.itemCost(i))} total</small>`; return fold ? `<details class="card fold" id="costFold"><summary><h3>${head}</h3>${ic('chevr', 16)}</summary><div id="itemCosts">${itemCostsHtml(i)}</div></details>` : `<div class="card"><h3>${head}</h3><div id="itemCosts">${itemCostsHtml(i)}</div></div>`; };
-  /** The Move to… sheet: every line item with its photo count and status; the entry's own line item is marked, not tappable. */
+  const costsCardHtml = (i, fold) => { const head = `Costs <small id="costTotal">${fmt$(Data.itemCost(i))} total</small>`; return fold ? `<details class="card fold" id="costFold"><summary><h3>${head}</h3>${ic('chevr', 18)}</summary><div id="itemCosts">${itemCostsHtml(i)}</div></details>` : `<div class="card"><h3>${head}</h3><div id="itemCosts">${itemCostsHtml(i)}</div></div>`; };
+  /** The Move sheet: every part with its photo count and how far along it is; the part the photo is in now is marked, not tappable. */
   function moveSheet(p, e, mode) {
     const items = p.items || [], n = e.photos.length, one = mode === 'photo' && n > 1;
-    const count = id => (p.entries || []).filter(x => x.itemId === id).reduce((a, x) => a + x.photos.length, 0);
-    const status = i => i.pct === 100 ? 'complete' : i.pct > 0 ? i.pct + '%' : 'not started';
-    const what = n > 1 ? n + ' photos' : n ? 'The photo' : 'The note', andNote = n && e.note ? ' and the note' : '';
-    document.getElementById('moveHint').textContent = one ? `Just this photo moves, as its own entry on ${wd(e.d)}. The note and the other photo${n > 2 ? 's' : ''} stay here.` : `${what}${andNote} from ${wd(e.d)} ${n > 1 || andNote ? 'go' : 'goes'} with it.`;
+    const what = n > 1 ? 'All ' + n + ' photos' : n ? 'The photo' : 'The note', andNote = n && e.note ? ' and the note' : '';
+    document.getElementById('moveHint').textContent = one ? `Just this photo moves. The note and the other photo${n > 2 ? 's' : ''} stay here.` : `${what}${andNote} from ${wd(e.d)} will move.`;
     const seg = document.getElementById('moveMode'); seg.style.display = n > 1 ? '' : 'none'; seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.m === mode));
-    const row = (id, name, sub) => id === (e.itemId || '') ? `<div class="row"><div class="l"><b>${esc(name)}</b><small>${sub}</small></div><span class="chip k">${ic('check', 13)}here now</span></div>` : `<div class="row tap" onclick="App.moveEntry('${id}')"><div class="l"><b>${esc(name)}</b><small>${sub}</small></div><span class="chev">${ic('chevr', 16)}</span></div>`;
-    document.getElementById('moveList').innerHTML = items.map(i => { const c = count(i.id); return row(i.id, i.n, (c ? c + ' photo' + (c > 1 ? 's' : '') : 'no photos') + ' · ' + status(i)); }).join('') + row('', 'No line item', 'untagged, in the log only');
+    const row = (id, name, sub) => id === (e.itemId || '') ? `<div class="row"><div class="l"><b>${esc(name)}</b><small>${sub}</small></div><span class="chip k">${ic('check', 14)}here now</span></div>` : `<div class="row tap" onclick="App.moveEntry('${id}')"><div class="l"><b>${esc(name)}</b><small>${sub}</small></div><span class="chev">${ic('chevr', 18)}</span></div>`;
+    document.getElementById('moveList').innerHTML = items.map(i => { const c = photoCount(p, i.id); return row(i.id, i.n, (c ? plural(c, 'photo') : 'no photos yet') + ' · ' + wordPct(i).toLowerCase()); }).join('') + row('', 'No part', 'kept under Photos only');
   }
 
-  /** A line item as a folder: its entries grouped by day, Day 1 being its first, newest day first like the log. flashId outlines an entry once. */
+  /** One part of the job. First how far along it is, in words; then what the bill says; then its photos by day, Day 1 being its first, newest day first. flashId outlines a photo once. */
   function item(p, i, flashId) {
-    const earned = Data.itemEarned(i), bill = jobBill = (p.items || []).some(Data.hasBill);
+    const fold = (p.items || []).some(Data.hasBill);
     const es = sortedEntries(p).filter(e => e.itemId === i.id), days = Data.itemDays(p, i.id), nPhotos = es.reduce((a, e) => a + e.photos.length, 0);
     let diary = '', lastDay = '';
     es.forEach(e => {
       if (e.d !== lastDay) { lastDay = e.d; diary += `<div class="day"><span>Day ${days.indexOf(e.d) + 1} · ${wd(e.d)}</span><button class="lnk" onclick="App.newEntry('${i.id}', '${e.d}')">+ Add to this day</button></div>`; }
       const ph = e.photos[0];
-      diary += `<div class="entry ${ph ? '' : 'nophoto'}${e.id === flashId ? ' new' : ''}" onclick="App.openPhoto('${e.id}')">${ph ? photoPh(ph, Data.photoKey(ph), '', e.photos.length > 1 ? `data-n="${e.photos.length}"` : '') : ''}<div><span class="chip" style="border:0;padding-left:2px">${esc(e.time || '')}</span><p>${esc(e.note) || '<i style="color:var(--muted)">No note</i>'}</p>${condChips(e)}</div></div>`;
+      diary += `<div class="entry ${ph ? '' : 'nophoto'}${e.id === flashId ? ' new' : ''}" onclick="App.openPhoto('${e.id}')">${ph ? photoPh(ph, Data.photoKey(ph), '', e.photos.length > 1 ? `data-n="${e.photos.length}"` : '') : ''}<div><span class="time">${esc(e.time || '')}</span><p>${esc(e.note) || '<i style="color:var(--muted)">No note</i>'}</p>${condChips(e)}</div></div>`;
     });
-    itemBody.innerHTML = `<div class="kpis" id="itemKpis">${itemKpisHtml(i, bill)}</div>
-      <div class="card"><h3>Photos and notes <small>${days.length ? `${days.length} day${days.length > 1 ? 's' : ''} · ${nPhotos ? nPhotos + ' photo' + (nPhotos === 1 ? '' : 's') : 'notes only'}` : 'none yet'}</small></h3>
-        <button class="btn" onclick="App.newEntry('${i.id}')">${ic('camera')}Add a photo to ${esc(i.n)}</button>
-        ${es.length ? diary : `<p class="hint" style="margin:10px 0 0">No photos for ${esc(i.n)} yet. The first one starts Day 1.</p>`}</div>
-      <div class="card" data-item="${i.id}"><div class="row" style="border:0;padding:0 0 4px"><div class="l"><b>Progress</b><small>budget ${fmt$(i.b)} · ${bill ? 'in place' : 'earned'} <span class="earnedLbl">${fmt$(earned)}</span></small></div><div class="r"><b class="pctLbl">${i.pct || 0}%</b></div></div>${slider(i)}<div class="status">${statusChips(i)}</div>${billRowHtml(i)}</div>
-      ${costsCardHtml(i, bill)}
-      <button class="btn danger" onclick="App.deleteItem('${i.id}')">${ic('trash')}Delete line item</button>`;
+    itemBody.innerHTML = `<div class="card" data-item="${i.id}"><h2 class="q">How far along is it?</h2>
+        <div class="words" id="words">${wordsHtml(i)}</div>
+        <button class="exact" id="exactBtn" onclick="App.toggleExact()">Type an exact percent</button>
+        <div id="exactRow" hidden><label for="exactIn">Percent done, from 0 to 100</label><input class="in" id="exactIn" type="text" inputmode="numeric" autocomplete="off" value="${pctOf(i)}" onchange="App.setExact('${i.id}', this.value)"></div>
+        ${billRowHtml(i)}<div id="partNote">${partNoteHtml(i)}</div></div>
+      <div class="card"><h3>Photos and notes <small>${days.length ? `${plural(days.length, 'day')} · ${nPhotos ? plural(nPhotos, 'photo') : 'notes only'}` : 'none yet'}</small></h3>
+        <button class="btn" onclick="App.newEntry('${i.id}')">${ic('camera')}Add a photo of ${esc(i.n)}</button>
+        ${es.length ? diary : `<p class="hint" style="margin:10px 0 0">No photos of ${esc(i.n)} yet. The first one starts Day 1.</p>`}</div>
+      ${costsCardHtml(i, fold)}
+      <div class="stack"><button class="btn q" onclick="App.editItem()">${ic('edit')}Change the name, budget or dates</button>
+        <button class="btn danger" onclick="App.deleteItem('${i.id}')">${ic('trash')}Delete this part</button></div>`;
     hydrate(itemBody, p);
     itemBody.querySelectorAll('.ph[data-n]').forEach(el => { const b = document.createElement('span'); b.className = 'n'; b.textContent = '+' + (el.dataset.n - 1); el.appendChild(b); });
   }
-  function itemKpis(i, bill) { const k = document.getElementById('itemKpis'); if (k) k.innerHTML = itemKpisHtml(i, bill); const e = document.querySelector('[data-item] .earnedLbl'); if (e) e.textContent = fmt$(Data.itemEarned(i)); }
+  /** After a part's percent changed: redraw its words, the exact percent and the sentence about the bill, in place. */
+  function itemProgress(i) {
+    const card = itemBody.querySelector(`[data-item="${i.id}"]`); if (!card) return;
+    card.querySelector('#words').innerHTML = wordsHtml(i);
+    const ex = card.querySelector('#exactIn'); if (ex && document.activeElement !== ex) ex.value = pctOf(i);
+    card.querySelector('#partNote').innerHTML = partNoteHtml(i);
+  }
+  /** Update every place one part's billed figure shows, in place: no field is redrawn, so the one being typed in keeps its focus. */
+  function itemBill(i, k) {
+    document.querySelectorAll(`[data-billrow="${i.id}"]`).forEach(row => { row.querySelector('[data-k=pct]').value = billVal(i); row.querySelector('[data-k=amt]').value = billAmt(i); row.querySelector('.billNote').innerHTML = billNoteHtml(i); });
+    document.querySelectorAll(`[data-bill="${i.id}"]`).forEach(row => { row.querySelector('input').value = billVal(i); row.querySelector('.billSub').innerHTML = billSubHtml(i); });
+    const note = itemBody.querySelector(`[data-item="${i.id}"] #partNote`); if (note) note.innerHTML = partNoteHtml(i);
+    const tot = document.getElementById('billTotal'); if (tot && k) tot.innerHTML = billTotalHtml(k);
+  }
   function itemCosts(i) { const c = document.getElementById('itemCosts'); if (c) c.innerHTML = itemCostsHtml(i); const t = document.getElementById('costTotal'); if (t) t.textContent = fmt$(Data.itemCost(i)) + ' total'; }
 
   function itemform(p, i) {
     itemformBody.innerHTML = `<div class="card">
-      <label>Name</label><input class="in" id="ifName" value="${esc(i.n || '')}" placeholder="e.g. Framing">
-      <label>Budget</label><input class="in" type="number" inputmode="decimal" id="ifBudget" value="${esc(i.b || '')}" placeholder="$">
-      <div class="in2"><div><label>Start</label><input class="in" type="date" id="ifStart" value="${esc(i.s || p.start || '')}"></div><div><label>Finish</label><input class="in" type="date" id="ifEnd" value="${esc(i.e || p.finish || '')}"></div></div></div>
-      <button class="btn" onclick="App.saveItem()">${ic('check')}${i.id ? 'Save changes' : 'Add line item'}</button>`;
+      <label for="ifName">Name of the part</label><input class="in" id="ifName" value="${esc(i.n || '')}" placeholder="e.g. Framing">
+      <label for="ifBudget">Budget, if you know it</label><input class="in" type="number" inputmode="decimal" id="ifBudget" value="${esc(i.b || '')}" placeholder="$">
+      <div class="in2"><div><label for="ifStart">Start</label><input class="in" type="date" id="ifStart" value="${esc(i.s || p.start || '')}"></div><div><label for="ifEnd">Finish</label><input class="in" type="date" id="ifEnd" value="${esc(i.e || p.finish || '')}"></div></div></div>
+      <button class="btn" onclick="App.saveItem()">${ic('check')}${i.id ? 'Save' : 'Add this part'}</button>`;
   }
 
+  /** Send: the owner update, the one page the owner reads. It keeps its numbers; only the words around it are the assistant's. */
   function report(p, k) {
     const items = p.items || [], pics = sortedEntries(p).flatMap(e => e.photos.map(ph => ({ ph, e }))).slice(0, 3);
-    const bill = k.hasBill, calendar = `${k.ahead ? 'Work is ahead of the calendar' : 'Work is behind the calendar'} (${Math.round(k.pct * 100)}% ${bill ? 'in place' : 'done'} with ${Math.round(k.schedPct * 100)}% of the schedule used).`;
-    const pace = k.pct > 0 ? ' At the current pace the job finishes ' + md(Data.iso(k.paceFinish)) + '.' : '';
-    // With a bill, the page leads with billed against in place and names each line billed ahead. Without one it is the report it always was.
+    const bill = k.hasBill, calendar = `${k.ahead ? 'Work is ahead of the calendar' : 'Work is behind the calendar'} (${Math.round(k.pct * 100)}% done with ${Math.round(k.schedPct * 100)}% of the time used).`;
+    const pace = k.pct > 0 ? ' At this pace the job finishes ' + md(Data.iso(k.paceFinish)) + '.' : '';
+    // With a bill, the page leads with what was billed against what is done and names each part billed ahead. Without one it keeps the builder's numbers.
     const nums = bill ? Data.billNums(k).map(([v, l], x) => `<div${x === 2 && k.aheadItems.length ? ' class="warn"' : ''}><b>${v}</b><span>${l}</span></div>`).join('')
-      : `<div><b>${Math.round(k.pct * 100)}%</b><span>complete</span></div><div><b>${Data.fmtK(k.cost)}</b><span>cost so far</span></div><div><b>${Data.fmtK(k.toGo)}</b><span>to finish</span></div><div><b>${k.daysLeft}</b><span>days left</span></div>`;
-    const summary = !k.total && !bill ? 'No line items yet. Add budgets on the Progress screen and this report fills itself in.'
+      : `<div><b>${Math.round(k.pct * 100)}%</b><span>done</span></div><div><b>${Data.fmtK(k.cost)}</b><span>cost so far</span></div><div><b>${Data.fmtK(k.toGo)}</b><span>to finish</span></div><div><b>${k.daysLeft}</b><span>days left</span></div>`;
+    const summary = !k.total && !bill ? 'This job has no parts with a budget yet. Add them on the Parts tab and this page fills itself in.'
       : bill ? `${k.total ? calendar + ' ' : ''}${esc(Data.billSentence(k))}${pace}`
-      : `${calendar} Costs are ${k.cost > k.earned ? 'running ' + fmt$(k.cost - k.earned) + ' over earned value' : 'tracking ' + fmt$(k.earned - k.cost) + ' under earned value'}.${pace}`;
+      : `${calendar} ${Data.costSentence(k)}${pace}`;
     const flags = bill ? k.aheadItems.slice(0, 4).map(i => `<div class="flagline">${ic('alert', 16)}<b>${esc(Data.aheadLine(i))}</b></div>`).join('') + (k.aheadItems.length > 4 ? `<p class="aheadTxt">And ${k.aheadItems.length - 4} more billed ahead, marked below.</p>` : '') : '';
     const table = bill
-      ? `<tr><td><b>Line item</b></td><td class="n"><b>Budget</b></td><td class="n"><b>In place</b></td><td class="n"><b>Billed</b></td></tr>${items.map(i => `<tr><td>${esc(i.n)}</td><td class="n">${fmt$(i.b)}</td><td class="n">${i.pct || 0}%</td><td class="n${Data.billState(i) === 'ahead' ? ' aheadTxt' : ''}">${Data.hasBill(i) ? Data.fmtPct(Data.itemBilledPct(i)) : '—'}</td></tr>`).join('')}<tr class="tot"><td>Total</td><td class="n">${fmt$(k.total)}</td><td class="n">${Math.round(k.pct * 100)}%</td><td class="n">${k.total ? Math.round(k.billedPct * 100) + '%' : '—'}</td></tr>`
-      : `<tr><td><b>Line item</b></td><td class="n"><b>Budget</b></td><td class="n"><b>%</b></td><td class="n"><b>Cost</b></td></tr>${items.map(i => `<tr><td>${esc(i.n)}</td><td class="n">${fmt$(i.b)}</td><td class="n">${i.pct || 0}%</td><td class="n">${fmt$(Data.itemCost(i))}</td></tr>`).join('')}<tr class="tot"><td>Total</td><td class="n">${fmt$(k.total)}</td><td class="n">${Math.round(k.pct * 100)}%</td><td class="n">${fmt$(k.cost)}</td></tr>`;
-    const html = `<div class="report" id="reportPreview"><div class="hd"><div class="mark">CT</div><div><h4>${esc(p.name || 'Untitled project')}</h4><div class="meta">Progress report · ${Data.mdy(Data.iso(Data.today()))}${p.client ? ' · for ' + esc(p.client) : ''}</div></div></div>
+      ? `<tr><td><b>Part of the job</b></td><td class="n"><b>Budget</b></td><td class="n"><b>Done</b></td><td class="n"><b>Billed</b></td></tr>${items.map(i => `<tr><td>${esc(i.n)}</td><td class="n">${fmt$(i.b)}</td><td class="n">${i.pct || 0}%</td><td class="n${Data.billState(i) === 'ahead' ? ' aheadTxt' : ''}">${Data.hasBill(i) ? Data.fmtPct(Data.itemBilledPct(i)) : '—'}</td></tr>`).join('')}<tr class="tot"><td>Total</td><td class="n">${fmt$(k.total)}</td><td class="n">${Math.round(k.pct * 100)}%</td><td class="n">${k.total ? Math.round(k.billedPct * 100) + '%' : '—'}</td></tr>`
+      : `<tr><td><b>Part of the job</b></td><td class="n"><b>Budget</b></td><td class="n"><b>Done</b></td><td class="n"><b>Cost</b></td></tr>${items.map(i => `<tr><td>${esc(i.n)}</td><td class="n">${fmt$(i.b)}</td><td class="n">${i.pct || 0}%</td><td class="n">${fmt$(Data.itemCost(i))}</td></tr>`).join('')}<tr class="tot"><td>Total</td><td class="n">${fmt$(k.total)}</td><td class="n">${Math.round(k.pct * 100)}%</td><td class="n">${fmt$(k.cost)}</td></tr>`;
+    const html = `<p class="lead">This is the page the owner gets. Look it over, then send it.</p>
+      <button class="btn" id="sendBtn" onclick="App.openShare('report')">${ic('send')}Send it to the owner</button>
+      <div class="report" id="reportPreview" style="margin-top:12px"><div class="hd"><div class="mark">CT</div><div><h4>${esc(p.name || 'Untitled job')}</h4><div class="meta">Owner update · ${Data.mdy(Data.iso(Data.today()))}${p.client ? ' · for ' + esc(p.client) : ''}</div></div></div>
       <div class="num4">${nums}</div>
       ${flags}
       <p><b>Summary.</b> ${p.cover.head ? esc(p.cover.head) + '. ' : ''}${summary}</p>
       <table class="sov">${table}</table>
-      ${pics.length ? `<p style="margin-top:12px"><b>Recent photos</b></p><div class="grid3">${pics.map(({ ph }) => photoPh(ph, Data.photoKey(ph))).join('')}</div>` : ''}
+      ${pics.length ? `<p style="margin-top:12px"><b>Latest photos</b></p><div class="grid3">${pics.map(({ ph }) => photoPh(ph, Data.photoKey(ph))).join('')}</div>` : ''}
       ${p.cover.note ? `<p>${esc(p.cover.note)}</p>` : ''}</div>
-      <div class="actions" style="margin-top:12px"><button class="btn" onclick="App.openShare('report')">${ic('share')}Share</button><button class="btn q" onclick="App.shareDo('print','report')">${ic('file')}Print / PDF</button></div>
-      <p class="hint">Same numbers as the dashboard, laid out as one page to hand to an owner, a lender or an inspector.</p>`;
+      <div class="stack" style="margin-top:12px"><button class="btn q" onclick="App.shareDo('print','report')">${ic('file')}Print it</button><button class="btn q" id="toCover" onclick="App.go('cover')">${ic('image')}Make a picture to text instead</button></div>`;
     reportBody.innerHTML = html; hydrate(reportBody, p); return pics;
   }
 
-  return { ic, esc, hydrate, coverSelection, projects, projform, home, log, applyLogFilter, entryform, entryPhotos, photo, photoSwap, moveSheet, cover, coverCtl, sov, sovSummary, sovPart, itemSlider, itemBill, item, itemKpis, itemCosts, itemform, report, sortedEntries, itemName };
+  return { ic, esc, hydrate, coverSelection, projects, projform, home, log, applyLogFilter, entryform, entryPhotos, photo, photoSwap, moveSheet, cover, coverCtl, sov, bill, itemBill, item, itemProgress, itemCosts, itemform, report, sortedEntries, itemName };
 })();

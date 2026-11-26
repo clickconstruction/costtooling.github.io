@@ -2,14 +2,15 @@
 // and lists the text smaller than 14 px and the tap targets smaller than 48 px. It changes nothing and fails nothing:
 // it prints a table, and writes the detail and a screenshot of each screen to qa/shots-plain/ (git-ignored).
 // Run against a local server: NODE_PATH=<node_modules with playwright> node qa/plain-check.js http://127.0.0.1:8766
+// Add ENGINE=webkit to use Safari's engine instead of Chromium.
 const pw = require('playwright'); const fs = require('fs'), path = require('path');
 const BASE = (process.argv[2] || 'http://127.0.0.1:8766').replace(/\/$/, ''), APP = BASE + '/app';
 const MIN_TEXT = 14, MIN_TAP = 48;
 const OUT = path.join(__dirname, 'shots-plain'); fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(OUT, { recursive: true });
 const SCREENS = [
-  ['Job list', 's=projects'], ['Welcome card', 's=projects&welcome=1'], ['Job home', 's=home'], ['Log', 's=log'], ['New entry', 's=log&new=1'],
-  ['Photo', 's=photo'], ['Cover page', 's=cover'], ['Progress', 's=sov'], ['Bill', 's=sov&m=bill'], ['Line item', 's=item'],
-  ['Report', 's=report'], ['Share sheet', 's=report&sheet=report'], ['Bulb sheet', 's=home&ideas=1'],
+  ['Job list', 's=projects'], ['Welcome card', 's=projects&welcome=1'], ['Job home', 's=home'], ['Photos', 's=log'], ['Add a photo', 's=log&new=1'],
+  ['Photo', 's=photo'], ['Picture to text', 's=cover'], ['Parts', 's=sov'], ['Schedule', 's=sov&m=gantt'], ['Bill', 's=bill'], ['Part', 's=item'],
+  ['Send', 's=report'], ['Share sheet', 's=report&sheet=report'], ['Help sheet', 's=home&help=1'], ['Bulb sheet', 's=home&ideas=1'],
 ];
 
 // Runs in the page. With a sheet open, only the sheet counts; otherwise the screen, the top bar, the tabs and the bulb.
@@ -33,7 +34,7 @@ function measure([minText, minTap]) {
 }
 
 (async () => {
-  const browser = await pw.chromium.launch();
+  const browser = await pw[process.env.ENGINE || 'chromium'].launch();
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   const page = await ctx.newPage(); const errors = [];
   page.on('pageerror', e => errors.push(e.message));

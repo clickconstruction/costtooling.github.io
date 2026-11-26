@@ -17,8 +17,9 @@ const App = (() => {
   // The photo, line item and entry form screens push the screen they were opened from; Back, Cancel and Delete pop it.
   // Landing on a tab root clears it, so Back from a root still follows PARENT.
   let trail = [];
-  const ROOTS = ['projects', 'home', 'log', 'cover', 'sov', 'report'];
+  const ROOTS = ['projects', 'home', 'log', 'sov', 'bill', 'report'];
   const trailPush = () => { if (trail[trail.length - 1] !== cur) trail.push(cur); if (trail.length > 10) trail.shift(); };
+  const trailPeek = fallback => { for (let x = trail.length - 1; x >= 0; x--) { const s = trail[x]; if (s !== cur && s !== 'entryform' && PARENT.hasOwnProperty(s)) return s; } return fallback; };
   const trailPop = fallback => { while (trail.length) { const s = trail.pop(); if (s !== cur && s !== 'entryform' && PARENT.hasOwnProperty(s)) return s; } return fallback; };
   // ---------- session (draft + screen) persistence: iOS reloads the tab after the camera ----------
   const persistSession = () => DB.set('ct-session', { cur, form, editProj, editItem, photoCtx, mode, logFilter, trail, at: Date.now() });
@@ -27,11 +28,14 @@ const App = (() => {
   window.addEventListener('pagehide', stash); document.addEventListener('visibilitychange', () => { if (document.hidden) stash(); });
 
   // ---------- navigation ----------
-  const PARENT = { projects: null, projform: 'projects', home: 'projects', log: 'home', entryform: 'log', photo: 'log', cover: 'home', sov: 'home', item: 'sov', itemform: 'sov', report: 'home', signin: 'projects', join: 'signin', forgot: 'signin', setpass: 'projects', company: 'projects', account: 'projects', team: 'account' };
-  const TABOF = { log: 'log', entryform: 'log', photo: 'log', cover: 'cover', sov: 'sov', item: 'sov', itemform: 'sov', report: 'report', home: 'home' };
-  const SCREEN_NAMES = { projects: 'Projects', projform: 'Project form', home: 'Project home', log: 'Site log', entryform: 'New entry', photo: 'Photo', cover: 'Cover page', sov: 'Progress', item: 'Line item', itemform: 'Line item form', report: 'Report', signin: 'Sign in', join: 'Join', forgot: 'Forgot password', setpass: 'Set password', company: 'Company', account: 'Account', team: 'Team' };
-  function titles(s) { const p = P(); const sub = p ? (p.name || 'Untitled project') : ''; return { projects: ['Projects', 'CostTooling'], projform: [editProj && editProj.id ? 'Edit project' : 'New project', editProj && editProj.id ? sub : 'Set up in a minute'], home: [sub, [p && p.client, p && p.finish && 'due ' + Data.md(p.finish)].filter(Boolean).join(' · ') || 'Project'], log: ['Site log', sub], entryform: [form && form.id ? 'Edit entry' : 'New entry', sub], photo: ['Photo', sub], cover: ['Cover page', sub], sov: ['Progress', sub], item: ['Line item', sub], itemform: [editItem && editItem.id ? 'Edit line item' : 'New line item', sub], report: ['Report', sub], signin: ['Sign in', 'CostTooling'], join: ['Join a company', 'CostTooling'], forgot: ['Reset password', 'CostTooling'], setpass: ['Choose a password', 'CostTooling'], company: ['Your company', 'CostTooling'], account: ['Account', (window.Cloud && Cloud.state().user && Cloud.state().user.email) || 'CostTooling'], team: ['Team', (window.Cloud && (Cloud.state().memberships.find(m => m.company_id === Cloud.state().companyId) || {}).name) || 'Company'] }[s]; }
-  const TOPACT = { projects: ['user', () => Cloud.onStatusTap()], log: ['plus', () => newEntry()], sov: ['plus', () => newItem()], home: ['edit', () => editProject()], item: ['edit', () => editItemForm()], report: ['share', () => openShare('report')], cover: ['share', () => openShare('cover')] };
+  const PARENT = { projects: null, projform: 'projects', home: 'projects', log: 'home', entryform: 'log', photo: 'log', sov: 'home', bill: 'home', item: 'sov', itemform: 'sov', report: 'home', cover: 'report', signin: 'projects', join: 'signin', forgot: 'signin', setpass: 'projects', company: 'projects', account: 'projects', team: 'account' };
+  // The five tabs: Home, Photos, Parts, Bill and Send. Send holds the owner update (the report screen) and the picture to text (the cover screen).
+  const TABOF = { home: 'home', log: 'log', entryform: 'log', photo: 'log', sov: 'sov', item: 'sov', itemform: 'sov', bill: 'bill', report: 'send', cover: 'send' };
+  // The Back button says where it goes.
+  const BACKWORD = { projects: 'Jobs', home: 'Home', log: 'Photos', sov: 'Parts', bill: 'Bill', report: 'Send' };
+  const backDest = () => cur === 'entryform' ? trailPeek('log') : cur === 'photo' || cur === 'item' || cur === 'itemform' ? trailPeek(PARENT[cur]) : PARENT[cur] || 'projects';
+  const SCREEN_NAMES = { projects: 'Your jobs', projform: 'Job form', home: 'Job home', log: 'Photos', entryform: 'Add a photo', photo: 'Photo', cover: 'Picture to text', sov: 'Parts', bill: 'Bill', item: 'Part', itemform: 'Part form', report: 'Send', signin: 'Sign in', join: 'Join', forgot: 'Forgot password', setpass: 'Set password', company: 'Company', account: 'Account', team: 'Team' };
+  function titles(s) { const p = P(); const sub = p ? (p.name || 'Untitled job') : ''; const it = p && (p.items || []).find(x => x.id === photoCtx.itemId); return { projects: ['Your jobs', 'CostTooling'], projform: [editProj && editProj.id ? 'Change this job' : 'New job', editProj && editProj.id ? sub : 'Set up in a minute'], home: [sub, 'What to do on this job'], log: ['Photos', sub], entryform: [form && form.id ? 'Change a photo' : 'Add a photo', sub], photo: ['Photo', sub], cover: ['A picture to text', sub], sov: ['Parts of the job', sub], bill: ['The bill', sub], item: [(it && it.n) || 'Part', 'One part of the job'], itemform: [editItem && editItem.id ? 'Change this part' : 'New part', sub], report: ['Send', sub], signin: ['Sign in', 'CostTooling'], join: ['Join a company', 'CostTooling'], forgot: ['Reset password', 'CostTooling'], setpass: ['Choose a password', 'CostTooling'], company: ['Your company', 'CostTooling'], account: ['Account', (window.Cloud && Cloud.state().user && Cloud.state().user.email) || 'CostTooling'], team: ['Team', (window.Cloud && (Cloud.state().memberships.find(m => m.company_id === Cloud.state().companyId) || {}).name) || 'Company'] }[s]; }
   function render(s) {
     const t0 = performance.now(); try { renderInner(s); } finally { lastRender = Math.round(performance.now() - t0); if (lastRender > 50) logLine('slow render ' + s + ' ' + lastRender + 'ms'); }
   }
@@ -47,7 +51,8 @@ const App = (() => {
     else if (s === 'entryform') UI.entryform(p, form);
     else if (s === 'photo') { const e = p.entries.find(x => x.id === photoCtx.entryId); if (!e) return go('log'); UI.photo(p, e, Math.min(photoCtx.idx, Math.max(0, e.photos.length - 1))); }
     else if (s === 'cover') { const sel = UI.cover(p, k); Render.cover($('cover'), p, k, sel); }
-    else if (s === 'sov') UI.sov(p, k, mode);
+    else if (s === 'sov') UI.sov(p, k, mode === 'gantt' ? 'gantt' : 'items');
+    else if (s === 'bill') UI.bill(p, k);
     else if (s === 'item') { const i = p.items.find(x => x.id === photoCtx.itemId); if (!i) return go('sov'); UI.item(p, i, flash); flash = null; }
     else if (s === 'itemform') UI.itemform(p, editItem || {});
     else if (s === 'report') { UI.report(p, k); buildReport(); }
@@ -63,10 +68,10 @@ const App = (() => {
     const cloudScreen = !!(window.Cloud && Cloud.SCREENS.includes(s));
     $('tabs').classList.toggle('hide', s === 'projects' || s === 'projform' || cloudScreen);
     $('fab').classList.toggle('hide', s === 'entryform' || s === 'itemform' || s === 'projform' || cloudScreen);
-    const cb = $('cloudBtn'); if (cb) cb.style.display = (s === 'projects' || s === 'home') && window.Cloud && Cloud.enabled() ? '' : 'none';
+    const cb = $('cloudBtn'); if (cb) cb.style.display = s === 'projects' && window.Cloud && Cloud.enabled() ? '' : 'none';
     const t = titles(s); $('ttl').textContent = t[0]; $('sub').textContent = t[1];
     $('back').classList.toggle('show', s !== 'projects'); $('mark').style.display = s === 'projects' ? '' : 'none';
-    const ta = (s === 'projects' && !(window.Cloud && Cloud.enabled())) ? null : TOPACT[s]; $('topAct').style.display = ta ? '' : 'none'; if (ta) { $('topAct').innerHTML = UI.ic(ta[0], 18); $('topAct').onclick = ta[1]; }
+    const bw = BACKWORD[backDest()] || 'Back'; $('backLbl').textContent = bw; $('back').setAttribute('aria-label', bw === 'Back' ? 'Back' : 'Back to ' + bw);
     document.querySelector('.screen.on').scrollTop = 0; closeSheet(); persistSession();
   }
   const refresh = () => render(cur);
@@ -79,23 +84,23 @@ const App = (() => {
   function pickTemplate(k) { tpl = k; document.querySelectorAll('.tpl div').forEach(d => d.classList.toggle('on', d.textContent.startsWith(Data.TEMPLATES[k].name))); }
   function saveProject() {
     const v = id => ($(id) || {}).value || '';
-    const name = v('pfName').trim(); if (!name) { $('pfName').focus(); return toast('Give the project a name'); }
+    const name = v('pfName').trim(); if (!name) { $('pfName').focus(); return toast('Give the job a name'); }
     if (editProj.id) { const p = P(); Object.assign(p, { name, client: v('pfClient').trim(), addr: v('pfAddr').trim(), start: v('pfStart'), finish: v('pfFinish') }); save(); toast('Saved'); return go('home'); }
     const p = { id: Data.uid('pr'), name, client: v('pfClient').trim(), addr: v('pfAddr').trim(), start: v('pfStart'), finish: v('pfFinish'), items: Data.itemsFromTemplate(tpl, v('pfStart'), v('pfFinish'), +v('pfContract') || 0), entries: [], cover: { picked: [], layout: 'hero', head: '', note: '', numMode: 'auto', manual: {} } };
-    S.projects.unshift(p); S.cur = p.id; save(); toast('Project created'); go('home');
+    S.projects.unshift(p); S.cur = p.id; save(); toast('Job created'); go('home');
   }
-  function deleteProject() { const p = P(); confirm('Delete this project?', `"${p.name}" and its ${p.entries.length} log entr${p.entries.length === 1 ? 'y' : 'ies'} will be removed from this phone.`, async () => { if (window.Cloud) Cloud.deleteProject(p.id); for (const e of p.entries) for (const ph of e.photos) if (ph.id) await Photos.remove(ph.id); S.projects = S.projects.filter(x => x.id !== p.id); S.cur = S.projects[0] ? S.projects[0].id : null; save(); toast('Project deleted'); go('projects'); }); }
+  function deleteProject() { const p = P(); confirm('Delete this job?', `"${p.name}" and its photos and notes will be removed from this phone.`, async () => { if (window.Cloud) Cloud.deleteProject(p.id); for (const e of p.entries) for (const ph of e.photos) if (ph.id) await Photos.remove(ph.id); S.projects = S.projects.filter(x => x.id !== p.id); S.cur = S.projects[0] ? S.projects[0].id : null; save(); toast('Job deleted'); go('projects'); }); }
   function restoreSample() { S.projects.push(Data.sampleProject()); save(); toast('Sample job is back'); refresh(); }
 
   // ---------- log entries ----------
   /** A line item id tags the new entry up front, and a date puts it on that day (Add to this day in a line item's folder). With no id, the line item filtered in the log is the default, but only when starting from the log. */
-  function newEntry(itemId, date) { const has = id => !!id && (P().items || []).some(i => i.id === id); const pick = has(itemId) ? itemId : cur === 'log' && has(logFilter) ? logFilter : ''; form = { id: null, d: date || Data.iso(Data.today()), time: Data.nowTime(), itemId: pick, wx: 'sun', temp: '', crew: '', note: '', photos: [], added: [] }; trailPush(); go('entryform'); }
+  function newEntry(itemId, date) { const has = id => !!id && (P().items || []).some(i => i.id === id); const pick = has(itemId) ? itemId : cur === 'log' && has(logFilter) ? logFilter : ''; form = { id: null, d: date || Data.iso(Data.today()), time: Data.nowTime(), itemId: pick, wx: '', temp: '', crew: '', note: '', photos: [], added: [] }; trailPush(); go('entryform'); }
   function editEntry(id) { const e = P().entries.find(x => x.id === id); if (!e) return; form = Object.assign({ added: [] }, JSON.parse(JSON.stringify(e))); trailPush(); go('entryform'); }
   function cam() { captureForm(); persistSession(); $('pendHint').textContent = 'Preparing…'; $('fileCam').click(); } function gal() { captureForm(); persistSession(); $('pendHint').textContent = 'Preparing…'; $('fileGal').click(); }
   async function filesPicked(input) {
     const files = [...input.files]; input.value = ''; const hint = $('pendHint');
     if (!files.length) { if (hint) hint.textContent = 'Take a photo, or pick ones you were texted.'; return; }
-    if (!form) form = { id: null, d: Data.iso(Data.today()), time: Data.nowTime(), itemId: '', wx: 'sun', temp: '', crew: '', note: '', photos: [], added: [] };
+    if (!form) form = { id: null, d: Data.iso(Data.today()), time: Data.nowTime(), itemId: '', wx: '', temp: '', crew: '', note: '', photos: [], added: [] };
     importing += files.length; setFormBusy(true); let n = 0;
     for (const f of files) {
       n++; if (hint) hint.textContent = 'Importing ' + n + ' of ' + files.length + '…';
@@ -121,13 +126,13 @@ const App = (() => {
     // Land where it went: the line item's folder, with the entry outlined. Untagged entries land in the log.
     const it = rec.itemId && p.items.find(x => x.id === rec.itemId);
     if (it) { photoCtx.itemId = it.id; flash = rec.id; go('item'); toast(`Saved under ${it.n} · Day ${Data.itemDay(p, it.id, rec.d)}`); }
-    else { toast(wasNew ? 'Saved to the log · no line item' : 'Entry updated'); go('log'); }
+    else { toast(wasNew ? 'Saved under Photos. No part picked.' : 'Saved'); go('log'); }
   }
   async function cancelEntry() { if (importing) return toast('Still importing photos…'); if (form) for (const id of form.added) await Photos.remove(id); form = null; persistSession(); go(trailPop('log')); }
-  function deleteEntry(id) { const p = P(), e = p.entries.find(x => x.id === id); if (!e) return; confirm('Delete this entry?', 'The photo' + (e.photos.length > 1 ? 's' : '') + ' and note will be removed from this phone.', async () => { for (const ph of e.photos) if (ph.id) await Photos.remove(ph.id); p.entries = p.entries.filter(x => x.id !== id); p.cover.picked = p.cover.picked.filter(k => !e.photos.some(ph => Data.photoKey(ph) === k)); save(); toast('Entry deleted'); go(trailPop('log')); }); }
+  function deleteEntry(id) { const p = P(), e = p.entries.find(x => x.id === id); if (!e) return; confirm(e.photos.length > 1 ? 'Delete these photos?' : e.photos.length ? 'Delete this photo?' : 'Delete this note?', (e.photos.length > 1 ? 'The photos and the note' : e.photos.length ? 'The photo and its note' : 'The note') + ' will be removed from this phone.', async () => { for (const ph of e.photos) if (ph.id) await Photos.remove(ph.id); p.entries = p.entries.filter(x => x.id !== id); p.cover.picked = p.cover.picked.filter(k => !e.photos.some(ph => Data.photoKey(ph) === k)); save(); toast('Deleted'); go(trailPop('log')); }); }
   function openPhoto(entryId, key) { const e = P().entries.find(x => x.id === entryId); if (!e) return; photoCtx.entryId = entryId; photoCtx.idx = Math.max(0, e.photos.findIndex(ph => Data.photoKey(ph) === key)); trailPush(); go('photo'); }
   function photoIdx(i) { photoCtx.idx = i; const e = P().entries.find(x => x.id === photoCtx.entryId); if (e) UI.photoSwap(P(), e, i); }
-  function usePhotoOnCover() { const p = P(), e = p.entries.find(x => x.id === photoCtx.entryId); const key = Data.photoKey(e.photos[photoCtx.idx]); if (!p.cover.picked.includes(key)) p.cover.picked = [key, ...p.cover.picked].slice(0, 4); save(); go('cover'); toast('Added to the cover page'); }
+  function usePhotoOnCover() { const p = P(), e = p.entries.find(x => x.id === photoCtx.entryId); const key = Data.photoKey(e.photos[photoCtx.idx]); if (!p.cover.picked.includes(key)) p.cover.picked = [key, ...p.cover.picked].slice(0, 4); save(); go('cover'); toast('Added to the picture'); }
   function filterLog(f) { logFilter = f; UI.applyLogFilter(f); }
 
   // ---------- move an entry, or one photo of it, to another line item ----------
@@ -136,7 +141,7 @@ const App = (() => {
   function setMoveMode(m) { moveMode = m; const e = P().entries.find(x => x.id === photoCtx.entryId); if (e) UI.moveSheet(P(), e, m); }
   function moveEntry(itemId) {
     const p = P(), e = p.entries.find(x => x.id === photoCtx.entryId); if (!e) return;
-    const name = itemId ? (p.items.find(i => i.id === itemId) || {}).n : 'No line item';
+    const name = itemId ? (p.items.find(i => i.id === itemId) || {}).n : 'No part';
     if (moveMode === 'photo' && e.photos.length > 1) {
       // One photo leaves as its own entry on the same day, keeping the conditions; the note and the other photos stay.
       const ph = e.photos.splice(photoCtx.idx, 1)[0];
@@ -156,13 +161,17 @@ const App = (() => {
   function coverField(f, v) { P().cover[f] = v; save(); clearTimeout(coverTimer); coverTimer = setTimeout(drawCover, 250); }
   function coverManual(f, v) { P().cover.manual[f] = v; P().cover.numMode = 'manual'; coverField('numMode', 'manual'); }
   function shareResult(r, what) { if (r === 'shared') toast('Shared'); else if (r === 'downloaded') toast(what + ' saved'); else if (r === 'blocked') toast('Tap again to open the share sheet'); else if (r === 'empty') toast('Nothing to share yet'); }
-  async function saveCover() { const b = Render.coverBlob(); if (b) return shareResult(await Render.shareBlob(b, 'costtooling-cover.jpg', 'Progress update'), 'Cover page'); toast('Finishing the cover…'); await Render.ready(); const b2 = Render.coverBlob(); if (b2) shareResult(await Render.shareBlob(b2, 'costtooling-cover.jpg', 'Progress update'), 'Cover page'); }
+  async function saveCover() { const b = Render.coverBlob(); if (b) return shareResult(await Render.shareBlob(b, 'costtooling-cover.jpg', 'Owner update'), 'Picture'); toast('Finishing the picture…'); await Render.ready(); const b2 = Render.coverBlob(); if (b2) shareResult(await Render.shareBlob(b2, 'costtooling-cover.jpg', 'Owner update'), 'Picture'); }
   let reportBlob = null, reportBuilding = null;
   function buildReport() { const p = P(), k = Data.calc(p); reportBlob = null; reportBuilding = Render.report($('reportCanvas'), p, k, UI.sortedEntries(p).flatMap(e => e.photos.map(ph => ({ ph, e }))).slice(0, 3)).then(() => Render.canvasBlob($('reportCanvas'))).then(b => { reportBlob = b; return b; }).catch(e => { console.warn('report', e); return null; }); return reportBuilding; }
 
   // ---------- line items ----------
-  const billMode = () => P().items.some(Data.hasBill); // has this job a bill on any line item?
-  function setPct(id, v, commit) { const p = P(), i = p.items.find(x => x.id === id); if (!i) return; i.pct = +v; UI.itemSlider(i); if (cur === 'item') UI.itemKpis(i, billMode()); if (commit) { save(); if (cur === 'sov') { const k = Data.calc(p); UI.sovSummary(p, k); UI.sovPart(p, k, 'bill'); } } }
+  function setPct(id, v, commit) { const p = P(), i = p.items.find(x => x.id === id); if (!i) return; i.pct = Math.min(100, Math.max(0, +v || 0)); UI.itemProgress(i); UI.itemBill(i, Data.calc(p)); if (commit) save(); }
+  /** Tapping a word stores its percent. Tapping the word a part already reads as changes nothing, so an exact 85% stays 85%. */
+  function setWord(id, n) { const i = P().items.find(x => x.id === id); if (!i || !Data.WORDS[n] || Data.wordIdx(i.pct) === n) return; setPct(id, Data.WORDS[n][1], true); toast('Saved: ' + Data.WORDS[n][0].toLowerCase()); }
+  /** The exact percent, for anyone who wants it: a number from 0 to 100. */
+  function setExact(id, raw) { const i = P().items.find(x => x.id === id); if (!i) return; const s = String(raw ?? '').replace(/[%\s]/g, ''), v = +s; if (s === '' || !isFinite(v) || v < 0 || v > 100) { toast('Type a number from 0 to 100'); const ex = $('exactIn'); if (ex) ex.value = +i.pct || 0; return; } setPct(id, Math.round(v * 10) / 10, true); toast('Saved: ' + (+i.pct || 0) + '% done'); }
+  function toggleExact() { const r = $('exactRow'); if (!r) return; r.hidden = !r.hidden; if (!r.hidden) $('exactIn').focus(); }
   /** What the contractor billed for a line item, typed as a percent or as an amount of its budget. Empty clears it: not billed yet. */
   function setBilled(id, kind, raw) {
     const p = P(), i = p.items.find(x => x.id === id); if (!i) return;
@@ -170,32 +179,29 @@ const App = (() => {
     if (s === '') { if (!Data.hasBill(i)) return back(); delete i.billed; delete i.billedAt; }
     else {
       let v = +s; if (!isFinite(v) || v < 0) return back('Type a number, like 50 or 11,400');
-      if (kind === 'amt') { const b = +i.b || 0; if (!b) return back('Give this line item a budget first'); v = v / b * 100; }
-      if (v > 100.005) toast(kind === 'amt' ? 'Billed stops at the budget. Raise the budget if the contract grew.' : 'Billed stops at 100%');
+      if (kind === 'amt') { const b = +i.b || 0; if (!b) return back('Give this part a budget first'); v = v / b * 100; }
+      if (v > 100.005) toast(kind === 'amt' ? 'The bill cannot be more than the budget. Raise the budget if the price went up.' : 'The bill cannot be more than 100%');
       i.billed = Math.min(100, v); i.billedAt = Data.iso(Data.today());
     }
     save(); const k = Data.calc(p);
     UI.itemBill(i, k);
-    if (cur === 'item') UI.itemKpis(i, k.hasBill);
-    if (cur === 'sov') UI.sovPart(p, k, 'items'); // the sliders are off screen while the bill is typed
   }
-  function openBill() { mode = 'bill'; go('sov'); }
-  function quickPct(id, v) { setPct(id, v, true); }
-  function setMode(m) { mode = m; const parts = { items: $('modeItems'), bill: $('modeBill'), gantt: $('modeGantt') }; if (!parts.items) return; Object.keys(parts).forEach(k => { if (parts[k]) parts[k].style.display = k === m ? '' : 'none'; }); document.querySelectorAll('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.m === m)); }
+  function openBill() { go('bill'); }
+  function setMode(m) { if (m === 'bill') return go('bill'); mode = m === 'gantt' ? 'gantt' : 'items'; const parts = { items: $('modeItems'), gantt: $('modeGantt') }; if (!parts.items) return; Object.keys(parts).forEach(k => { if (parts[k]) parts[k].style.display = k === mode ? '' : 'none'; }); document.querySelectorAll('#modeSeg button').forEach(b => b.classList.toggle('on', b.dataset.m === mode)); }
   function openGantt() { mode = 'gantt'; go('sov'); }
   function openItem(id) { photoCtx.itemId = id; trailPush(); go('item'); }
   function newItem() { editItem = {}; trailPush(); go('itemform'); }
   function editItemForm() { editItem = Object.assign({}, P().items.find(x => x.id === photoCtx.itemId)); trailPush(); go('itemform'); }
-  function saveItem() { const v = id => ($(id) || {}).value || ''; const n = v('ifName').trim(); if (!n) { $('ifName').focus(); return toast('Give the line item a name'); } const p = P(); if (editItem.id) { Object.assign(p.items.find(x => x.id === editItem.id), { n, b: +v('ifBudget') || 0, s: v('ifStart'), e: v('ifEnd') }); save(); toast('Saved'); return go(trailPop('item')); } const i = { id: Data.uid('i'), n, b: +v('ifBudget') || 0, pct: 0, s: v('ifStart'), e: v('ifEnd'), costs: [] }; p.items.push(i); save(); toast('Line item added'); go(trailPop('sov')); }
-  function deleteItem(id) { const p = P(), i = p.items.find(x => x.id === id); confirm('Delete this line item?', `"${i.n}" and its logged costs will be removed. Photos tagged to it stay in the log.`, () => { p.items = p.items.filter(x => x.id !== id); p.entries.forEach(e => { if (e.itemId === id) e.itemId = ''; }); save(); toast('Line item deleted'); go(trailPop('sov')); }); }
-  function addCost(itemId) { const i = P().items.find(x => x.id === itemId); const desc = $('cfDesc').value.trim(), amt = +$('cfAmt').value; if (!desc || !amt) return toast('Add what it was and how much'); i.costs.push({ id: Data.uid('c'), desc, amt, date: $('cfDate').value }); save(); toast('Cost added'); UI.itemCosts(i); UI.itemKpis(i, billMode()); UI.itemSlider(i); }
-  function deleteCost(itemId, costId) { const i = P().items.find(x => x.id === itemId); const c = (i.costs || []).find(x => x.id === costId); if (!c) return; confirm('Remove this cost?', `"${c.desc}" for ${Data.fmt$(c.amt)} will be removed.`, () => { i.costs = i.costs.filter(x => x.id !== costId); save(); UI.itemCosts(i); UI.itemKpis(i, billMode()); UI.itemSlider(i); toast('Cost removed'); }); }
+  function saveItem() { const v = id => ($(id) || {}).value || ''; const n = v('ifName').trim(); if (!n) { $('ifName').focus(); return toast('Give the part a name'); } const p = P(); if (editItem.id) { Object.assign(p.items.find(x => x.id === editItem.id), { n, b: +v('ifBudget') || 0, s: v('ifStart'), e: v('ifEnd') }); save(); toast('Saved'); return go(trailPop('item')); } const i = { id: Data.uid('i'), n, b: +v('ifBudget') || 0, pct: 0, s: v('ifStart'), e: v('ifEnd'), costs: [] }; p.items.push(i); save(); toast('Part added'); go(trailPop('sov')); }
+  function deleteItem(id) { const p = P(), i = p.items.find(x => x.id === id); confirm('Delete this part?', `"${i.n}" and its costs will be removed. Its photos stay under Photos.`, () => { p.items = p.items.filter(x => x.id !== id); p.entries.forEach(e => { if (e.itemId === id) e.itemId = ''; }); save(); toast('Part deleted'); go(trailPop('sov')); }); }
+  function addCost(itemId) { const i = P().items.find(x => x.id === itemId); const desc = $('cfDesc').value.trim(), amt = +$('cfAmt').value; if (!desc || !amt) return toast('Add what it was and how much'); i.costs.push({ id: Data.uid('c'), desc, amt, date: $('cfDate').value }); save(); toast('Cost added'); UI.itemCosts(i); }
+  function deleteCost(itemId, costId) { const i = P().items.find(x => x.id === itemId); const c = (i.costs || []).find(x => x.id === costId); if (!c) return; confirm('Remove this cost?', `"${c.desc}" for ${Data.fmt$(c.amt)} will be removed.`, () => { i.costs = i.costs.filter(x => x.id !== costId); save(); UI.itemCosts(i); toast('Cost removed'); }); }
 
   // ---------- sharing ----------
-  function openShare(kind) { shareKind = kind; $('shareTitle').textContent = kind === 'cover' ? 'Share cover page' : 'Share report'; showSheet('shareSheet'); }
+  function openShare(kind) { shareKind = kind; $('shareTitle').textContent = kind === 'cover' ? 'Send this picture' : 'Send the owner update'; showSheet('shareSheet'); }
   async function shareDo(action, kind) {
     kind = kind || shareKind; closeSheet(); const p = P(), k = Data.calc(p);
-    const name = kind === 'cover' ? 'costtooling-cover.jpg' : 'costtooling-report.jpg', title = kind === 'cover' ? 'Progress update' : 'Progress report', what = kind === 'cover' ? 'Cover page' : 'Report';
+    const name = kind === 'cover' ? 'costtooling-cover.jpg' : 'costtooling-report.jpg', title = 'Owner update', what = kind === 'cover' ? 'Picture' : 'Owner update';
     const getBlob = () => kind === 'cover' ? Render.coverBlob() : reportBlob;
     if (action === 'share' || action === 'save') {
       let b = getBlob();
@@ -211,9 +217,9 @@ const App = (() => {
     }
     else if (action === 'mail') {
       // A job with a bill sends billed against in place; any other job sends what it always did.
-      const nums = k.hasBill ? Data.billNums(k).map(([v, l]) => v + ' ' + l).join(' · ') + (k.aheadItems.length ? '\n\n' + k.aheadItems.map(Data.aheadLine).join('\n') : '') : `${Math.round(k.pct * 100)}% complete · ${Data.fmt$(k.cost)} cost so far · ${Data.fmt$(k.toGo)} to finish · ${k.daysLeft} days left`;
-      const line = i => k.hasBill ? `${i.n}: ${i.pct || 0}% in place of ${Data.fmt$(i.b)}, ${Data.hasBill(i) ? 'billed ' + Data.fmtPct(Data.itemBilledPct(i)) + (Data.billState(i) === 'ahead' ? ' (' + Data.aheadLabel(i) + ')' : '') : 'not billed yet'}` : `${i.n}: ${i.pct || 0}% of ${Data.fmt$(i.b)}, ${Data.fmt$(Data.itemCost(i))} spent`;
-      const body = `${p.name}\nProgress ${Data.mdy(Data.iso(Data.today()))}\n\n${nums}\n\n${p.items.map(line).join('\n')}\n\n${p.cover.note || ''}\n\n(Attach the saved image for the full page.)`; location.href = 'mailto:?subject=' + encodeURIComponent('Progress: ' + p.name) + '&body=' + encodeURIComponent(body);
+      const nums = k.hasBill ? Data.billNums(k).map(([v, l]) => v + ' ' + l).join(' · ') + (k.aheadItems.length ? '\n\n' + k.aheadItems.map(Data.aheadLine).join('\n') : '') : `${Math.round(k.pct * 100)}% done · ${Data.fmt$(k.cost)} cost so far · ${Data.fmt$(k.toGo)} to finish · ${k.daysLeft} days left`;
+      const line = i => k.hasBill ? `${i.n}: ${i.pct || 0}% done of ${Data.fmt$(i.b)}, ${Data.hasBill(i) ? 'billed ' + Data.fmtPct(Data.itemBilledPct(i)) + (Data.billState(i) === 'ahead' ? ' (' + Data.aheadLabel(i) + ')' : '') : 'not billed yet'}` : `${i.n}: ${i.pct || 0}% done of ${Data.fmt$(i.b)}, ${Data.fmt$(Data.itemCost(i))} spent`;
+      const body = `${p.name}\nOwner update, ${Data.mdy(Data.iso(Data.today()))}\n\n${nums}\n\n${p.items.map(line).join('\n')}\n\n${p.cover.note || ''}\n\n(Attach the saved picture for the full page.)`; location.href = 'mailto:?subject=' + encodeURIComponent('Owner update: ' + p.name) + '&body=' + encodeURIComponent(body);
     }
   }
 
@@ -221,12 +227,13 @@ const App = (() => {
   function showSheet(id) { closeSheet(); $('sheetBg').classList.add('show'); $(id).classList.add('show'); }
   function closeSheet() { $('sheetBg').classList.remove('show'); document.querySelectorAll('.sheet').forEach(s => s.classList.remove('show')); }
   function confirm(title, text, fn) { $('confirmTitle').textContent = title; $('confirmText').textContent = text; $('confirmBtn').onclick = () => { closeSheet(); fn(); }; showSheet('confirmSheet'); }
-  let tt; function toast(m) { const t = $('toast'); t.innerHTML = UI.ic('check', 16) + '<span>' + UI.esc(m) + '</span>'; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 1800); }
+  let tt; function toast(m) { const t = $('toast'); t.innerHTML = UI.ic('check', 16) + '<span>' + UI.esc(m) + '</span>'; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 5000); }
 
   // ---------- ideas ----------
   let ideaImp = 'want';
   const ideas = () => DB.get('ct-ideas') || [];
   function renderIdeas() { const list = ideas(); $('fabN').textContent = list.length; $('fabN').classList.toggle('show', list.length > 0); $('ideaList').innerHTML = list.slice().reverse().map(i => `<div class="row"><div class="l"><b>${UI.esc(i.text)}</b><small>${UI.esc(i.screen)} · ${UI.esc(i.imp)} · ${UI.esc(i.when)}</small></div></div>`).join(''); }
+  function openHelp() { showSheet('helpSheet'); }
   function openIdeas() { $('ideaScreen').textContent = SCREEN_NAMES[cur] || cur; renderIdeas(); showSheet('ideaSheet'); }
   function saveIdea() { const t = $('ideaText').value.trim(); if (!t) return $('ideaText').focus(); const list = ideas(); list.push({ text: t, screen: SCREEN_NAMES[cur] || cur, imp: { nice: 'nice to have', want: "I'd use this", must: 'must have' }[ideaImp], when: new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) }); DB.set('ct-ideas', list); $('ideaText').value = ''; renderIdeas(); toast('Saved. Keep going!'); }
   function sendIdeas() { const list = ideas(); if (!list.length) return toast('No ideas saved yet'); const who = Q.get('for') || DB.get('ct-for') || ''; const body = `Ideas for CostTooling${who ? ' from ' + who : ''}\n\n` + list.map((i, n) => `${n + 1}. [${i.screen} · ${i.imp}] ${i.text}`).join('\n') + `\n\n(sent from the app, ${/iPhone|iPad/.test(navigator.userAgent) ? 'iPhone' : /Android/.test(navigator.userAgent) ? 'Android' : 'desktop'})` + ((DB.get('ct-log') || []).length ? '\n\nDiagnostics:\n' + (DB.get('ct-log') || []).slice(-20).join('\n') : ''); location.href = 'mailto:' + FEEDBACK_EMAIL + '?subject=' + encodeURIComponent('CostTooling ideas' + (who ? ' from ' + who : '')) + '&body=' + encodeURIComponent(body); }
@@ -236,7 +243,7 @@ const App = (() => {
   async function exportData() { closeSheet(); const name = 'costtooling-backup-' + Data.iso(Data.today()) + '.json'; const blob = new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' }); const file = new File([blob], name, { type: 'application/json' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: 'CostTooling backup' }); return toast('Backup shared (photos not included yet)'); } catch (e) { if (e.name === 'AbortError') return; } }
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); toast('Backup saved (photos not included yet)'); }
-  function resetAll() { confirm('Start over?', 'This removes every project, photo and idea from this phone and brings back the sample job.', async () => { await DB.clearPhotos(); DB.del(DB.KEY); DB.del('ct-ideas'); DB.del('ct-session'); DB.del('ct-log'); location.href = location.pathname; }); }
+  function resetAll() { confirm('Start over?', 'This removes every job, photo and idea from this phone and brings back the sample job.', async () => { await DB.clearPhotos(); DB.del(DB.KEY); DB.del('ct-ideas'); DB.del('ct-session'); DB.del('ct-log'); location.href = location.pathname; }); }
 
   // ---------- diagnostics ----------
   const LOG = 'ct-log'; const logLine = m => { const l = DB.get(LOG) || []; l.push(new Date().toISOString().slice(11, 19) + ' ' + m); DB.set(LOG, l.slice(-50)); };
@@ -264,7 +271,7 @@ const App = (() => {
   if (Q.get('job') && S.projects.some(p => p.id === Q.get('job'))) S.cur = Q.get('job');
   const sess = Q.get('s') || Q.get('new') || Q.get('welcome') || Q.get('tour') || Q.get('auth') || Q.get('code') ? null : DB.get('ct-session');
   if (sess && sess.at && Date.now() - sess.at < 6 * 3600e3 && P()) {
-    if (sess.photoCtx) photoCtx = Object.assign(photoCtx, sess.photoCtx); if (sess.mode) mode = sess.mode; if (sess.logFilter) logFilter = sess.logFilter; if (Array.isArray(sess.trail)) trail = sess.trail;
+    if (sess.photoCtx) photoCtx = Object.assign(photoCtx, sess.photoCtx); if (sess.mode) mode = sess.mode; if (mode === 'bill') { mode = 'items'; if (sess.cur === 'sov') sess.cur = 'bill'; } if (sess.logFilter) logFilter = sess.logFilter; if (Array.isArray(sess.trail)) trail = sess.trail;
     if (sess.form) { form = sess.form; form.added ||= []; form.photos ||= []; go('entryform'); toast('Picked up where you left off'); }
     else if (sess.editItem) { editItem = sess.editItem; go('itemform'); }
     else if (sess.editProj) { editProj = sess.editProj; go('projform'); }
@@ -274,12 +281,12 @@ const App = (() => {
   setTimeout(async () => { try { const ids = await Photos.listIds(); const used = new Set(); S.projects.forEach(p => p.entries.forEach(e => e.photos.forEach(ph => ph.id && used.add(ph.id)))); if (form) form.photos.forEach(ph => ph.id && used.add(ph.id)); const orphans = (ids || []).filter(id => !used.has(id)); for (const id of orphans) await Photos.remove(id); if (orphans.length) logLine('cleaned ' + orphans.length + ' orphan photo(s)'); } catch (e) { logLine('cleanup: ' + (e && e.message)); } }, 3000);
   if (Q.get('new')) newEntry(); if (Q.get('s') === 'projform') newProject(); if (Q.get('s') === 'itemform') newItem(); if (Q.get('m') === 'gantt' || Q.get('m') === 'bill') { setMode(Q.get('m')); } if (Q.get('layout')) coverLayout(Q.get('layout'));
   renderIdeas(); if (Q.get('tour')) setTimeout(() => Tour.start(), 500); else if (!DB.get('ct-welcomed') || Q.get('welcome')) setTimeout(openWelcome, 400);
-  if (Q.get('ideas')) setTimeout(openIdeas, 300); if (Q.get('sheet')) setTimeout(() => openShare(Q.get('sheet')), 300);
+  if (Q.get('ideas')) setTimeout(openIdeas, 300); if (Q.get('help')) setTimeout(openHelp, 300); if (Q.get('sheet')) setTimeout(() => openShare(Q.get('sheet')), 300);
   if (Q.get('s') === 'photo' && P() && P().entries[0]) openPhoto(P().entries[0].id);
   if (Q.get('s') === 'item' && P() && P().items[2]) openItem(P().items[2].id);
 
   }
   function refreshAfterSync() { if (cur === 'projects' || cur === 'home') render(cur); }
-  return { boot, go, current: () => cur, toast, confirm, refreshAfterSync, openGantt, quickPct, openProject, newProject, editProject, pickTemplate, saveProject, deleteProject, restoreSample, newEntry, editEntry, cam, gal, setWx, removeFormPhoto, saveEntry, cancelEntry, deleteEntry, openPhoto, photoIdx, usePhotoOnCover, openMove, setMoveMode, moveEntry, filterLog, coverPick, coverLayout, coverNum, coverField, coverManual, saveCover, setPct, setBilled, openBill, setMode, openItem, newItem, saveItem, deleteItem, addCost, deleteCost, openShare, shareDo, closeSheet, openIdeas, saveIdea, sendIdeas, openWelcome, exportData, resetAll, state: () => S, filesPicked };
+  return { boot, go, current: () => cur, toast, confirm, refreshAfterSync, openGantt, openProject, newProject, editProject, pickTemplate, saveProject, deleteProject, restoreSample, newEntry, editEntry, cam, gal, setWx, removeFormPhoto, saveEntry, cancelEntry, deleteEntry, openPhoto, photoIdx, usePhotoOnCover, openMove, setMoveMode, moveEntry, filterLog, coverPick, coverLayout, coverNum, coverField, coverManual, saveCover, setPct, setWord, setExact, toggleExact, setBilled, openBill, setMode, openItem, newItem, editItem: editItemForm, saveItem, deleteItem, addCost, deleteCost, openShare, shareDo, closeSheet, openHelp, openIdeas, saveIdea, sendIdeas, openWelcome, exportData, resetAll, state: () => S, filesPicked };
 })();
 App.boot();
